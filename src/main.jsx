@@ -5,13 +5,16 @@ import App from './App.jsx'
 import { BrowserRouter } from 'react-router-dom'
 import { UserProvider } from './context/UserContext'
 import { Toaster } from './components/ui/toaster'
+import { SidebarProvider } from './context/SidebarContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
 
     <BrowserRouter>
       <UserProvider>
-        <App />
+        <SidebarProvider>
+          <App />
+        </SidebarProvider>
       </UserProvider>
     </BrowserRouter>
     <Toaster />

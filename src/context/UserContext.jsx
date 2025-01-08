@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const UserContext = createContext();
 
@@ -9,13 +10,45 @@ export const UserProvider = ({ children }) => {
         email: '',
         isAuthenticated: false
     });
+    const navigate = useNavigate();
+    useEffect(() => {
+        console.log(user, 'user')
+    }, [user])
 
-useEffect(()=>{
-    console.log(user, 'user')
-},[user])
+    useEffect(()=>{
+        localStorage.getItem('id') && setUser({
+            id: localStorage.getItem('id'),
+            email: localStorage.getItem('email'),
+            isAuthenticated: true
+        })
+        
+    },[])
+
+    useEffect(() => {
+        if(user.isAuthenticated){
+            navigate('/dashboard')
+        }
+    },[user.isAuthenticated])
+
+
+    function logout(){
+        localStorage.removeItem('id')
+        localStorage.removeItem('email')
+        setUser({
+            id: null,
+            email: '',
+            isAuthenticated: false
+        })
+        navigate('/login')
+        toast({
+            title: 'Success',
+            description: 'Logged out successfully',
+            variant: 'default'
+        })
+    }
 
     return (
-        <UserContext.Provider value={{ user, setUser }}>
+        <UserContext.Provider value={{ user, setUser,logout }}>
             {children}
         </UserContext.Provider>
     );
