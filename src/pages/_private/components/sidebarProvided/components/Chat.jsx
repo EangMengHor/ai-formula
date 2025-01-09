@@ -5,10 +5,7 @@ import { useParams } from "react-router-dom";
 import { parseContent } from "../../../../../lib/utils";
 import ChatInput from "../../../../../components/custom/ChatInput";
 import Markdown from "react-markdown";
-import rehypeHighlight from 'rehype-highlight';
-import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import Latex from "react-latex-next";
 import remarkGfm from "remark-gfm";
 import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
@@ -20,9 +17,7 @@ export default function Chat() {
 
     // this states activates when user want to fetch the chat history
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [conversation, setConversation] = useState([
-
-    ]);
+    const [conversation, setConversation] = useState([]);
     // when user enter chat and ai is loading response
     const [isNextChatLoading, setIsNextChatLoading] = useState(false);
     // current prompt of the user 
@@ -32,9 +27,6 @@ export default function Chat() {
     const [fallBackPrompt, setFallBackPrompt] = useState("")
     const { toast } = useToast();
 
-    useEffect(() => {
-        console.log(conversation, "conversation")
-    }, [conversation])
     // check if local storage has prompt if so then execture it or load the chat
     useEffect(() => {
         async function getPurpose() {
@@ -42,7 +34,6 @@ export default function Chat() {
             if (localItem) {
                 setFallBackPrompt(localItem);
                 setIsNextChatLoading(true);
-                localStorage.removeItem('prompt');
             }
             else {
                 setIsChatLoading(true);
@@ -50,9 +41,14 @@ export default function Chat() {
         }
 
         getPurpose();
-    }, [])
+    }, [id])
     useEffect(() => {
-        setIsChatLoading(true);
+        if (localStorage.getItem('prompt')) {
+            localStorage.removeItem('prompt');
+        }
+        else {
+            setIsChatLoading(true);
+        }
     }, [id])
     useEffect(() => {
         if (fallBackPrompt.length > 0) {
@@ -61,6 +57,7 @@ export default function Chat() {
     }, [fallBackPrompt])
 
     async function handleSubmit(prompt) {
+        setIsNextChatLoading(true);
         try {
             setConversation((prev) => {
                 return [...prev, { message: prompt, role: "human" }]
@@ -83,6 +80,7 @@ export default function Chat() {
 
         } finally {
             setIsNextChatLoading(false);
+            localStorage.setItem('isFallbackedUser', 'false');
         }
     }
 
@@ -91,6 +89,11 @@ export default function Chat() {
     useEffect(() => {
         async function fetchConversations() {
             try {
+                const isFallback = localStorage.getItem('isFallbackedUser');
+                console.log(isFallback, 'isFallback');
+                if (isFallback == "true") {
+                    return
+                }
                 const res = await getConversationHistory(id);
                 if (res.success) {
                     console.log(res.data, 'chat history');
@@ -141,7 +144,7 @@ export default function Chat() {
                     if (item.role === "human") {
                         return (
                             <div key={index} className="bg-gray-600 p-2 rounded shadow">
-                                {item.message}
+                                {item.message.replaceAll('Provided Document : No document provided', '')}
                             </div>
                         );
                     } else {
@@ -170,11 +173,20 @@ export default function Chat() {
                         );
                     }
                 })}
+                {
+                    isNextChatLoading && (
+                        <div className="flex gap-2 p-2 bg-slate-800 w-fit rounded-md justify-start items-start">
+                            <LoaderCircle className="animate-spin" />
+                            <p>Agent Is Loading Your Response</p>
+                        </div>
+                    )
+                }
             </div>
 
             {/* Chat input */}
             <div className="w-full  p-4 sticky bottom-0 bg-slate-950 mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
+
                     <ChatInput
                         input={prompt}
                         setInput={setPrompt}

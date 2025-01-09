@@ -21,6 +21,7 @@ export default function Dashboard() {
                 console.log(res, 'res')
                 appendToChatHistory(res.data)
                 localStorage.setItem('prompt', value);
+                localStorage.setItem('isFallbackedUser', 'true');
                 navigate(`/chat/${res.data.sessionid}`)
             }
         } catch (error) {
