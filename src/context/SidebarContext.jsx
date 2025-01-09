@@ -6,18 +6,16 @@ const SidebarContext = createContext();
 
 export const SidebarProvider = ({ children }) => {
     const [chatHistory, setChatHistory] = useState({});
-    const [currentActiveChat, setCurrentActiveChat] = useState(null);
+    const [currentActiveChat, setCurrentActiveChat] = useState("");
     const [isCurrentActiveChat, setIsCurrentActiveChat] = useState(false);
     const [isSidebarChatHistoryLoading, setIsSidebarChatHistoryLoading] = useState(false);
-    const [pagination, setPagination] = useState(1);
-    const [isMore, setIsMore] = useState(true);
     const { user } = useUser();
 
     useEffect(() => {
         const fetchChatHistory = async () => {
-            if (user.id && isMore && user.isAuthenticated) {
+            if (user.id && user.isAuthenticated) {
                 setIsSidebarChatHistoryLoading(true);
-                const res = await getChatSessionHistory(user.id, pagination);
+                const res = await getChatSessionHistory(user.id);
                 console.log(res, 'res');
                 if (res.success) {
                     setChatHistory(prevChatHistory => {
@@ -31,17 +29,14 @@ export const SidebarProvider = ({ children }) => {
                         }
                         return newChatHistory;
                     });
-                    // setPagination(prevPagination => prevPagination + 1);
-                    // if (Object.values(res.data).flat().length < 20) {
-                    //     setIsMore(false);
-                    // }
+
                 }
                 setIsSidebarChatHistoryLoading(false);
             }
         };
 
         fetchChatHistory();
-    }, [user, pagination, isMore, user.isAuthenticated]);
+    }, [user, user.isAuthenticated]);
 
     function appendToChatHistory(item) {
         const isToday = Object.keys(chatHistory).includes('today');
@@ -62,13 +57,15 @@ export const SidebarProvider = ({ children }) => {
         }
     }
 
-    function clearAllStates(){
+    useEffect(() => {   
+        console.log(currentActiveChat, "chatHistory")
+    }, [currentActiveChat])
+
+    function clearAllStates() {
         setChatHistory({})
         setCurrentActiveChat(null)
         setIsCurrentActiveChat(false)
         setIsSidebarChatHistoryLoading(false)
-        setPagination(1)
-        setIsMore(true)
     }
 
 
@@ -78,14 +75,10 @@ export const SidebarProvider = ({ children }) => {
             currentActiveChat,
             isCurrentActiveChat,
             isSidebarChatHistoryLoading,
-            pagination,
-            isMore,
             setChatHistory,
             setCurrentActiveChat,
             setIsCurrentActiveChat,
             setIsSidebarChatHistoryLoading,
-            setPagination,
-            setIsMore,
             appendToChatHistory,
             clearAllStates
         }}>

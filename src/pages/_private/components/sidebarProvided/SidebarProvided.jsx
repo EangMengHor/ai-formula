@@ -15,20 +15,33 @@ import {
 import { AppSidebar } from "@/pages/_private/components/sidebarProvided/app-sidebar.jsx"
 import { useLocation } from "react-router-dom"
 import Dashboard from "./components/Dashboard"
+import Chat from "./components/Chat"
+import { _useSidebar } from "../../../../context/SidebarContext"
 export default function Page() {
     const { pathname } = useLocation()
+    console.log(pathname, "dfsd")
+    const { currentActiveChat } = _useSidebar()
     return (
         <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-                <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-                    <SidebarTrigger className="-ml-1 text-white" />
-                    <Separator orientation="vertical" className="mr-2 h-4" />
+                <header className="flex fixed justify-between w-full bg-black  h-12 shrink-0 items-center gap-2 border-b px-4">
+                    <div className="flex gap-2 items-center">
+                        <SidebarTrigger className="-ml-1 text-white" />
+                        <Separator orientation="vertical" className="mr-2 h-4" />
+                    </div>
+                    <p className="text-white font-medium">{currentActiveChat}</p>
+                    <div className="w-1/4"></div>
                 </header>
-                <div className="flex text-white flex-1 flex-col gap-4 p-4 pt-0">
+                <div className="flex text-white flex-1 mt-12 flex-col gap-4 p-4 pt-0">
                     {
                         pathname === "/dashboard" && (
-                            <Dashboard/>
+                            <Dashboard />
+                        )
+                    }
+                    {
+                        pathname.startsWith("/chat/") && (
+                            <Chat />
                         )
                     }
                 </div>

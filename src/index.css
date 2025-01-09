@@ -106,9 +106,69 @@ pre {
   }
 }
 
-.hide-scrollbar{
+.hide-scrollbar {
   -ms-overflow-style: none;
 }
 ::-webkit-scrollbar {
   display: none;
 }
+
+
+.language-html,
+.language-css,
+.language-json,
+.language-javascript,
+.language-python,
+.language-java,
+.language-csharp,
+.language-php,
+.language-ruby,
+.language-go,
+.language-rust,
+.language-kotlin,
+.language-swift,
+.language-typescript,
+.language-sql,
+.language-cpp,
+.language-c,
+.language-shell,
+.language-bash,
+.language-perl,
+.language-lua,
+.language-matlab,
+.language-r {
+  color: rgb(255, 255, 255);
+}
+
+pre{
+  background: #545454;
+  padding: 10px;
+  border-radius: 5px;
+  overflow: auto;
+  margin: 1rem 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 1em 0;
+}
+
+th {
+  background: #4a4a4a; /* Darker background for table headers */
+  color: #ffffff; /* White text for better contrast */
+}
+
+tr {
+  background: #2c2c2c; /* Darker background for table rows */
+}
+
+td,
+th {
+  border: 1px solid #555555; /* Darker border for better visibility */
+  padding: 8px;
+  color: #e0e0e0; /* Light text color for better readability */
+}
+

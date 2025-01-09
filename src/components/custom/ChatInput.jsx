@@ -1,20 +1,17 @@
-import { ArrowUp, ArrowUpRight, Paperclip } from "lucide-react";
+import { ArrowUp, ArrowUpRight, LoaderCircle, Paperclip } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { useState } from "react";
-import { getNewSession } from "../../services/n8n-apis/_core/getNewSession.api";
-import { useUser } from "../../context/UserContext";
 import { _useSidebar } from "../../context/SidebarContext";
-import { useToast } from "../../hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 
-export default function ChatInput() {
-    const [value, setValue] = useState("");
+export default function ChatInput({
+    input,
+    setInput,
+    handleSubmit,
+    isLoading,
+    setLoading
+}) {
     const [rows, setRows] = useState(1);
-    const { user } = useUser();
-    const { appendToChatHistory } = _useSidebar();
     const maxRows = 30;
-    const navigate = useNavigate()
-    const { toast } = useToast()
     const handleChange = (event) => {
         const textareaLineHeight = 24;
         const previousRows = event.target.rows;
@@ -31,39 +28,21 @@ export default function ChatInput() {
             event.target.scrollTop = event.target.scrollHeight;
         }
 
-        setValue(event.target.value);
+        setInput(event.target.value);
         setRows(currentRows < maxRows ? currentRows : maxRows);
     };
 
-    async function handleSubmit() {
-        try {
-            const res = await getNewSession(value, user.id)
-            if (res.success) {
-                console.log(res, 'res')
-                appendToChatHistory(res.data)
-                navigate(`/chat/${res.data.sessionid}`)
-            }
-        } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message,
-                variant: "destructive"
-            })
-
-        }
-    }
-
 
     return (
-        <div className="flex w-[53%] flex-col hide-scrollbar">
-            <p className="text-center font-bold text-4xl font-mono mb-5">Let's Start The Todays Science!</p>
+        <div className="flex w-full flex-col hide-scrollbar">
+            {/* <p className="text-center font-bold text-4xl font-mono mb-5">Let's Start The Todays Science!</p> */}
             <div className="border border-gray-800 bg-slate-800 hide-scrollbar rounded-lg p-2">
                 <Textarea
-                    value={value}
+                    value={input}
                     onChange={handleChange}
                     rows={rows}
                     maxRows={maxRows}
-                    className={`ring-0-0 resize-none pb-10 border-0 focus:ring-0 focus-visible:ring-0 `}
+                    className={`ring-0-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
                     type="text"
                     placeholder="Type a message"
                 />
@@ -72,10 +51,19 @@ export default function ChatInput() {
                         <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
                     </div>
                     <button
-                        disabled={value.length == 0}
-                        onClick={handleSubmit}
-                        className={` ${value.length == 0 ? "bg-gray-600 border-slate-600 hover:bg-gray-600" : ""} bg-white rounded-md hover:bg-slate-300`}>
-                        <ArrowUp className="text-black font-thin w-5 h-5 m-2" />
+                        disabled={input.length == 0}
+                        onClick={() => {
+                            isLoading ? null : handleSubmit()
+                        }}
+                        className={` ${input.length == 0 ? "bg-gray-600 border-slate-600 hover:bg-gray-600" : ""} bg-white rounded-md hover:bg-slate-300`}>
+                        {
+                            isLoading ? (
+                                <LoaderCircle className="animate-spin  w-5 h-5 m-2 text-black mx-3" />
+                            ) : (
+                                <ArrowUp className="text-black font-thin w-5 h-5 m-2" />
+                            )
+                        }
+
                     </button>
                 </div>
             </div>

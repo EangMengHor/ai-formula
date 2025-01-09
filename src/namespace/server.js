@@ -4,3 +4,5 @@ export const login = `${url}/login`;
 export const signup = `${url}/create-new-user`
 export const getChatSessionHistory = `${url}/get-chat-sessions-history`
 export const getChatSession = `${url}/create-new-chat`
+export const chat = `${url}/chats`
+export const conversationHistory = `${url}/get-conversation-data`

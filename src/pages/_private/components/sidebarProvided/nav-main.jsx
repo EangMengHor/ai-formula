@@ -25,7 +25,7 @@ export function NavMain({
     const { id } = useParams()
     const { isMobile } = useSidebar()
     const navigate = useNavigate()
-    const { chatHistory, isSidebarChatHistoryLoading, currentActiveChat, setIsCurrentActiveChat } = _useSidebar()
+    const { chatHistory, isSidebarChatHistoryLoading, currentActiveChat, setCurrentActiveChat } = _useSidebar()
     useEffect(() => {
         console.log(chatHistory);
     }, [chatHistory])
@@ -41,15 +41,17 @@ export function NavMain({
                 }
                 {!isSidebarChatHistoryLoading && Object.keys(chatHistory).map((label) => (
                     <div key={label}>
-                        <div className="font-semibold capitalize text-lg px-2 py-1">{label}</div>
+                        <div className="font-semibold capitalize text-lg px-2 py-1 w-full rounded-md bg-slate-700 my-2 ">{label}</div>
                         {chatHistory[label].map((item) => (
                             <div
                                 onClick={() => {
-                                    setIsCurrentActiveChat(item.sessionid)
+                                    setCurrentActiveChat(item.chatname)
                                     navigate(`/chat/${item.sessionid}`)
                                 }}
                                 key={item.id} className={`${String(id) == item.sessionid ? 'bg-slate-700' : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-700 rounded-md cursor-pointer px-2 items-center`}>
-                                {item.chatname}
+                                <p className="truncate max-w-xs">
+                                    {item.chatname}
+                                </p>
                                 <DropdownMenu>
                                     <SidebarMenuItem>
                                         <DropdownMenuTrigger asChild>
