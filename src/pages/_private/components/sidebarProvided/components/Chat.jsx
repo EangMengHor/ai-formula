@@ -13,7 +13,7 @@ import remarkGfm from "remark-gfm";
 import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
 import { LoaderCircle } from "lucide-react";
-import styles from '@/Chat.module.css';
+import styles from '@/chat.module.css';
 export default function Chat() {
     // current sessionId
     const { id } = useParams();
