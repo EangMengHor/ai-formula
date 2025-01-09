@@ -31,10 +31,10 @@ export const SidebarProvider = ({ children }) => {
                         }
                         return newChatHistory;
                     });
-                    setPagination(prevPagination => prevPagination + 1);
-                    if (Object.values(res.data).flat().length < 20) {
-                        setIsMore(false);
-                    }
+                    // setPagination(prevPagination => prevPagination + 1);
+                    // if (Object.values(res.data).flat().length < 20) {
+                    //     setIsMore(false);
+                    // }
                 }
                 setIsSidebarChatHistoryLoading(false);
             }
@@ -62,6 +62,16 @@ export const SidebarProvider = ({ children }) => {
         }
     }
 
+    function clearAllStates(){
+        setChatHistory({})
+        setCurrentActiveChat(null)
+        setIsCurrentActiveChat(false)
+        setIsSidebarChatHistoryLoading(false)
+        setPagination(1)
+        setIsMore(true)
+    }
+
+
     return (
         <SidebarContext.Provider value={{
             chatHistory,
@@ -76,7 +86,8 @@ export const SidebarProvider = ({ children }) => {
             setIsSidebarChatHistoryLoading,
             setPagination,
             setIsMore,
-            appendToChatHistory
+            appendToChatHistory,
+            clearAllStates
         }}>
             {children}
         </SidebarContext.Provider>

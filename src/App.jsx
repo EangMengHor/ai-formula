@@ -7,6 +7,7 @@ import { login, signup } from "./namespace/client"
 import PrivateRoute from "./pages/_private/PrivateRoute"
 import Dashboard from "./pages/_private/components/sidebarProvided/components/Dashboard"
 import SidebarProvided from "./pages/_private/components/sidebarProvided/SidebarProvided"
+import Chat from "./pages/_private/components/sidebarProvided/components/Chat"
 
 export default function App() {
   return (
@@ -20,7 +21,7 @@ export default function App() {
         <Route element={<PrivateRoute />}>
           <Route element={<SidebarProvided />} >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/chat/:id" element={<Dashboard />} />
+            <Route path="/chat/:id" element={<Chat />} />
           </Route>
 
         </Route>

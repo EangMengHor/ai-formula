@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
+import { _useSidebar } from "../../../../context/SidebarContext"
 
 // This is sample data.
 const data = {
@@ -156,6 +157,7 @@ const data = {
 
 export function AppSidebar({ ...props }) {
   const { user, logout } = useUser();
+  const { clearAllStates } = _useSidebar();
   const navigate = useNavigate();
   return (
     <Sidebar {...props}>
@@ -198,7 +200,10 @@ export function AppSidebar({ ...props }) {
                 <Ellipsis />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem className="text-sm flex items-center" onClick={logout}>
+                <DropdownMenuItem className="text-sm flex items-center" onClick={() => {
+                  clearAllStates()
+                  logout()
+                }}>
                   <Compass />
                   <p>Log Out</p>
                 </DropdownMenuItem>
