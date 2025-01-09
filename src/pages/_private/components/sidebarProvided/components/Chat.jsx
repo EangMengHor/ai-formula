@@ -10,10 +10,10 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import Latex from "react-latex-next";
 import remarkGfm from "remark-gfm";
-import LatexParser from "../../../../../components/custom/LatexParser";
-import { getConversationHistory } from "../../../../../services/n8n-apis/_core/getConversationHistory.api";
+import LatexParser from "@/components/custom/LatexParser";
+import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
 import { LoaderCircle } from "lucide-react";
-import styles from './../../../../../Chat.module.css';
+import styles from '@/Chat.module.css';
 export default function Chat() {
     // current sessionId
     const { id } = useParams();
