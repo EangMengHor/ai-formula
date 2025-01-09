@@ -9,11 +9,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  server: {
-    host: true,
-    port: 3000, // Optional: Adjust the port if needed
-  },
   build: {
     outDir: "dist", // Ensure this matches Vercel's output directory
   },
+  base: '/',  // Make sure this is correct based on your deployment URL
 });
