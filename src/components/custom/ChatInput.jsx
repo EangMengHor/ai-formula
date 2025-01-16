@@ -1,7 +1,10 @@
-import { ArrowUp, ArrowUpRight, LoaderCircle, Paperclip } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Files, LoaderCircle, Paperclip } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
+import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
+import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
+import AudioRecorder from "./audio-input/AudioRecorder";
 
 export default function ChatInput({
     input,
@@ -10,6 +13,14 @@ export default function ChatInput({
     isLoading,
     setLoading
 }) {
+
+    // global states
+    const {
+        fileCount,
+        memorizedFiles,
+        isMemorizationLoading,
+    } = useFilesUploadMetadata();
+    // component states
     const [rows, setRows] = useState(1);
     const maxRows = 30;
     const handleChange = (event) => {
@@ -22,12 +33,10 @@ export default function ChatInput({
         if (currentRows === previousRows) {
             event.target.rows = currentRows;
         }
-
         if (currentRows >= maxRows) {
             event.target.rows = maxRows;
             event.target.scrollTop = event.target.scrollHeight;
         }
-
         setInput(event.target.value);
         setRows(currentRows < maxRows ? currentRows : maxRows);
     };
@@ -35,8 +44,41 @@ export default function ChatInput({
 
     return (
         <div className="flex w-full flex-col hide-scrollbar">
+            {
+                fileCount > 0 && (
+                    <div className="bg-slate-600 rounded-md my-2 p-3 flex gap-2 w-fit">
+                        <div>
+                            <Files />
+                        </div>
+                        <div className="flex gap-2 flex-col">
+                            <div className="flex gap-4 items-center ">
+                                <p className="font-bold ">
+                                    {fileCount} Files Selected
+                                </p>
+                                <div className="w-2 h-2 bg-white rounded-full "></div>
+                                <p>
+                                    {memorizedFiles.length} Files Memoried
+                                </p>
+                            </div>
+
+                            {
+                                isMemorizationLoading && (
+                                    <div className="flex gap-2">
+                                        <LoaderCircle className="animate-spin" />
+                                        <p>Memorizing Files...</p>
+                                    </div>
+                                )
+                            }
+
+                        </div>
+                    </div>
+                )
+            }
+
+
             {/* <p className="text-center font-bold text-4xl font-mono mb-5">Let's Start The Todays Science!</p> */}
             <div className="border border-gray-800 bg-slate-800 hide-scrollbar rounded-lg p-2">
+
                 <Textarea
                     value={input}
                     onChange={handleChange}
@@ -47,8 +89,10 @@ export default function ChatInput({
                     placeholder="Type a message"
                 />
                 <div className="flex justify-between">
-                    <div className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 ">
-                        <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
+                    <div className="flex gap-2 items-center">
+                        <AudioRecorder />
+
+                        <FileUploadDialog />
                     </div>
                     <button
                         disabled={input.length == 0}

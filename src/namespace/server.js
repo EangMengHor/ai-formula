@@ -6,3 +6,4 @@ export const getChatSessionHistory = `${url}/get-chat-sessions-history`
 export const getChatSession = `${url}/create-new-chat`
 export const chat = `${url}/chats`
 export const conversationHistory = `${url}/get-conversation-data`
+export const vectorizeDocument = `${url}/vectorize-documents`

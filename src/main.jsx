@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { UserProvider } from './context/UserContext'
 import { Toaster } from './components/ui/toaster'
 import { SidebarProvider } from './context/SidebarContext'
+import { FilesUploadMetadataProvider } from './context/FilesUploadMetadata'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <UserProvider>
         <SidebarProvider>
-          <App />
+          <FilesUploadMetadataProvider>
+            <App />
+          </FilesUploadMetadataProvider>
         </SidebarProvider>
       </UserProvider>
     </BrowserRouter>
