@@ -1,6 +1,7 @@
 import { Mic, MicOff } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useReactMediaRecorder } from "react-media-recorder";
+import { AudioContext } from '../../../context/AudioContext';
 
 const AudioRecorder = () => {
     const {
@@ -9,23 +10,32 @@ const AudioRecorder = () => {
         mediaBlobUrl,
     } = useReactMediaRecorder({ audio: true, mimeType: "audio/webm" });
 
-    const audioRef = useRef(null); // Reference to the audio element for playback
+    const {
+        setAudioUrl,
+    } = useContext(AudioContext);
+
     const [isPlaying, setIsPlaying] = useState(false); // Track play state
     const [isRecording, setIsRecording] = useState(false); // Track recording state
-    const handlePlay = () => {
-        if (audioRef.current) {
-            audioRef.current.play();
-            setIsPlaying(true);
-        }
-    };
+    const [audioFile, setAudioFile] = useState(null); // Store the audio file in state
 
-    const handleStop = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0; // Reset audio to the beginning
-            setIsPlaying(false);
+    // Handle mediaBlobUrl changes
+    useEffect(() => {
+        if (mediaBlobUrl) {
+            setAudioUrl(mediaBlobUrl); // Optional: Set URL for external use
+            fetch(mediaBlobUrl)
+                .then((response) => response.blob())
+                .then((blob) => {
+                    const file = new File([blob], "recording.webm", { type: blob.type });
+                    setAudioFile(file); // Save the file in state
+                })
+                .catch((error) => console.error("Error fetching audio file:", error));
         }
-    };
+    }, [mediaBlobUrl, setAudioUrl]);
+
+    useEffect(() => {
+        console.log("audioFile", audioFile);
+    }, [audioFile]);
+
 
     return (
         <div className="text-center">
@@ -41,40 +51,20 @@ const AudioRecorder = () => {
                         startRecording();
                     }
                 }}
+                className={`${!isRecording ? "bg-slate-700" : "bg-slate-800 animate-pulse"} p-2 rounded-md`}
             >
-                {
-                    isRecording ? <Mic /> : <MicOff />
-                }
+                {isRecording ? <Mic /> : <MicOff />}
             </button>
-
-            {/* {mediaBlobUrl && (
-                <div>
-                    <audio ref={audioRef} src={mediaBlobUrl} />
-                    <div className="mt-5">
-                        <button
-                            onClick={handlePlay}
-                            disabled={isPlaying}
-                            className={`btn ${isPlaying ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            Play
-                        </button>
-                        <button
-                            onClick={handleStop}
-                            disabled={!isPlaying}
-                            className={`btn ${!isPlaying ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            Stop
-                        </button>
-                        <a href={mediaBlobUrl} download="recording.webm" className="btn">
-                            Download Audio
-                        </a>
-                    </div>
+            {/* Display audio file information */}
+            {audioFile && (
+                <div className="mt-4">
+                    <p>File Name: {audioFile.name}</p>
+                    <p>File Size: {(audioFile.size / 1024).toFixed(2)} KB</p>
+                    <audio controls src={URL.createObjectURL(audioFile)} />
                 </div>
-            )} */}
+            )}
         </div>
     );
 };
-
-const buttonStyle = `m-2 px-4 py-2 text-lg cursor-pointer bg-blue-500 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed`;
 
 export default AudioRecorder;

@@ -7,6 +7,7 @@ import { UserProvider } from './context/UserContext'
 import { Toaster } from './components/ui/toaster'
 import { SidebarProvider } from './context/SidebarContext'
 import { FilesUploadMetadataProvider } from './context/FilesUploadMetadata'
+import { AudioProvider } from './context/AudioContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root')).render(
       <UserProvider>
         <SidebarProvider>
           <FilesUploadMetadataProvider>
+            <AudioProvider>
             <App />
+            </AudioProvider>
           </FilesUploadMetadataProvider>
         </SidebarProvider>
       </UserProvider>

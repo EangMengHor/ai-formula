@@ -5,6 +5,7 @@ import { _useSidebar } from "../../context/SidebarContext";
 import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
 import AudioRecorder from "./audio-input/AudioRecorder";
+import Player from "./audio-input/Player";
 
 export default function ChatInput({
     input,
@@ -90,8 +91,10 @@ export default function ChatInput({
                 />
                 <div className="flex justify-between">
                     <div className="flex gap-2 items-center">
-                        <AudioRecorder />
-
+                        <div className="bg-slate-400 flex gap-2 p-1 rounded-md ">
+                            <AudioRecorder />
+                            <Player />
+                        </div>
                         <FileUploadDialog />
                     </div>
                     <button
@@ -99,7 +102,7 @@ export default function ChatInput({
                         onClick={() => {
                             isLoading ? null : handleSubmit()
                         }}
-                        className={` ${input.length == 0 ? "bg-gray-600 border-slate-600 hover:bg-gray-600" : ""} bg-white rounded-md hover:bg-slate-300`}>
+                        className={` ${input.length == 0 ? "bg-gray-600 border-slate-600 hover:bg-gray-600" : ""} p-1 bg-white rounded-md hover:bg-slate-300`}>
                         {
                             isLoading ? (
                                 <LoaderCircle className="animate-spin  w-5 h-5 m-2 text-black mx-3" />

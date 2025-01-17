@@ -1,34 +1,53 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { AudioContext } from "../../../context/AudioContext";
+import { CircleStop, Play } from "lucide-react";
 
 const Player = () => {
-    const { audioUrl, audioRef, isPlaying, playAudio, stopAudio } = useContext(AudioContext);
+    const { audioUrl, audioRef, isPlaying, playAudio, stopAudio, setIsPlaying } = useContext(AudioContext);
+
+    useEffect(() => {
+        const handleAudioEnd = () => {
+            setIsPlaying(false);
+            stopAudio(); // Stop audio playback when it ends
+            console.log("Audio playback ended");
+        };
+
+        const audioElement = audioRef.current;
+        if (audioElement) {
+            audioElement.addEventListener("ended", handleAudioEnd);
+        }
+
+        return () => {
+            if (audioElement) {
+                audioElement.removeEventListener("ended", handleAudioEnd);
+            }
+        };
+    }, [audioRef, setIsPlaying, stopAudio]);
 
     if (!audioUrl) {
-        return <p className="text-center">No audio recorded yet.</p>;
+        return <></>
     }
 
     return (
-        <div className="text-center mt-5">
-            <h2 className="text-2xl font-bold mb-4">Audio Player</h2>
+        <div className="text-center">
             <audio ref={audioRef} src={audioUrl} className="mb-4" />
-            <button
-                onClick={playAudio}
-                disabled={isPlaying}
-                className={`mx-2 px-4 py-2 text-lg rounded ${isPlaying ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 cursor-pointer'} text-white`}
-            >
-                Play
-            </button>
-            <button
-                onClick={stopAudio}
-                disabled={!isPlaying}
-                className={`mx-2 px-4 py-2 text-lg rounded ${!isPlaying ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 cursor-pointer'} text-white`}
-            >
-                Stop
-            </button>
-            <a href={audioUrl} download="recording.webm" className="mx-2 px-4 py-2 text-lg rounded bg-blue-500 text-white">
-                Download Audio
-            </a>
+            {isPlaying ? (
+                <button
+                    onClick={stopAudio}
+                    disabled={!isPlaying}
+                    className="bg-red-200 text-black p-2 rounded-md"
+                >
+                    <CircleStop />
+                </button>
+            ) : (
+                <button
+                    onClick={playAudio}
+                    disabled={isPlaying}
+                    className="bg-slate-700 p-2 rounded-md"
+                >
+                    <Play />
+                </button>
+            )}
         </div>
     );
 };

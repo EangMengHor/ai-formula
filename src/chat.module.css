@@ -93,6 +93,7 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
     border-radius: 0.5rem; /* Rounded corners */
     overflow: hidden; /* Ensures proper border behavior */
+    background-color: #2d3748; /* Darker background color */
 }
 
 .module th,
@@ -103,14 +104,14 @@
 }
 
 .module th {
-    background-color: #e2e8f0; /* Light background for headers */
+    background-color: #4a5568; /* Darker background for headers */
     font-weight: 600;
-    color: #edf2f7;
+    color: #ffffff; /* Light text color */
 }
 
 .module td {
-    background-color: #ffffff; /* Consistent white background */
-    color: #e2e8f0;
+    background-color: #2d3748; /* Consistent darker background */
+    color: #edf2f7; /* Light text color for better readability */
 }
 
 /* Forms */

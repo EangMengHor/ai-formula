@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useToast } from "../../../../../hooks/use-toast";
 import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
 import { useParams } from "react-router-dom";
@@ -11,9 +11,13 @@ import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
 import { LoaderCircle } from "lucide-react";
 import styles from '@/chat.module.css';
+import mermaid from 'mermaid';
+import { Mermaid } from "../../../../../components/custom/Mermaid";
+import Latex from "react-latex-next";
 export default function Chat() {
     // current sessionId
     const { id } = useParams();
+    const mermaidRef = useRef(null);
 
     // this states activates when user want to fetch the chat history
     const [isChatLoading, setIsChatLoading] = useState(false);
@@ -42,6 +46,7 @@ export default function Chat() {
 
         getPurpose();
     }, [id])
+
     useEffect(() => {
         if (localStorage.getItem('prompt')) {
             localStorage.removeItem('prompt');
@@ -127,7 +132,9 @@ export default function Chat() {
         if (isChatLoading) {
             fetchConversations();
         }
-    }, [isChatLoading, id])
+    }, [isChatLoading, id]);
+
+
     if (isChatLoading) {
         return (
             <div className="w-full h-full flex  items-center justify-center gap-2">
@@ -150,7 +157,6 @@ export default function Chat() {
                     } else {
                         return (
                             <div key={index} className="text-slate-300 p-2 rounded shadow">
-                                {console.log(item.message, 'item.message')}
                                 {item.message.map((itm, idx) => {
 
                                     if (itm.type === "text") {
@@ -162,13 +168,21 @@ export default function Chat() {
                                             </div>
                                         );
                                     } else if (itm.type === "latex") {
+                                        
                                         return (
                                             <div key={idx}>
                                                 <LatexParser content={itm.content} />
                                             </div>
                                         );
+                                    } else if (itm.type === "mermaid") {
+                                        return (
+                                            <div key={idx} className="overflow-scroll  flex items-center justify-center">
+                                                <Mermaid chart={itm.content} />
+                                            </div>
+                                        );
                                     }
                                 })}
+                                {console.log(item.message, 'item.message')}
                             </div>
                         );
                     }

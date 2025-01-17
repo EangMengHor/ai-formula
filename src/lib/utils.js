@@ -115,43 +115,68 @@ export function parseContent(input) {
   }
 
   const sections = [];
-  let combinedText = '';
-  const regex = /```latex([\s\S]*?)```/g;
+  const blockRegex = /```(latex|mermaid)([\s\S]*?)```/g; // Match latex/mermaid blocks
+  const inlineMathRegex = /\[\s*\\text\{([^}]+)\}\s*]/g; // Match [\text{...}] inline blocks
   let lastIndex = 0;
   let match;
 
-  while ((match = regex.exec(input)) !== null) {
-    const [fullMatch, latexContent] = match;
+  // Process block content (latex/mermaid)
+  while ((match = blockRegex.exec(input)) !== null) {
+    const [fullMatch, blockType, blockContent] = match;
 
-    // Add text before the LaTeX block as a single chunk
+    // Process text before the block, including inline math
     if (match.index > lastIndex) {
-      combinedText += input.substring(lastIndex, match.index).trim() + '\n';
+      processInlineText(input.substring(lastIndex, match.index), sections);
     }
 
-    // Add the LaTeX block
-    if (latexContent.trim()) {
+    // Add the block content
+    if (blockContent.trim()) {
       sections.push({
-        type: 'latex',
-        content: "$$" + cleanLatex(latexContent) + "$$",
+        type: blockType,
+        content: blockType === 'latex'
+          ? `$$${cleanLatex(blockContent)}$$`
+          : blockContent.trim(),
       });
     }
 
-    lastIndex = regex.lastIndex;
+    lastIndex = blockRegex.lastIndex;
   }
 
-  // Add any remaining text after the last LaTeX block
+  // Process remaining text after the last block
   if (lastIndex < input.length) {
-    combinedText += input.substring(lastIndex).trim();
+    processInlineText(input.substring(lastIndex), sections);
   }
 
-  // Add the combined text as a single section
-  if (combinedText.trim()) {
-    sections.unshift({
-      type: 'text',
-      content: combinedText.trim(),
-    });
-  }
-
-  console.log(sections, 'sections');
   return sections;
+}
+
+function processInlineText(input, sections) {
+  const inlineMathRegex = /\[\s*\\text\{([^}]+)\}\s*]/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = inlineMathRegex.exec(input)) !== null) {
+    const [fullMatch, mathContent] = match;
+
+    // Add text before the math block
+    if (match.index > lastIndex) {
+      const textContent = input.substring(lastIndex, match.index).trim();
+      if (textContent) {
+        sections.push({ type: 'text', content: textContent });
+      }
+    }
+
+    // Add the math block with $...$
+    if (mathContent.trim()) {
+      sections.push({ type: 'math', content: `$${mathContent.trim()}$` });
+    }
+
+    lastIndex = inlineMathRegex.lastIndex;
+  }
+
+  // Add remaining text
+  const remainingText = input.substring(lastIndex).trim();
+  if (remainingText) {
+    sections.push({ type: 'text', content: remainingText });
+  }
 }
