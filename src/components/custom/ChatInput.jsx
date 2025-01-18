@@ -1,11 +1,18 @@
 import { ArrowUp, ArrowUpRight, Files, LoaderCircle, Paperclip } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
 import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
 import AudioRecorder from "./audio-input/AudioRecorder";
 import Player from "./audio-input/Player";
+import { useLocation } from "react-router-dom";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function ChatInput({
     input,
@@ -16,6 +23,7 @@ export default function ChatInput({
 }) {
 
     // global states
+    const { pathname } = useLocation();
     const {
         fileCount,
         memorizedFiles,
@@ -23,6 +31,7 @@ export default function ChatInput({
     } = useFilesUploadMetadata();
     // component states
     const [rows, setRows] = useState(1);
+    const [isTransribed, setIsTransribed] = useState(false);
     const maxRows = 30;
     const handleChange = (event) => {
         const textareaLineHeight = 24;
@@ -41,6 +50,14 @@ export default function ChatInput({
         setInput(event.target.value);
         setRows(currentRows < maxRows ? currentRows : maxRows);
     };
+
+    // trigger from voice command
+
+    useEffect(() => {
+        if (input.length > 0) {
+            handleSubmit();
+        }
+    }, [isTransribed])
 
 
     return (
@@ -91,12 +108,36 @@ export default function ChatInput({
                 />
                 <div className="flex justify-between">
                     <div className="flex gap-2 items-center">
-                        <div className="bg-slate-400 flex gap-2 p-1 rounded-md ">
-                            <AudioRecorder />
+                        <div className="flex gap-2 rounded-md ">
+                            <AudioRecorder value={input} setValue={setInput} trigger={isTransribed} setTrigger={setIsTransribed} />
                             <Player />
                         </div>
-                        <FileUploadDialog />
+                        {
+                            pathname !== '/dashboard' ? (
+                                <FileUploadDialog />
+                            ) : (
+                                <div>
+                                    <TooltipProvider>
+                                        <Tooltip delayDuration={0}>
+                                            <TooltipTrigger>
+                                                <div
+                                                    className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
+                                                >
+                                                    <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="bg-slate-600 p-2 rounded-md">
+                                                <p className="capitalize">Please First Start The Conversation to get the Document Upload Section (Start By Saying Hello Or Hi! )</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+
+
+                                </div>
+                            )
+                        }
                     </div>
+
                     <button
                         disabled={input.length == 0}
                         onClick={() => {

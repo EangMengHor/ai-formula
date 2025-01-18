@@ -100,12 +100,10 @@ export function sortByDateGroup(data) {
   return sortedData;
 }
 
-
-
 export function cleanLatex(latexString) {
   return latexString
-    .replace(/\\\n/g, '') // Remove all \n characters
-    .replace(/\s+/g, ' ') // Replace multiple spaces with a single space
+    .replace(/\\\n/g, '') // Remove all \n characters escaped with backslash
+    .replace(/[\s\n]+/g, ' ') // Replace multiple spaces/newlines with a single space
     .trim(); // Remove leading and trailing spaces
 }
 
@@ -116,17 +114,19 @@ export function parseContent(input) {
 
   const sections = [];
   const blockRegex = /```(latex|mermaid)([\s\S]*?)```/g; // Match latex/mermaid blocks
-  const inlineMathRegex = /\[\s*\\text\{([^}]+)\}\s*]/g; // Match [\text{...}] inline blocks
+  const inlineMathRegex = /\$([\s\S]*?)\$/g; // Everything inside $...$ is math
+  const inlineBracketRegex = /\[\s*\\([\s\S]+?)\\\s*\]/g; // Match [\ wrapped content \] or [ \ wrapped content \ ]
+
   let lastIndex = 0;
   let match;
 
-  // Process block content (latex/mermaid)
+  // First, split by block content (latex/mermaid)
   while ((match = blockRegex.exec(input)) !== null) {
     const [fullMatch, blockType, blockContent] = match;
 
-    // Process text before the block, including inline math
+    // Process text before the block
     if (match.index > lastIndex) {
-      processInlineText(input.substring(lastIndex, match.index), sections);
+      processTextWithMath(input.substring(lastIndex, match.index), sections, inlineMathRegex, inlineBracketRegex);
     }
 
     // Add the block content
@@ -142,41 +142,73 @@ export function parseContent(input) {
     lastIndex = blockRegex.lastIndex;
   }
 
-  // Process remaining text after the last block
+  // Process remaining text
   if (lastIndex < input.length) {
-    processInlineText(input.substring(lastIndex), sections);
+    processTextWithMath(input.substring(lastIndex), sections, inlineMathRegex, inlineBracketRegex);
   }
 
-  return sections;
+  return sections.filter(item => item.content.replaceAll('\\', '').trim() !== '');
 }
 
-function processInlineText(input, sections) {
-  const inlineMathRegex = /\[\s*\\text\{([^}]+)\}\s*]/g;
-  let lastIndex = 0;
-  let match;
+function processTextWithMath(input, sections, inlineMathRegex, inlineBracketRegex) {
+  const patterns = [
+    {
+      regex: /\$\$([\s\S]*?)\$\$/g, // Display math $$...$$
+      type: 'math',
+      wrapper: (content) => `$$${cleanLatex(content)}$$`
+    },
+    {
+      regex: inlineMathRegex, // Inline math $...$
+      type: 'math',
+      wrapper: (content) => `$${cleanLatex(content)}$`
+    },
+    {
+      regex: inlineBracketRegex, // Inline bracket [\ ... \]
+      type: 'math',
+      wrapper: (content) => `\\[${cleanLatex(content)}\\]`
+    }
+  ];
 
-  while ((match = inlineMathRegex.exec(input)) !== null) {
-    const [fullMatch, mathContent] = match;
+  let currentText = input;
 
-    // Add text before the math block
-    if (match.index > lastIndex) {
-      const textContent = input.substring(lastIndex, match.index).trim();
-      if (textContent) {
-        sections.push({ type: 'text', content: textContent });
+  while (currentText) {
+    let earliestMatch = null;
+    let selectedPattern = null;
+
+    // Find the earliest matching pattern
+    for (const pattern of patterns) {
+      pattern.regex.lastIndex = 0; // Reset regex
+      const match = pattern.regex.exec(currentText);
+      if (match && (!earliestMatch || match.index < earliestMatch.index)) {
+        earliestMatch = match;
+        selectedPattern = pattern;
       }
     }
 
-    // Add the math block with $...$
-    if (mathContent.trim()) {
-      sections.push({ type: 'math', content: `$${mathContent.trim()}$` });
+    if (!earliestMatch) {
+      // No more patterns found, add remaining text if any
+      const remainingText = currentText.trim();
+      if (remainingText) {
+        sections.push({ type: 'text', content: remainingText });
+      }
+      break;
     }
 
-    lastIndex = inlineMathRegex.lastIndex;
-  }
+    // Add text before the match
+    if (earliestMatch.index > 0) {
+      const textBefore = currentText.substring(0, earliestMatch.index).trim();
+      if (textBefore) {
+        sections.push({ type: 'text', content: textBefore });
+      }
+    }
 
-  // Add remaining text
-  const remainingText = input.substring(lastIndex).trim();
-  if (remainingText) {
-    sections.push({ type: 'text', content: remainingText });
+    // Add the matched content
+    sections.push({
+      type: selectedPattern.type,
+      content: selectedPattern.wrapper(earliestMatch[1] || earliestMatch[0])
+    });
+
+    // Continue with remaining text
+    currentText = currentText.substring(earliestMatch.index + earliestMatch[0].length);
   }
 }

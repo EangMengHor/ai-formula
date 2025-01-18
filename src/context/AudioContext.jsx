@@ -23,9 +23,6 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-  
-
-
 
   return (
     <AudioContext.Provider

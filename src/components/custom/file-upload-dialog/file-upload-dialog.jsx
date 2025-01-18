@@ -5,27 +5,44 @@ import { X, Upload, FileText, Paperclip, LoaderCircle, Check } from 'lucide-reac
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { vectorizeOneFile } from '../../../services/n8n-apis/_core/vectorizeOneFile.api'
-import { useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useFilesUploadMetadata } from '../../../context/FilesUploadMetadata'
 import { useToast } from '../../../hooks/use-toast'
+import axios from 'axios'
+import { getChatSession } from '../../../namespace/server'
+import { getNewSession } from '../../../services/n8n-apis/_core/getNewSession.api'
+import { useUser } from '../../../context/UserContext'
+import { _useSidebar } from '../../../context/SidebarContext'
 
 export default function FileUploadDialog() {
     // global states
+    const { pathname } = useLocation()
     const { id } = useParams()
+    const navigate = useNavigate()
     const {
         fileCount,
         setFileCount,
         memorizedFiles,
         setMemorizedFiles,
         isMemorizationLoading,
-        setIsMemorizationLoading
+        setIsMemorizationLoading,
+        fileName,
+        setFileName,
+        files,
+        setFiles
     } = useFilesUploadMetadata();
+    const { user } = useUser()
+    const { appendToChatHistory } = _useSidebar();
+    const { toast } = useToast()
+
+
     // component states
     const [isOpen, setIsOpen] = useState(false)
-    const [files, setFiles] = useState([])
     const [isDragging, setIsDragging] = useState(false)
     const [isLoadingQueue, setIsLoadingQueue] = useState([])
     const [fileQueueError, setFileQueueError] = useState([])
+    const [isNewSessionLoading, setIsNewSessionLoading] = useState(false)
+
     useEffect(() => {
         setFileCount(files.length)
     }, [files])
@@ -62,8 +79,40 @@ export default function FileUploadDialog() {
         }
     }
 
+    async function handleOpenNewSession() {
+        setIsNewSessionLoading(true);
+        try {
+            toast({
+                title: 'Creating New Session',
+                description: 'Please wait while we create a new session for you...',
+            })
+            const res = await getNewSession("New Document Uploaded", user.id)
+            if (res.success) {
+                console.log(res, 'res')
+                appendToChatHistory(res.data)
+                // localStorage.setItem('prompt', "New Document Uploaded");
+                // localStorage.setItem('isFallbackedUser', 'true');
+                localStorage.setItem('filesFallBack', 'true')
+                navigate(`/chat/${res.data.sessionid}`)
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.message,
+                variant: "destructive"
+            })
+
+        } finally {
+            setIsNewSessionLoading(false);
+        }
+    }
+
     console.log(memorizedFiles);
     const handleMemorize = async (file, index) => {
+        if (pathname == '/dashboard') {
+            console.log("creating new session")
+            await handleOpenNewSession()
+        }
         if (isLoadingQueue.includes(index)) return;
         setIsLoadingQueue((prev) => [...prev, index])
         console.log('Memorizing file:', file)
@@ -72,6 +121,7 @@ export default function FileUploadDialog() {
         if (res && res.data && !res.data.success) {
             setFileQueueError((prev) => [...prev, { index: index, message: res.data.message || "Error Occured" }])
             setIsLoadingQueue((prev) => prev.filter((item) => item !== index))
+            setFileName((prev) => [...prev, file.name])
             return;
         }
         if (res.success) {
@@ -87,6 +137,13 @@ export default function FileUploadDialog() {
     useEffect(() => {
         setIsMemorizationLoading(isLoadingQueue.length > 0)
     }, [isLoadingQueue])
+
+    useEffect(() => {
+        if (pathname) {
+            localStorage.getItem('filesFallBack') && setFiles(files) && setIsOpen(true)
+        }
+    }, [[pathname]])
+
 
     return (
         <div>

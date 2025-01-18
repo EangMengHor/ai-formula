@@ -13,7 +13,7 @@ export async function chat(prompt, sessionId, files = []) {
             requestData.data = files;
         }
         const res = await axios.post(url, requestData, {
-            timeout: 320000 // 2 minutes
+            timeout: 3000000 // 50 minutes
         });
         console.log(res, 'chat response');
         return response(true, "Chat message sent", res.data[0].output);

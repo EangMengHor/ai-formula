@@ -25,7 +25,7 @@ export default function Page() {
         <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-                <header className="flex fixed justify-between w-full bg-black  h-12 shrink-0 items-center gap-2 border-b px-4">
+                <header className="flex fixed justify-between w-full z-50 bg-black  h-12 shrink-0 items-center gap-2 border-b px-4">
                     <div className="flex gap-2 items-center">
                         <SidebarTrigger className="-ml-1 text-white" />
                         <Separator orientation="vertical" className="mr-2 h-4" />

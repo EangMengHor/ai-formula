@@ -163,12 +163,12 @@ export default function Chat() {
                                         return (
                                             <div key={idx}>
                                                 <Markdown remarkPlugins={[remarkGfm]} className={`text-white text-left ${styles.module}`} >
-                                                    {itm.content}
+                                                    {itm.content.replace('\\', '').replace('null', '')}
                                                 </Markdown>
                                             </div>
                                         );
                                     } else if (itm.type === "latex") {
-                                        
+
                                         return (
                                             <div key={idx}>
                                                 <LatexParser content={itm.content} />
@@ -179,6 +179,13 @@ export default function Chat() {
                                             <div key={idx} className="overflow-scroll  flex items-center justify-center">
                                                 <Mermaid chart={itm.content} />
                                             </div>
+                                        );
+                                    }
+                                    else if (itm.type == "math") {
+                                        return (
+                                         
+                                            <LatexParser content={itm.content.replace('[', '')} />
+
                                         );
                                     }
                                 })}
@@ -198,7 +205,7 @@ export default function Chat() {
             </div>
 
             {/* Chat input */}
-            <div className="w-full  p-4 sticky bottom-0 bg-slate-950 mb-2 flex items-center justify-center">
+            <div className="w-full  p-4 sticky bottom-0 bg-gray-950 mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
 
                     <ChatInput
