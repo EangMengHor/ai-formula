@@ -163,6 +163,9 @@ export function AppSidebar({ ...props }) {
     <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
+          <SidebarMenuItem className="flex items-center justify-center">
+            <img src='./james-logo.png' alt="James Logo" className="w-full h-14 bg-white rounded-md m-2 p-1" />
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => {

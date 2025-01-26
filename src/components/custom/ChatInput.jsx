@@ -136,6 +136,25 @@ export default function ChatInput({
                                 </div>
                             )
                         }
+                        <TooltipProvider>
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger>
+                                    <button
+                                        onClick={() => {
+                                            window.open("https://gemini-live-five.vercel.app/", "_blank")
+                                        }}
+                                        className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
+                                    >
+
+                                        <img src="/google-gemini-icon.webp" alt="close" className="w-6 h-6 m-1  rounded-md" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-slate-600 p-2 rounded-md">
+                                    <p>Gemini Stream Realtime API</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
                     </div>
 
                     <button
@@ -153,6 +172,9 @@ export default function ChatInput({
                         }
 
                     </button>
+
+
+
                 </div>
             </div>
         </div>
