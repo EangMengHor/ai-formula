@@ -99,43 +99,34 @@ export function sortByDateGroup(data) {
 
   return sortedData;
 }
-
-export function cleanLatex(latexString) {
-  return latexString
-    .replace(/\\\n/g, '') // Remove all \n characters escaped with backslash
-    .replace(/[\s\n]+/g, ' ') // Replace multiple spaces/newlines with a single space
-    .trim(); // Remove leading and trailing spaces
-}
-
 export function parseContent(input) {
   if (!input.trim()) {
     throw new Error('Please enter some content to parse.');
   }
 
   const sections = [];
-  const blockRegex = /```(latex|mermaid)([\s\S]*?)```/g; // Match latex/mermaid blocks
-  const inlineMathRegex = /\$([\s\S]*?)\$/g; // Everything inside $...$ is math
-  const inlineBracketRegex = /\[\s*\\([\s\S]+?)\\\s*\]/g; // Match [\ wrapped content \] or [ \ wrapped content \ ]
+  const blockRegex = /```(mermaid)([\s\S]*?)```/g; // Match mermaid blocks
 
   let lastIndex = 0;
   let match;
 
-  // First, split by block content (latex/mermaid)
+  // First, split by mermaid blocks
   while ((match = blockRegex.exec(input)) !== null) {
     const [fullMatch, blockType, blockContent] = match;
 
     // Process text before the block
     if (match.index > lastIndex) {
-      processTextWithMath(input.substring(lastIndex, match.index), sections, inlineMathRegex, inlineBracketRegex);
+      sections.push({
+        type: 'text',
+        content: input.substring(lastIndex, match.index).trim(),
+      });
     }
 
-    // Add the block content
+    // Add the mermaid block content
     if (blockContent.trim()) {
       sections.push({
-        type: blockType,
-        content: blockType === 'latex'
-          ? `$$${cleanLatex(blockContent)}$$`
-          : blockContent.trim(),
+        type: 'mermaid',
+        content: blockContent.trim(),
       });
     }
 
@@ -144,71 +135,11 @@ export function parseContent(input) {
 
   // Process remaining text
   if (lastIndex < input.length) {
-    processTextWithMath(input.substring(lastIndex), sections, inlineMathRegex, inlineBracketRegex);
-  }
-
-  return sections.filter(item => item.content.replaceAll('\\', '').trim() !== '');
-}
-
-function processTextWithMath(input, sections, inlineMathRegex, inlineBracketRegex) {
-  const patterns = [
-    {
-      regex: /\$\$([\s\S]*?)\$\$/g, // Display math $$...$$
-      type: 'math',
-      wrapper: (content) => `$$${cleanLatex(content)}$$`
-    },
-    {
-      regex: inlineMathRegex, // Inline math $...$
-      type: 'math',
-      wrapper: (content) => `$${cleanLatex(content)}$`
-    },
-    {
-      regex: inlineBracketRegex, // Inline bracket [\ ... \]
-      type: 'math',
-      wrapper: (content) => `\\[${cleanLatex(content)}\\]`
-    }
-  ];
-
-  let currentText = input;
-
-  while (currentText) {
-    let earliestMatch = null;
-    let selectedPattern = null;
-
-    // Find the earliest matching pattern
-    for (const pattern of patterns) {
-      pattern.regex.lastIndex = 0; // Reset regex
-      const match = pattern.regex.exec(currentText);
-      if (match && (!earliestMatch || match.index < earliestMatch.index)) {
-        earliestMatch = match;
-        selectedPattern = pattern;
-      }
-    }
-
-    if (!earliestMatch) {
-      // No more patterns found, add remaining text if any
-      const remainingText = currentText.trim();
-      if (remainingText) {
-        sections.push({ type: 'text', content: remainingText });
-      }
-      break;
-    }
-
-    // Add text before the match
-    if (earliestMatch.index > 0) {
-      const textBefore = currentText.substring(0, earliestMatch.index).trim();
-      if (textBefore) {
-        sections.push({ type: 'text', content: textBefore });
-      }
-    }
-
-    // Add the matched content
     sections.push({
-      type: selectedPattern.type,
-      content: selectedPattern.wrapper(earliestMatch[1] || earliestMatch[0])
+      type: 'text',
+      content: input.substring(lastIndex).trim(),
     });
-
-    // Continue with remaining text
-    currentText = currentText.substring(earliestMatch.index + earliestMatch[0].length);
   }
+  console.log(sections);
+  return sections.filter(item => item.content.trim() !== '');
 }

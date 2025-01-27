@@ -14,6 +14,11 @@ import styles from '@/chat.module.css';
 import mermaid from 'mermaid';
 import { Mermaid } from "../../../../../components/custom/Mermaid";
 import Latex from "react-latex-next";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import 'katex/dist/katex.min.css';
+import './Chat.css';
 export default function Chat() {
     // current sessionId
     const { id } = useParams();
@@ -162,16 +167,48 @@ export default function Chat() {
                                     if (itm.type === "text") {
                                         return (
                                             <div key={idx}>
-                                                <Markdown remarkPlugins={[remarkGfm]} className={`text-white text-left ${styles.module}`} >
-                                                    {itm.content.replace('\\', '').replace('null', '')}
-                                                </Markdown>
-                                            </div>
-                                        );
-                                    } else if (itm.type === "latex") {
 
-                                        return (
-                                            <div key={idx}>
-                                                <LatexParser content={itm.content} />
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkMath, remarkGfm]} // Added remarkGfm for table support
+                                                    rehypePlugins={[rehypeKatex]}
+                                                    className="module"
+                                                    components={{
+                                                        // Handle potential rendering issues
+                                                        p: ({ children }) => <p>{children}</p>,
+                                                        table: ({ children }) => (
+                                                            <table style={{ borderCollapse: "collapse", width: "100%", color: "#e0e0e0" }}>
+                                                                {children}
+                                                            </table>
+                                                        ),
+                                                        th: ({ children }) => (
+                                                            <th
+                                                                style={{
+                                                                    border: "1px solid #444",
+                                                                    padding: "8px",
+                                                                    backgroundColor: "#333",
+                                                                    color: "#e0e0e0",
+                                                                }}
+                                                            >
+                                                                {children}
+                                                            </th>
+                                                        ),
+                                                        td: ({ children }) => (
+                                                            <td
+                                                                style={{
+                                                                    border: "1px solid #444",
+                                                                    padding: "8px",
+                                                                    backgroundColor: "#222",
+                                                                    color: "#e0e0e0",
+                                                                }}
+                                                            >
+                                                                {children}
+                                                            </td>
+                                                        ),
+                                                    }}
+                                                >
+                                                    {itm.content}
+                                                </ReactMarkdown>
+
                                             </div>
                                         );
                                     } else if (itm.type === "mermaid") {
@@ -181,13 +218,7 @@ export default function Chat() {
                                             </div>
                                         );
                                     }
-                                    else if (itm.type == "math") {
-                                        return (
-                                         
-                                            <LatexParser content={itm.content.replace('[', '')} />
-
-                                        );
-                                    }
+                                   
                                 })}
                                 {console.log(item.message, 'item.message')}
                             </div>
