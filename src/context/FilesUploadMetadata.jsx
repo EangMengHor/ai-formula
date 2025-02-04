@@ -8,6 +8,15 @@ export const FilesUploadMetadataProvider = ({ children }) => {
     const [isMemorizationLoading, setIsMemorizationLoading] = useState(false);
     const [fileName, setFileName] = useState([]);
     const [files, setFiles] = useState([])
+    function resetAllStates() {
+        setFileCount(0);
+        setMemorizedFiles([]);
+        setIsMemorizationLoading(false);
+        setFileName([]);
+        setFiles([]);
+    }
+
+    
     useEffect(() => {
         console.log(memorizedFiles, "memorizedFiles", fileCount, "fileCount", isMemorizationLoading, "isMemorizationLoading");
     }, [fileCount, memorizedFiles, isMemorizationLoading])
@@ -23,7 +32,8 @@ export const FilesUploadMetadataProvider = ({ children }) => {
                 fileName,
                 setFileName,
                 files,
-                setFiles
+                setFiles,
+                resetAllStates
             }}
         >
             {children}

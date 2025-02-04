@@ -6,7 +6,7 @@ import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
 import AudioRecorder from "./audio-input/AudioRecorder";
 import Player from "./audio-input/Player";
-import { useLocation } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import {
     Tooltip,
     TooltipContent,
@@ -23,11 +23,14 @@ export default function ChatInput({
 }) {
 
     // global states
+    const { id } = useParams();
     const { pathname } = useLocation();
     const {
         fileCount,
         memorizedFiles,
         isMemorizationLoading,
+        resetAllStates,
+        files
     } = useFilesUploadMetadata();
     // component states
     const [rows, setRows] = useState(1);
@@ -51,6 +54,23 @@ export default function ChatInput({
         setRows(currentRows < maxRows ? currentRows : maxRows);
     };
 
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            if (input.length > 0 && !isLoading) {
+                handleSubmit();
+                setInput("");
+            }
+        } else if (event.key === 'Enter' && event.shiftKey) {
+            event.preventDefault();
+            const cursorPosition = event.target.selectionStart;
+            const textBeforeCursor = input.substring(0, cursorPosition);
+            const textAfterCursor = input.substring(cursorPosition);
+            setInput(textBeforeCursor + "\n" + textAfterCursor);
+            setRows(rows + 1);
+        }
+    };
+
     // trigger from voice command
 
     useEffect(() => {
@@ -59,6 +79,9 @@ export default function ChatInput({
         }
     }, [isTransribed])
 
+    useEffect(() => {
+        resetAllStates();
+    }, [pathname])
 
     return (
         <div className="flex w-full flex-col hide-scrollbar">
@@ -100,6 +123,7 @@ export default function ChatInput({
                 <Textarea
                     value={input}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     rows={rows}
                     maxRows={maxRows}
                     className={`ring-0-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
@@ -145,8 +169,7 @@ export default function ChatInput({
                                         }}
                                         className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
                                     >
-
-                                        <img src="/google-gemini-icon.webp" alt="close" className="w-6 h-6 m-1  rounded-md" />
+                                        <img src="/google-gemini-icon.webp" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent className="bg-slate-600 p-2 rounded-md">
@@ -155,10 +178,32 @@ export default function ChatInput({
                             </Tooltip>
                         </TooltipProvider>
 
+
+                        <TooltipProvider>
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger>
+                                    <button
+                                        onClick={() => {
+                                            window.open(!(memorizedFiles.length > 0 && files.length > 0) ? import.meta.env.VITE_OPENAI_REALTIME_URL : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`, "_blank")
+                                        }}
+                                        className="flex items-center px-1 py-1 rounded-md border bg-white hover:bg-slate-400  "
+                                    >
+                                        <img src="/openai-logo.svg" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md " />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-slate-600 p-2 rounded-md">
+                                    <p>Openai Realtime</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <div className="text-gray-500">
+                            <p>(Shift + Enter) for New Line</p>
+                        </div>
                     </div>
 
                     <button
-                        disabled={input.length == 0}
+                        disabled={input.length === 0}
                         onClick={() => {
                             isLoading ? null : handleSubmit()
                         }}
