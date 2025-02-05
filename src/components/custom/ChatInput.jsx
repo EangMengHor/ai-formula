@@ -167,13 +167,13 @@ export default function ChatInput({
                                         onClick={() => {
                                             window.open("https://gemini-live-five.vercel.app/", "_blank")
                                         }}
-                                        className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
+                                        className="flex items-center px-1 py-1 rounded-md bg-red-400 border border-gray-600 hover:bg-slate-600 "
                                     >
-                                        <img src="/google-gemini-icon.webp" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
+                                        <img src="/small-log.png" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent className="bg-slate-600 p-2 rounded-md">
-                                    <p>Gemini Stream Realtime API</p>
+                                    <p>Up coming realtime</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -186,13 +186,13 @@ export default function ChatInput({
                                         onClick={() => {
                                             window.open(!(memorizedFiles.length > 0 && files.length > 0) ? import.meta.env.VITE_OPENAI_REALTIME_URL : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`, "_blank")
                                         }}
-                                        className="flex items-center px-1 py-1 rounded-md border bg-white hover:bg-slate-400  "
+                                        className="flex items-center px-1 py-1 rounded-md border bg-green-300 hover:bg-slate-400  "
                                     >
-                                        <img src="/openai-logo.svg" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md " />
+                                        <img src="/small-log.png" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md  " />
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent className="bg-slate-600 p-2 rounded-md">
-                                    <p>Openai Realtime</p>
+                                    <p>New Realtime</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>

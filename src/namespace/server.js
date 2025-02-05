@@ -9,7 +9,3 @@ export const chat = `${url}/chats-1 `
 export const conversationHistory = `${url}/get-conversation-data`
 export const vectorizeDocument = `${url}/vectorize-documents`
 export const voiceToText = `${url}/voice-to-text`
-
-
-
-
