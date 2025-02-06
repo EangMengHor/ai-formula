@@ -165,7 +165,7 @@ export default function ChatInput({
                                 <TooltipTrigger>
                                     <button
                                         onClick={() => {
-                                            window.open("https://gemini-live-five.vercel.app/", "_blank")
+                                            window.open(import.meta.env.VITE_GEMINI_REALTIME_URL, "_blank")
                                         }}
                                         className="flex items-center px-1 py-1 rounded-md bg-red-400 border border-gray-600 hover:bg-slate-600 "
                                     >
