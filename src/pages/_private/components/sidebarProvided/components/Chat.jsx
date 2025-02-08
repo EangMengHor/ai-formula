@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useToast } from "../../../../../hooks/use-toast";
 import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
 import { useParams } from "react-router-dom";
@@ -19,10 +19,31 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import 'katex/dist/katex.min.css';
 import './Chat.css';
+import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_core/getUploadedDocumentHis.api";
+import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
+import PollStatus from "../../../../../components/custom/PolledStatus";
+import { poll } from "poll";
+import { pollStatus } from "../../../../../services/n8n-apis/_core/pollStatus.api";
+import { UserContext, useUser } from "../../../../../context/UserContext";
 export default function Chat() {
     // current sessionId
     const { id } = useParams();
     const mermaidRef = useRef(null);
+    // context
+    const {
+        fileCount,
+        setFileCount,
+        memorizedFiles,
+        setMemorizedFiles,
+        isMemorizationLoading,
+        setIsMemorizationLoading,
+        fileName,
+        setFileName,
+        files,
+        setFiles,
+        resetAllStates
+    } = useFilesUploadMetadata()
+    const { isDocumentOn, setIsDocumentOn, isSearchOn, setIsSearchOn, isVectorBaseOn, setIsVectorBaseOn } = useUser();
 
     // this states activates when user want to fetch the chat history
     const [isChatLoading, setIsChatLoading] = useState(false);
@@ -32,9 +53,13 @@ export default function Chat() {
     // current prompt of the user 
     const [prompt, setPrompt] = useState('');
 
+    const latestUpdatedStatus = useRef([]);
+    const [isChanged, setIsChanged] = useState(false);
     // this prompt is from dashboard that will execute here
     const [fallBackPrompt, setFallBackPrompt] = useState("")
     const { toast } = useToast();
+    const [hasInitialChatLoaded, setHasInitialChatLoaded] = useState(false);
+
 
     // check if local storage has prompt if so then execture it or load the chat
     useEffect(() => {
@@ -66,19 +91,20 @@ export default function Chat() {
         }
     }, [fallBackPrompt])
 
-    async function handleSubmit(prompt) {
+    const handleSubmit = useCallback(async (prompt) => {
         setIsNextChatLoading(true);
         try {
             setConversation((prev) => {
                 return [...prev, { message: prompt, role: "human" }]
             })
             console.log(prompt, id, "is here and going to ai");
-            const res = await chat(prompt, id);
+            const res = await chat(prompt, id, [], isSearchOn, isDocumentOn, isVectorBaseOn);
             if (res.success || res.data || res.data.length > 0) {
                 const parsedResponse = parseContent(res.data);
                 console.log(parsedResponse, 'parsedResponse');
+                console.log(latestUpdatedStatus, 'latestUpdatedStatus');
                 setConversation((prev) => {
-                    return [...prev, { message: parsedResponse, role: "ai" }]
+                    return [...prev, { message: parsedResponse, role: "ai", workflow: compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn), updated: latestUpdatedStatus.current }]
                 })
             }
         } catch (error) {
@@ -92,9 +118,12 @@ export default function Chat() {
             setIsNextChatLoading(false);
             localStorage.setItem('isFallbackedUser', 'false');
         }
-    }
+    }, [id, isSearchOn, isDocumentOn, isVectorBaseOn, toast]);
 
 
+    useEffect(() => {
+        console.log(conversation, latestUpdatedStatus, 'conversation');
+    }, [conversation])
     // get the conversation history
     useEffect(() => {
         async function fetchConversations() {
@@ -122,6 +151,8 @@ export default function Chat() {
                     console.log(processedData, 'processedData');
                     setConversation(processedData);
                 }
+
+                return res;
             } catch (error) {
                 toast({
                     title: 'Error',
@@ -130,14 +161,87 @@ export default function Chat() {
                 })
             } finally {
                 setIsChatLoading(false);
+                setHasInitialChatLoaded(true); // Set to true after initial chat load
             }
         }
 
+
+        // get uploaded Document
+        async function getUploadedDocumentHis() {
+
+            try {
+                // api call
+                const res = await getUploadedDocumentHistory(id);
+                console.log(res, "dataTransfer")
+                if (!res.isEmpty) {
+                    const fileNames = res.data.fileNames || [];
+                    setMemorizedFiles(fileNames);
+                    setFileCount(fileNames.length);
+                    setFileName(fileNames);
+                    setFiles(fileNames.map(item => {
+                        const splited = item.split('.') || [];
+                        return {
+                            name: item,
+                            type: item.split('.')[splited.length - 1]
+                        }
+                    }) || []);
+                }
+                else {
+                    toast({
+                        title: 'Error',
+                        description: res.message,
+                        variant: "destructive"
+                    })
+                }
+                return res;
+            } catch (error) {
+                toast({
+                    title: 'Error',
+                    description: error.message,
+                    variant: "destructive"
+                })
+                console.error(error);
+            }
+        }
+
+        // main
+        async function getData() {
+            resetAllStates();
+            console.log("loading1234")
+            const [a, b] = await Promise.all([
+                getUploadedDocumentHis(),
+                fetchConversations()
+            ])
+        }
+
+
         // trigger
         if (isChatLoading) {
-            fetchConversations();
+            getData();
         }
     }, [isChatLoading, id]);
+
+
+    // polling for status
+    useEffect(() => {
+        let interval;
+        if (isNextChatLoading) {
+            interval = setInterval(async () => {
+                try {
+                    const data = await pollStatus(id);
+                    latestUpdatedStatus.current = data.data;
+                    setIsChanged(prev => !prev);
+                    console.log(data, 'data');
+                } catch (error) {
+                    console.error("Error during polling:", error);
+                    clearInterval(interval);  // Stop polling on error
+                }
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isNextChatLoading, id]);
+
+
 
 
     if (isChatLoading) {
@@ -151,7 +255,9 @@ export default function Chat() {
     return (
         <div className="flex flex-col h-full w-full">
             {/* Chat messages container */}
+
             <div className="flex-1 overflow-y-auto p-4 space-y-4 w-full max-w-4xl mx-auto">
+
                 {conversation.map((item, index) => {
                     if (item.role === "human") {
                         return (
@@ -161,8 +267,13 @@ export default function Chat() {
                         );
                     } else {
                         return (
-                            <div key={index} className="text-slate-300 p-2 rounded shadow">
-                                {item.message.map((itm, idx) => {
+                            <div key={index} className="text-slate-300 rounded shadow">
+                                {
+                                    item.workflow && item.workflow.length > 0 ? (
+                                        <PollStatus workflow={item.workflow} updated={item.updated} added={item.message[0].content.slice(0, 30)} isCompleted={true} isOpen={true} />
+                                    ) : null
+                                }
+                                {item.message?.map((itm, idx) => {
 
                                     if (itm.type === "text") {
                                         return (
@@ -212,13 +323,17 @@ export default function Chat() {
                                             </div>
                                         );
                                     } else if (itm.type === "mermaid") {
+                                        const sanitizedContent = itm.content.replace(/\[([^\]]+)\]/g, (match, p1) => {
+                                            return `[${p1.replace(/[^a-zA-Z0-9 ]/g, '')}]`;
+                                        });
+
                                         return (
-                                            <div key={idx} className="overflow-scroll  flex items-center justify-center">
-                                                <Mermaid chart={itm.content} />
+                                            <div key={idx} className="overflow-scroll flex items-center justify-center">
+                                                <Mermaid chart={sanitizedContent} />
                                             </div>
                                         );
                                     }
-                                   
+
                                 })}
                                 {console.log(item.message, 'item.message')}
                             </div>
@@ -227,10 +342,7 @@ export default function Chat() {
                 })}
                 {
                     isNextChatLoading && (
-                        <div className="flex gap-2 p-2 bg-slate-800 w-fit rounded-md justify-start items-start">
-                            <LoaderCircle className="animate-spin" />
-                            <p>Agent Is Loading Your Response</p>
-                        </div>
+                        <PollStatus workflow={compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn)} updated={latestUpdatedStatus.current} isActive={isChanged} isOpen={true} />
                     )
                 }
             </div>
@@ -245,6 +357,12 @@ export default function Chat() {
                         handleSubmit={() => handleSubmit(prompt)}
                         isLoading={isNextChatLoading}
                         setLoading={setIsNextChatLoading}
+                        isSearchOn={isSearchOn}
+                        setIsSearchOn={setIsSearchOn}
+                        isDocumentOn={isDocumentOn}
+                        setIsDocumentOn={setIsDocumentOn}
+                        isVectorBaseOn={isVectorBaseOn}
+                        setIsVectorBaseOn={setIsVectorBaseOn}
                     />
                 </div>
             </div>
@@ -253,3 +371,18 @@ export default function Chat() {
     )
 }
 
+
+function compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn) {
+    const workflow = [];
+    if (isDocumentOn) {
+        workflow.push("document");
+    }
+    if (isSearchOn) {
+        workflow.push("search");
+    }
+    if (isVectorBaseOn) {
+        workflow.push("vector");
+    }
+    workflow.push("generate")
+    return workflow;
+}

@@ -18,6 +18,7 @@ export default function PublicLayout() {
             })
             navigate(signup);
         }
+        
     }, [user, pathname, navigate]);
     return (
         <Outlet />

@@ -177,7 +177,7 @@ export default function FileUploadDialog() {
                                                 <FileText className="w-5 h-5 text-gray-700" />
                                             </div>
                                             <div className="overflow-hidden">
-                                                <h3 className="text-white font-medium truncate  w-full">{file.name.length > 25 ? file.name.slice(0, 20) + '...' : file.name}
+                                                <h3 className="text-white font-medium truncate  w-full">{file.name.length > 25 ? file.name.slice(0, 25) + '...' : file.name}
                                                 </h3>
                                                 <p className="text-sm text-gray-400 truncate">
                                                     <span className="uppercase">{file.type.replaceAll('application/', '')}</span> File

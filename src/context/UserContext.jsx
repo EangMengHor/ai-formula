@@ -10,6 +10,9 @@ export const UserProvider = ({ children }) => {
         email: '',
         isAuthenticated: false
     });
+    const [isSearchOn, setIsSearchOn] = useState(false);
+    const [isDocumentOn, setIsDocumentOn] = useState(false);
+    const [isVectorBaseOn, setIsVectorBaseOn] = useState(false);
     const navigate = useNavigate();
     useEffect(() => {
         console.log(user, 'user')
@@ -48,7 +51,7 @@ export const UserProvider = ({ children }) => {
     }
 
     return (
-        <UserContext.Provider value={{ user, setUser,logout }}>
+        <UserContext.Provider value={{ user, setUser,logout,isSearchOn, setIsSearchOn, isDocumentOn, setIsDocumentOn, isVectorBaseOn, setIsVectorBaseOn }}>
             {children}
         </UserContext.Provider>
     );

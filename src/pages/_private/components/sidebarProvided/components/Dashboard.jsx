@@ -44,7 +44,7 @@ export default function Dashboard() {
 
     return (
         <div className="flex w-full h-full items-center justify-center">
-            <div className=" w-full md:w-[54%]">
+            <div className=" w-full max-w-[900px] md:w-[54%]">
                 <p className="text-center font-semibold capitalize text-4xl font-mono mb-2">
                     Let's create & Analyze some <span className="">amazing formulas</span> together.
                 </p>

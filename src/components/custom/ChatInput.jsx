@@ -1,6 +1,6 @@
-import { ArrowUp, ArrowUpRight, Files, LoaderCircle, Paperclip } from "lucide-react";
+import { ArrowUp, ArrowUpRight, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
 import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
@@ -13,13 +13,16 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useUser } from "../../context/UserContext";
 
 export default function ChatInput({
     input,
     setInput,
     handleSubmit,
     isLoading,
-    setLoading
+    setLoading,
+
 }) {
 
     // global states
@@ -32,8 +35,10 @@ export default function ChatInput({
         resetAllStates,
         files
     } = useFilesUploadMetadata();
+    const { isDocumentOn, setIsDocumentOn, isSearchOn, setIsSearchOn, isVectorBaseOn, setIsVectorBaseOn } = useUser();
     // component states
     const [rows, setRows] = useState(1);
+
     const [isTransribed, setIsTransribed] = useState(false);
     const maxRows = 30;
     const handleChange = (event) => {
@@ -80,12 +85,47 @@ export default function ChatInput({
     }, [isTransribed])
 
     useEffect(() => {
-        resetAllStates();
+        const handleShortcutKeys = (event) => {
+            if (event.key === '3') {
+                setIsDocumentOn((prev) => !prev);
+            } else if (event.key === '2') {
+                setIsVectorBaseOn((prev) => !prev);
+            } else if (event.key === '1') {
+                setIsSearchOn((prev) => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleShortcutKeys);
+
+        return () => {
+            window.removeEventListener('keydown', handleShortcutKeys);
+        };
+    }, []);
+
+    const scrollContainerRef = useRef(null);
+
+    const scrollLeft = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollLeft -= 300; // Adjust scroll distance as needed
+        }
+    };
+
+    const scrollRight = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollLeft += 300; // Adjust scroll distance as needed
+        }
+    };
+
+    useEffect(() => {
+        if (pathname.includes('/dashboard')) {
+            resetAllStates();
+        }
     }, [pathname])
 
+
     return (
-        <div className="flex w-full flex-col hide-scrollbar">
-            {
+        <div className="flex w-full flex-col">
+            {/* {
                 fileCount > 0 && (
                     <div className="bg-slate-600 rounded-md my-2 p-3 flex gap-2 w-fit">
                         <div>
@@ -110,15 +150,72 @@ export default function ChatInput({
                                     </div>
                                 )
                             }
-
                         </div>
                     </div>
                 )
-            }
+            } */}
 
+
+
+
+            <div className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}>
+                {
+                    files.length > 3 &&
+                    <button
+                        onClick={scrollLeft}
+                        className="absolute left-0 z-10 px-2 py-1 ml-2 border-2 border-gray-700 bg-gray-700/50 text-white rounded-md hover:bg-gray-600"
+                    >
+                        <ChevronLeft />
+                    </button>
+                }
+
+                <div
+                    ref={scrollContainerRef}
+                    className="flex gap-2 items-center overflow-x-scroll scroll-smooth hide-scrollbar"
+                >
+                    {
+                        files.filter(file => memorizedFiles.includes(file.name)).length > 0 && (
+                            files.filter(file => memorizedFiles.includes(file.name)).map((file, index) => (
+                                <div
+                                    key={index}
+                                    className="bg-[#2a3444]/80 backdrop-blur-sm rounded-lg px-2 py-2 my-2"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="bg-gray-200 p-3 rounded-lg">
+                                                <FileText className="w-5 h-5 text-gray-700" />
+                                            </div>
+                                            <div className="overflow-hidden">
+                                                <h3 className="text-white font-medium truncate  w-full">{file.name.length > 25 ? file.name.slice(0, 25) + '...' : file.name}
+                                                </h3>
+                                                <p className="text-sm text-gray-400 truncate">
+                                                    <span className="uppercase">{file.type.replaceAll('application/', '')}</span> File
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            ))
+                        )
+                    }
+                </div>
+
+
+                {
+                    files.length > 3 &&
+                    <button
+                        onClick={scrollRight}
+                        className="absolute right-0 z-10 px-2 py-1 bg-gray-700/50 text-white rounded-md hover:bg-gray-600"
+                    >
+                        <ChevronRight />
+                    </button>
+                }
+            </div>
 
             {/* <p className="text-center font-bold text-4xl font-mono mb-5">Let's Start The Todays Science!</p> */}
             <div className="border border-gray-800 bg-slate-800 hide-scrollbar rounded-lg p-2">
+
 
                 <Textarea
                     value={input}
@@ -134,7 +231,6 @@ export default function ChatInput({
                     <div className="flex gap-2 items-center">
                         <div className="flex gap-2 rounded-md ">
                             <AudioRecorder value={input} setValue={setInput} trigger={isTransribed} setTrigger={setIsTransribed} />
-                            <Player />
                         </div>
                         {
                             pathname !== '/dashboard' ? (
@@ -160,6 +256,39 @@ export default function ChatInput({
                                 </div>
                             )
                         }
+
+
+                        <div className="flex gap-2 items-center">
+                            <div
+                                onClick={() => setIsSearchOn(!isSearchOn)}
+                                className={`px-4 py-2 flex gap-2 items-center ${isSearchOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
+                                <Globe className={`${isSearchOn ? "text-white" : "text-slate-500"}`} />
+                                <p className={` font-semibold ${isSearchOn ? "border-white" : "text-slate-500"}`}>Search Is {isSearchOn ? "On" : "Off"}</p>
+
+                            </div>
+                            <div
+                                onClick={() => setIsVectorBaseOn(!isVectorBaseOn)}
+                                className={`px-4 py-2 flex gap-2 items-center ${isVectorBaseOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
+                                <DatabaseZap className={`${isVectorBaseOn ? "text-white" : "text-slate-500"}`} />
+                                <p className={` font-semibold ${isVectorBaseOn ? "border-white" : "text-slate-500"}`}>Knowledge Is {isVectorBaseOn ? "On" : "Off"}</p>
+
+                            </div>
+
+                            {
+                                files.length > 0 && (
+                                    <div
+                                        onClick={() => setIsDocumentOn(!isDocumentOn)}
+                                        className={`px-4 py-2 flex gap-2 items-center ${isDocumentOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
+                                        <File className={`${isDocumentOn ? "text-white" : "text-slate-500"}`} />
+                                        <p className={` font-semibold ${isDocumentOn ? "border-white" : "text-slate-500"}`}>File Data Is {isDocumentOn ? "On" : "Off"}</p>
+
+                                    </div>
+                                )
+                            }
+
+
+
+                        </div>
                         <TooltipProvider>
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger>
@@ -196,10 +325,6 @@ export default function ChatInput({
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
-
-                        <div className="text-gray-500">
-                            <p>(Shift + Enter) for New Line</p>
-                        </div>
                     </div>
 
                     <button
