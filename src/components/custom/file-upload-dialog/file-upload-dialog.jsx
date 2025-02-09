@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Upload, FileText, Paperclip, LoaderCircle, Check } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -39,13 +39,39 @@ export default function FileUploadDialog() {
     // component states
     const [isOpen, setIsOpen] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
-    const [isLoadingQueue, setIsLoadingQueue] = useState([])
+    // const [isLoadingQueue, setIsLoadingQueue] = useState([]) // Removed this line
     const [fileQueueError, setFileQueueError] = useState([])
     const [isNewSessionLoading, setIsNewSessionLoading] = useState(false)
+
+    // New State for Memorization Status
+    const [memorizationStatuses, setMemorizationStatuses] = useState({}); // {fileName: "queued" | "memorizing" | "memorized" | "error"}
+    const [memorizationQueue, setMemorizationQueue] = useState([]);
+
+    // useRef to track if the memorization process is running
+    const isMemorizing = useRef(false);
 
     useEffect(() => {
         setFileCount(files.length)
     }, [files])
+
+    useEffect(() => {
+        // Initialize memorization queue and statuses when files change
+        // Filter out already memorized files
+        const newQueue = files
+            .map(file => file.name)
+            .filter(fileName => !memorizedFiles.includes(fileName));
+
+        // Only update the queue if not already memorizing
+        if (!isMemorizing.current) {
+            setMemorizationQueue(newQueue);
+        }
+
+        const initialStatuses = files.reduce((acc, file) => {
+            acc[file.name] = memorizedFiles.includes(file.name) ? "memorized" : "queued";
+            return acc;
+        }, {});
+        setMemorizationStatuses(initialStatuses);
+    }, [files, memorizedFiles]);
 
     const handleDragOver = (e) => {
         e.preventDefault()
@@ -59,23 +85,63 @@ export default function FileUploadDialog() {
 
     const handleDrop = (e) => {
         e.preventDefault()
+        if (isMemorizationLoading) {
+            toast({
+                title: "Memorization in Progress",
+                description: "Please wait until the current files are memorized before adding more.",
+                variant: "destructive",
+            });
+            return;
+        };
         setIsDragging(false)
         const droppedFiles = Array.from(e.dataTransfer.files)
-        setFiles((prev) => [...prev, ...droppedFiles])
+        if (isMemorizing.current) {
+            toast({
+                title: "Memorization in Progress",
+                description: "Please wait until the current files are memorized before adding more.",
+                variant: "warning",
+            });
+            return;
+        }
+        setFiles((prev) => [...prev, ...droppedFiles]);
+
     }
 
     const removeFile = (fileToRemove) => {
         setFiles(files.filter((file) => file !== fileToRemove))
         setMemorizedFiles(memorizedFiles.filter((file) => file !== fileToRemove.name))
-        setIsLoadingQueue(isLoadingQueue.filter((_, index) => files[index] !== fileToRemove))
+        // setIsLoadingQueue(isLoadingQueue.filter((_, index) => files[index] !== fileToRemove)) // Removed this line
         setFileQueueError(fileQueueError.filter((error) => files[error.index] !== fileToRemove))
+
+        // Update memorization queue and statuses
+        setMemorizationQueue(prev => prev.filter(name => name !== fileToRemove.name));
+        setMemorizationStatuses(prev => {
+            const { [fileToRemove.name]: removedStatus, ...rest } = prev;
+            return rest;
+        });
     }
 
     const handleFileChange = (e) => {
+        if (isMemorizationLoading) {
+            toast({
+                title: "Memorization in Progress",
+                description: "Please wait until the current files are memorized before adding more.",
+                variant: "destructive",
+            });
+            return;
+        };
         if (e.target.files) {
+            if (isMemorizing.current) {
+                toast({
+                    title: "Memorization in Progress",
+                    description: "Please wait until the current files are memorized before adding more.",
+                    variant: "warning",
+                });
+                return;
+            }
             const newFiles = Array.from(e.target.files)
             const uniqueFiles = newFiles.filter((newFile) => !files.some((file) => file.name === newFile.name && file.size === newFile.size))
-            setFiles((prev) => [...prev, ...uniqueFiles])
+            setFiles((prev) => [...prev, ...uniqueFiles]);
         }
     }
 
@@ -107,36 +173,36 @@ export default function FileUploadDialog() {
         }
     }
 
-    console.log(memorizedFiles);
-    const handleMemorize = async (file, index) => {
-        if (pathname == '/dashboard') {
-            console.log("creating new session")
-            await handleOpenNewSession()
-        }
-        if (isLoadingQueue.includes(index)) return;
-        setIsLoadingQueue((prev) => [...prev, index])
-        console.log('Memorizing file:', file)
-        const res = await vectorizeOneFile(file, id);
-        console.log(res, res.data.vectorizedDocumentName, "is here")
-        if (res && res.data && !res.data.success) {
-            setFileQueueError((prev) => [...prev, { index: index, message: res.data.message || "Error Occured" }])
-            setIsLoadingQueue((prev) => prev.filter((item) => item !== index))
-            setFileName((prev) => [...prev, file.name])
-            return;
-        }
-        if (res.success) {
-            setMemorizedFiles((prev) => [...prev, res.data.vectorizedDocumentName])
-        }
-        else {
-            setFileQueueError((prev) => [...prev, { index: index, message: res.message || "Error Occured" }])
-        }
-        setIsLoadingQueue((prev) => prev.filter((item) => item !== index))
-    }
+    // console.log(memorizedFiles);
+    // const handleMemorize = async (file, index) => { // Removed this line
+    //     if (pathname == '/dashboard') { // Removed this line
+    //         console.log("creating new session") // Removed this line
+    //         await handleOpenNewSession() // Removed this line
+    //     } // Removed this line
+    //     if (isLoadingQueue.includes(index)) return; // Removed this line
+    //     setIsLoadingQueue((prev) => [...prev, index]) // Removed this line
+    //     console.log('Memorizing file:', file) // Removed this line
+    //     const res = await vectorizeOneFile(file, id); // Removed this line
+    //     console.log(res, res.data.vectorizedDocumentName, "is here") // Removed this line
+    //     if (res && res.data && !res.data.success) { // Removed this line
+    //         setFileQueueError((prev) => [...prev, { index: index, message: res.data.message || "Error Occured" }]) // Removed this line
+    //         setIsLoadingQueue((prev) => prev.filter((item) => item !== index)) // Removed this line
+    //         setFileName((prev) => [...prev, file.name]) // Removed this line
+    //         return; // Removed this line
+    //     } // Removed this line
+    //     if (res.success) { // Removed this line
+    //         setMemorizedFiles((prev) => [...prev, res.data.vectorizedDocumentName]) // Removed this line
+    //     } // Removed this line
+    //     else { // Removed this line
+    //         setFileQueueError((prev) => [...prev, { index: index, message: res.message || "Error Occured" }]) // Removed this line
+    //     } // Removed this line
+    //     setIsLoadingQueue((prev) => prev.filter((item) => item !== index)) // Removed this line
+    // } // Removed this line
 
-    // handle context loading states with component loading states
-    useEffect(() => {
-        setIsMemorizationLoading(isLoadingQueue.length > 0)
-    }, [isLoadingQueue])
+    // // handle context loading states with component loading states // Removed this line
+    // useEffect(() => { // Removed this line
+    //     setIsMemorizationLoading(isLoadingQueue.length > 0) // Removed this line
+    // }, [isLoadingQueue]) // Removed this line
 
     useEffect(() => {
         if (pathname) {
@@ -144,6 +210,56 @@ export default function FileUploadDialog() {
         }
     }, [[pathname]])
 
+    // Memorization Process
+    useEffect(() => {
+        if (memorizationQueue.length === 0) {
+            isMemorizing.current = false;
+            return;
+        }
+
+        const memorizeNext = async () => {
+            isMemorizing.current = true; // Set the ref to true before starting
+
+            const fileNameToMemorize = memorizationQueue[0];
+            setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "memorizing" }));
+
+            try {
+                if (pathname == '/dashboard') {
+                    console.log("creating new session")
+                    await handleOpenNewSession()
+                }
+                const file = files.find(file => file.name === fileNameToMemorize);
+                const res = await vectorizeOneFile(file, id);
+
+                if (res && res.data && !res.data.success) {
+                    setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "error" }));
+                    setFileQueueError((prev) => [...prev, { index: files.findIndex(f => f.name === fileNameToMemorize), message: res.data.message || "Error Occured" }]);
+                    setFileName((prev) => [...prev, file.name]);
+                }
+                else if (res.success) {
+                    setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "memorized" }));
+                    setMemorizedFiles((prev) => [...prev, res.data.vectorizedDocumentName]);
+                }
+                else {
+                    setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "error" }));
+                    setFileQueueError((prev) => [...prev, { index: files.findIndex(f => f.name === fileNameToMemorize), message: res.message || "Error Occured" }]);
+                }
+            } catch (error) {
+                setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "error" }));
+                setFileQueueError((prev) => [...prev, { index: files.findIndex(f => f.name === fileNameToMemorize), message: error.message || "Error Occured" }]);
+            } finally {
+                setMemorizationQueue(prev => prev.slice(1)); // Remove the processed file from the queue
+                isMemorizing.current = false; // Reset the ref to false after completing
+            }
+        };
+
+        memorizeNext();
+    }, [memorizationQueue, id, toast, setMemorizedFiles, pathname, files]);
+
+    // handle context loading states with component loading states
+    useEffect(() => {
+        setIsMemorizationLoading(memorizationQueue.length > 0);
+    }, [memorizationQueue, setIsMemorizationLoading]);
 
     return (
         <div>
@@ -188,28 +304,37 @@ export default function FileUploadDialog() {
                                         <div className="flex  md:flex-row flex-col items-center space-x-3">
                                             {fileQueueError.some(item => item.index === index) ? (
                                                 <div className='bg-red-300 px-4 py-1 rounded-md'>
-                                                    {fileQueueError.find(item => item.index === index).data?.message || "Error Occured"}
+                                                    {fileQueueError.find(item => item.index === index).message || "Error Occured"}
                                                 </div>
-                                            ) : isLoadingQueue.includes(index) ? (
+                                            ) : memorizationStatuses[file.name] === "memorizing" ? (
                                                 <div className="flex items-center space-x-2  bg-white text-black px-4 py-1 rounded-md">
                                                     <LoaderCircle className='animate-spin' />
                                                     <span>Memorizing...</span>
                                                 </div>
-                                            ) : memorizedFiles.includes(file.name) ? (
+                                            ) : memorizationStatuses[file.name] === "memorized" ? (
                                                 <div className='bg-green-300 px-4 py-1 rounded-md flex gap-2'>
                                                     <Check />
                                                     <p>Memorized</p>
                                                 </div>
+                                            ) : memorizationStatuses[file.name] === "queued" ? (
+                                                <div className="flex items-center space-x-2 bg-gray-300 text-black px-4 py-1 rounded-md">
+                                                    <span>Queued</span>
+                                                </div>
+                                            ) : memorizationStatuses[file.name] === "error" ? (
+                                                <div className='bg-red-300 px-4 py-1 rounded-md'>
+                                                    Error
+                                                </div>
                                             ) : (
                                                 <Button
-                                                    onClick={() => handleMemorize(file, index)}
+                                                    // onClick={() => handleMemorize(file, index)} // Removed this line
                                                     className="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded px-4 py-1 text-sm"
+                                                    disabled
                                                 >
                                                     <span>Memorize Data</span>
                                                 </Button>
                                             )}
 
-                                            {!memorizedFiles.includes(file.name) && (
+                                            {!memorizedFiles.includes(file.name) && ( // Removed this line
                                                 <Button
                                                     onClick={() => removeFile(file)}
                                                     className="bg-red-200 hover:bg-red-300 text-red-700 rounded px-4 py-1 text-sm"
@@ -227,12 +352,14 @@ export default function FileUploadDialog() {
                         <div
                             className={`flex flex-col items-center justify-center min-h-[400px] rounded-lg border-2 border-dashed w-full md:w-1/4
                 ${isDragging ? 'border-white bg-[#2a3444]/50' : 'border-gray-600'}
-                transition-colors duration-200`}
+                transition-colors duration-200 ${isMemorizing.current ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
                         >
+
                             <div className="flex flex-col items-center justify-center p-6 text-center">
+                                {isMemorizing.current && <LoaderCircle className="w-8 h-8 text-white animate-spin absolute top-2 left-2" />}
                                 <Upload className="w-16 h-16 text-white mb-4" />
                                 <h3 className="text-xl font-semibold text-white mb-2">
                                     Upload File Here
@@ -247,10 +374,11 @@ export default function FileUploadDialog() {
                                     className="hidden"
                                     id="file-upload"
                                     accept=".pdf,.txt,.json"
+                                    disabled={isMemorizing.current}
                                 />
                                 <label
                                     htmlFor="file-upload"
-                                    className="mt-4 cursor-pointer bg-[#2a3444] text-white px-6 py-2 rounded-md hover:bg-[#3a4454] transition-colors"
+                                    className={`mt-4 cursor-pointer bg-[#2a3444] text-white px-6 py-2 rounded-md hover:bg-[#3a4454] transition-colors ${isMemorizing.current ? 'cursor-not-allowed' : ''}`}
                                 >
                                     Select Files
                                 </label>

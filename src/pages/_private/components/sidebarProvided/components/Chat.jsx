@@ -172,10 +172,10 @@ export default function Chat() {
             try {
                 // api call
                 const res = await getUploadedDocumentHistory(id);
-                console.log(res, "dataTransfer")
-                if (!res.isEmpty) {
-                    const fileNames = res.data.fileNames || [];
-                    setMemorizedFiles(fileNames);
+                console.log(res, res.data[0], "dataTransfer")
+                if (!res.isEmpty && Array.isArray(res.data)) {
+                    const fileNames = [...new Set(res.data[0].fileName || [])]; // Remove duplicate names
+                    // setMemorizedFiles(fileName); // Remove this line
                     setFileCount(fileNames.length);
                     setFileName(fileNames);
                     setFiles(fileNames.map(item => {
@@ -185,21 +185,14 @@ export default function Chat() {
                             type: item.split('.')[splited.length - 1]
                         }
                     }) || []);
+
+                    // Update memorizedFiles with the fileNames from history
+                    setMemorizedFiles(fileNames);
                 }
-                else {
-                    toast({
-                        title: 'Error',
-                        description: res.message,
-                        variant: "destructive"
-                    })
-                }
+
                 return res;
             } catch (error) {
-                toast({
-                    title: 'Error',
-                    description: error.message,
-                    variant: "destructive"
-                })
+
                 console.error(error);
             }
         }
