@@ -49,6 +49,7 @@ export default function FileUploadDialog() {
 
     // useRef to track if the memorization process is running
     const isMemorizing = useRef(false);
+    const isMemorizingProcessRunning = useRef(false); // New ref to prevent concurrent executions
 
     useEffect(() => {
         setFileCount(files.length)
@@ -218,6 +219,11 @@ export default function FileUploadDialog() {
         }
 
         const memorizeNext = async () => {
+            if (isMemorizingProcessRunning.current) {
+                return; // Prevent concurrent execution
+            }
+
+            isMemorizingProcessRunning.current = true;
             isMemorizing.current = true; // Set the ref to true before starting
 
             const fileNameToMemorize = memorizationQueue[0];
@@ -250,6 +256,7 @@ export default function FileUploadDialog() {
             } finally {
                 setMemorizationQueue(prev => prev.slice(1)); // Remove the processed file from the queue
                 isMemorizing.current = false; // Reset the ref to false after completing
+                isMemorizingProcessRunning.current = false; // Release the lock
             }
         };
 
