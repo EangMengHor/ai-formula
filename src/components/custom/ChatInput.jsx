@@ -251,13 +251,9 @@ export default function ChatInput({
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
-
-
                                 </div>
                             )
                         }
-
-
                         <div className="flex gap-2 items-center">
                             <div
                                 onClick={() => setIsSearchOn(!isSearchOn)}
@@ -313,7 +309,10 @@ export default function ChatInput({
                                 <TooltipTrigger>
                                     <button
                                         onClick={() => {
-                                            window.open(!(memorizedFiles.length > 0 && files.length > 0) ? import.meta.env.VITE_OPENAI_REALTIME_URL : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`, "_blank")
+                                            const url = files.length > 0
+                                                ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`
+                                                : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}`;
+                                            window.open(url, "_blank");
                                         }}
                                         className="flex items-center px-1 py-1 rounded-md border bg-green-300 hover:bg-slate-400  "
                                     >

@@ -8,7 +8,9 @@ export default function PrivateRoute() {
     const { user } = useUser();
     const navigate = useNavigate();
     const { toast } = useToast()
+    const { pathname } = useNavigate()
     useEffect(() => {
+        console.log(pathname, "dfsd");
         if (!user.isAuthenticated) {
             toast({
                 title: 'Access Not Allowed',
@@ -16,6 +18,9 @@ export default function PrivateRoute() {
                 variant: 'default'
             })
             navigate('/login')
+        }
+        else {
+            navigate('/dashboard')
         }
     }, [user.isAuthenticated])
 

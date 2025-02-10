@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { login } from '../../../namespace/client';
 import { signup } from '../../../services/n8n-apis/_auth/Signup.api.js';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '../../../hooks/use-toast';
 import { Loader } from 'lucide-react';
 import { useUser } from '../../../context/UserContext';
@@ -11,7 +11,8 @@ export default function Signup() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
-    const { setUser } = useUser();
+    const { user,setUser } = useUser();
+    const navigate = useNavigate();
     async function handleSignup() {
         if (email.length === 0 || password.length === 0) {
             toast({
@@ -56,6 +57,14 @@ export default function Signup() {
             setIsLoading(false);
         }
     }
+
+    useEffect(()=>{
+        if(user.isAuthenticated){
+            navigate('/dashboard')
+        }
+        
+    },[user.isAuthenticated ])
+
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-gray-900 to-gray-800">

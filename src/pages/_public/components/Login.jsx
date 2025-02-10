@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { login } from '../../../services/n8n-apis/_auth/Login.api.js';
 import { useUser } from '../../../context/UserContext';
-import { Loader } from 'lucide-react';
+import { Loader, User } from 'lucide-react';
 import { signup } from '../../../namespace/client';
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
 
     // context
-    const { setUser } = useUser();
-
+    const { setUser, isAuthenticated, user } = useUser();
+    const navigate = useNavigate();
     // states
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -62,6 +62,11 @@ export default function Login() {
         }
     }
 
+    useEffect(() => {
+        if (user.isAuthenticated) {
+            navigate('/dashboard')
+        }
+    }, [user])
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-gray-900 to-gray-800">
             <h1 className="text-4xl font-bold mb-6 text-white">Login</h1>
@@ -109,6 +114,7 @@ export default function Login() {
                     <Link to={signup} className="text-blue-400 hover:text-blue-600">Sign Up</Link>
                 </p>
             </div>
+
         </div>
     );
 }

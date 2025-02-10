@@ -10,6 +10,7 @@ export const UserProvider = ({ children }) => {
         email: '',
         isAuthenticated: false
     });
+    const { pathname } = useNavigate();
     const [isSearchOn, setIsSearchOn] = useState(false);
     const [isDocumentOn, setIsDocumentOn] = useState(false);
     const [isVectorBaseOn, setIsVectorBaseOn] = useState(false);
@@ -18,23 +19,23 @@ export const UserProvider = ({ children }) => {
         console.log(user, 'user')
     }, [user])
 
-    useEffect(()=>{
+    useEffect(() => {
         localStorage.getItem('id') && setUser({
             id: localStorage.getItem('id'),
             email: localStorage.getItem('email'),
             isAuthenticated: true
         })
-        
-    },[])
+
+    }, [])
 
     useEffect(() => {
-        if(user.isAuthenticated){
-            navigate('/dashboard')
+        if (user.isAuthenticated) {
+            navigate(pathname)
         }
-    },[user.isAuthenticated])
+    }, [user.isAuthenticated])
 
 
-    function logout(){
+    function logout() {
         localStorage.removeItem('id')
         localStorage.removeItem('email')
         setUser({
@@ -51,7 +52,7 @@ export const UserProvider = ({ children }) => {
     }
 
     return (
-        <UserContext.Provider value={{ user, setUser,logout,isSearchOn, setIsSearchOn, isDocumentOn, setIsDocumentOn, isVectorBaseOn, setIsVectorBaseOn }}>
+        <UserContext.Provider value={{ user, setUser, logout, isSearchOn, setIsSearchOn, isDocumentOn, setIsDocumentOn, isVectorBaseOn, setIsVectorBaseOn }}>
             {children}
         </UserContext.Provider>
     );
