@@ -174,37 +174,6 @@ export default function FileUploadDialog() {
         }
     }
 
-    // console.log(memorizedFiles);
-    // const handleMemorize = async (file, index) => { // Removed this line
-    //     if (pathname == '/dashboard') { // Removed this line
-    //         console.log("creating new session") // Removed this line
-    //         await handleOpenNewSession() // Removed this line
-    //     } // Removed this line
-    //     if (isLoadingQueue.includes(index)) return; // Removed this line
-    //     setIsLoadingQueue((prev) => [...prev, index]) // Removed this line
-    //     console.log('Memorizing file:', file) // Removed this line
-    //     const res = await vectorizeOneFile(file, id); // Removed this line
-    //     console.log(res, res.data.vectorizedDocumentName, "is here") // Removed this line
-    //     if (res && res.data && !res.data.success) { // Removed this line
-    //         setFileQueueError((prev) => [...prev, { index: index, message: res.data.message || "Error Occured" }]) // Removed this line
-    //         setIsLoadingQueue((prev) => prev.filter((item) => item !== index)) // Removed this line
-    //         setFileName((prev) => [...prev, file.name]) // Removed this line
-    //         return; // Removed this line
-    //     } // Removed this line
-    //     if (res.success) { // Removed this line
-    //         setMemorizedFiles((prev) => [...prev, res.data.vectorizedDocumentName]) // Removed this line
-    //     } // Removed this line
-    //     else { // Removed this line
-    //         setFileQueueError((prev) => [...prev, { index: index, message: res.message || "Error Occured" }]) // Removed this line
-    //     } // Removed this line
-    //     setIsLoadingQueue((prev) => prev.filter((item) => item !== index)) // Removed this line
-    // } // Removed this line
-
-    // // handle context loading states with component loading states // Removed this line
-    // useEffect(() => { // Removed this line
-    //     setIsMemorizationLoading(isLoadingQueue.length > 0) // Removed this line
-    // }, [isLoadingQueue]) // Removed this line
-
     useEffect(() => {
         if (pathname) {
             localStorage.getItem('filesFallBack') && setFiles(files) && setIsOpen(true)
@@ -244,7 +213,7 @@ export default function FileUploadDialog() {
                 }
                 else if (res.success) {
                     setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "memorized" }));
-                    setMemorizedFiles((prev) => [...prev, res.data.vectorizedDocumentName]);
+                    setMemorizedFiles(prevMemorizedFiles => [...prevMemorizedFiles, res.data.vectorizedDocumentName]);
                 }
                 else {
                     setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "error" }));
