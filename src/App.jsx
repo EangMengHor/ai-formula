@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Route, Router, Routes, useNavigate } from "react-router-dom"
+import { Route, Router, Routes, useNavigate, useLocation } from "react-router-dom"
 import PublicLayout from "./pages/_public/PublicLayout"
 import Login from "./pages/_public/components/Login"
 import Signup from "./pages/_public/components/Signup"
@@ -11,11 +11,19 @@ import Chat from "./pages/_private/components/sidebarProvided/components/Chat"
 import { useEffect } from "react"
 
 export default function App() {
-  const { pathname } = useNavigate()
-  const navigate = useNavigate()
+  const location = useLocation();
+  const navigate = useNavigate();
+
   useEffect(() => {
- 
-  })
+    console.log("here is nav", location.pathname);
+    const edgePaths = ['/', ''];
+    if (edgePaths.includes(location.pathname) && !location.pathname.startsWith('/chat')) {
+      console.log("here is nav123", location.pathname);
+      navigate('/dashboard');
+    }
+
+  }, [location.pathname, navigate]);
+
   return (
     <>
       <Routes>
@@ -26,7 +34,7 @@ export default function App() {
 
         <Route element={<PrivateRoute />}>
           <Route element={<SidebarProvided />} >
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route index path="/dashboard" element={<Dashboard />} />
             <Route path="/chat/:id" element={<Chat />} />
           </Route>
 

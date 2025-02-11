@@ -29,8 +29,8 @@ export const UserProvider = ({ children }) => {
     }, [])
 
     useEffect(() => {
-        if (user.isAuthenticated) {
-            navigate(pathname)
+        if (!user.isAuthenticated) {
+            navigate('/login')
         }
     }, [user.isAuthenticated])
 

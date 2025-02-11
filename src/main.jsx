@@ -10,20 +10,18 @@ import { FilesUploadMetadataProvider } from './context/FilesUploadMetadata'
 import { AudioProvider } from './context/AudioContext'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
 
-    <BrowserRouter>
-      <UserProvider>
-        <SidebarProvider>
-          <FilesUploadMetadataProvider>
-            <AudioProvider>
+  <BrowserRouter>
+    <UserProvider>
+      <SidebarProvider>
+        <FilesUploadMetadataProvider>
+          <AudioProvider>
             <App />
-            </AudioProvider>
-          </FilesUploadMetadataProvider>
-        </SidebarProvider>
-      </UserProvider>
-    </BrowserRouter>
+          </AudioProvider>
+        </FilesUploadMetadataProvider>
+      </SidebarProvider>
+    </UserProvider>
     <Toaster />
+  </BrowserRouter>
 
-  </StrictMode>,
 )
