@@ -9,6 +9,9 @@ import Dashboard from "./pages/_private/components/sidebarProvided/components/Da
 import SidebarProvided from "./pages/_private/components/sidebarProvided/SidebarProvided"
 import Chat from "./pages/_private/components/sidebarProvided/components/Chat"
 import { useEffect } from "react"
+import KnowledgeLayout from "./pages/_knowledge/KnowledgeLayout"
+import CreateKnowledgeBase from "./pages/_knowledge/pages/CreateKnowledgeBase"
+import Knowledge from "./pages/_knowledge/pages/Knowledge"
 
 export default function App() {
   const location = useLocation();
@@ -37,7 +40,11 @@ export default function App() {
             <Route index path="/dashboard" element={<Dashboard />} />
             <Route path="/chat/:id" element={<Chat />} />
           </Route>
-
+          <Route element={<KnowledgeLayout />} >
+            <Route path="/knowledge" element={<Knowledge />} />
+            <Route path="/create-knowledge-base" elemet={<CreateKnowledgeBase />} />
+            <Route path="/chat/:idx" element={<CreateKnowledgeBase />} />
+          </Route>
         </Route>
       </Routes>
     </>

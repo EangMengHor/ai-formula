@@ -1,17 +1,17 @@
 import axios from "axios";
 import { response } from "../../../lib/utils";
 import { chat as url } from '@/namespace/server'
-export async function chat(prompt, sessionId, files = [],isSearch=false,isDocument=false,isVectorBase=false,module="question") {
+export async function chat(prompt, sessionId, files = [], isSearch = false, isDocument = false, isVectorBase = false, module = "question") {
     try {
         const isFiles = files.length > 0;
 
         const requestData = {
             prompt: prompt,
             sessionId: sessionId,
-            isSearch:isSearch,
-            isDocument:isDocument,
-            isVectorBase:isVectorBase,
-            module:module
+            isSearch: isSearch,
+            isDocument: isDocument,
+            isVectorBase: isVectorBase,
+            module: module
         };
         if (isFiles) {
             requestData.data = files;
