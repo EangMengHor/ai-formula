@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowUpRight, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip } from "lucide-react";
+import { ArrowUp, ArrowUpRight, ChevronDown, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
@@ -22,6 +22,7 @@ export default function ChatInput({
     handleSubmit,
     isLoading,
     setLoading,
+    handleScroll
 
 }) {
 
@@ -311,7 +312,7 @@ export default function ChatInput({
                                         onClick={() => {
                                             let url = import.meta.env.VITE_OPENAI_REALTIME_URL;
                                             url = files.length > 0
-                                                ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`
+                                                ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.slice(0, 20).map(file => file.name).join('||||')}&namespace=${id}`
                                                 : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}`;
                                             window.open(url, "_blank");
                                         }}
@@ -322,6 +323,19 @@ export default function ChatInput({
                                 </TooltipTrigger>
                                 <TooltipContent className="bg-slate-600 p-2 rounded-md">
                                     <p>New Realtime</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        <TooltipProvider>
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger>
+                                    <div onClick={handleScroll} className="cursor-pointer flex gap-2 items-center bg-slate-700 px-2 py-2 rounded-md">
+                                        <ChevronDown />
+                                    </div>
+
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-slate-600 p-2 rounded-md">
+                                    <p>Scroll To Bottom</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -342,9 +356,6 @@ export default function ChatInput({
                         }
 
                     </button>
-
-
-
                 </div>
             </div>
         </div>

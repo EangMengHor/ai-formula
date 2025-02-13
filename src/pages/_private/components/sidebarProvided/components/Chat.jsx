@@ -25,10 +25,13 @@ import PollStatus from "../../../../../components/custom/PolledStatus";
 import { poll } from "poll";
 import { pollStatus } from "../../../../../services/n8n-apis/_core/pollStatus.api";
 import { UserContext, useUser } from "../../../../../context/UserContext";
+
 export default function Chat() {
     // current sessionId
     const { id } = useParams();
     const mermaidRef = useRef(null);
+    const bottomRef = useRef(null); // Reference for the bottom of the chat container
+    const chatContainerRef = useRef(null); // Reference to chat container
     // context
     const {
         fileCount,
@@ -59,7 +62,7 @@ export default function Chat() {
     const [fallBackPrompt, setFallBackPrompt] = useState("")
     const { toast } = useToast();
     const [hasInitialChatLoaded, setHasInitialChatLoaded] = useState(false);
-
+    const [showScrollButton, setShowScrollButton] = useState(false); // State to control button visibility
 
     // check if local storage has prompt if so then execture it or load the chat
     useEffect(() => {
@@ -120,7 +123,6 @@ export default function Chat() {
         }
     }, [id, isSearchOn, isDocumentOn, isVectorBaseOn, toast]);
 
-
     useEffect(() => {
         console.log(conversation, latestUpdatedStatus, 'conversation');
     }, [conversation])
@@ -165,7 +167,6 @@ export default function Chat() {
             }
         }
 
-
         // get uploaded Document
         async function getUploadedDocumentHis() {
 
@@ -207,13 +208,11 @@ export default function Chat() {
             ])
         }
 
-
         // trigger
         if (isChatLoading) {
             getData();
         }
     }, [isChatLoading, id]);
-
 
     // polling for status
     useEffect(() => {
@@ -234,8 +233,9 @@ export default function Chat() {
         return () => clearInterval(interval);
     }, [isNextChatLoading, id]);
 
-
-
+    const scrollToBottom = () => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
 
     if (isChatLoading) {
         return (
@@ -248,30 +248,28 @@ export default function Chat() {
     return (
         <div className="flex flex-col h-full w-full">
             {/* Chat messages container */}
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 w-full max-w-4xl mx-auto">
-
+            <div
+                className="flex-1 overflow-y-auto p-4 space-y-4 w-full max-w-4xl mx-auto"
+            >
                 {conversation.map((item, index) => {
                     if (item.role === "human") {
                         return (
-                            <div key={index} className="bg-gray-600 p-2 rounded shadow">
-                                {item.message.replaceAll('Provided Document : No document provided', '')}
+                            <div ref={index == conversation.length - 1 ? chatContainerRef : null} key={index} className="bg-gray-600 p-2 rounded shadow">
+                                {item.message ? item.message.replaceAll('Provided Document : No document provided', '') : "{Message Not found}"}
                             </div>
                         );
                     } else {
                         return (
-                            <div key={index} className="text-slate-300 rounded shadow">
+                            <div ref={index == conversation.length ? chatContainerRef : null} key={index} className="text-slate-300 rounded shadow">
                                 {
                                     item.workflow && item.workflow.length > 0 ? (
                                         <PollStatus workflow={item.workflow} updated={item.updated} added={item.message[0].content.slice(0, 30)} isCompleted={true} isOpen={true} />
                                     ) : null
                                 }
-                                {item.message?.map((itm, idx) => {
-
+                                {item.message && item.message?.map((itm, idx) => {
                                     if (itm.type === "text") {
                                         return (
                                             <div key={idx}>
-
                                                 <ReactMarkdown
                                                     remarkPlugins={[remarkMath, remarkGfm]} // Added remarkGfm for table support
                                                     rehypePlugins={[rehypeKatex]}
@@ -312,7 +310,6 @@ export default function Chat() {
                                                 >
                                                     {itm.content}
                                                 </ReactMarkdown>
-
                                             </div>
                                         );
                                     } else if (itm.type === "mermaid") {
@@ -326,24 +323,22 @@ export default function Chat() {
                                             </div>
                                         );
                                     }
-
                                 })}
-                                {console.log(item.message, 'item.message')}
                             </div>
                         );
                     }
                 })}
-                {
-                    isNextChatLoading && (
-                        <PollStatus workflow={compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn)} updated={latestUpdatedStatus.current} isActive={isChanged} isOpen={true} />
-                    )
-                }
+                {isNextChatLoading && (
+                    <PollStatus workflow={compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn)} updated={latestUpdatedStatus.current} isActive={isChanged} isOpen={true} />
+                )}
             </div>
+            <div ref={bottomRef} />
+            {/* Scroll to Bottom Button */}
+
 
             {/* Chat input */}
-            <div className="w-full  p-4 sticky bottom-0 bg-gray-950 mb-2 flex items-center justify-center">
+            <div className="w-full p-4 sticky bottom-0 bg-gray-950 mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
-
                     <ChatInput
                         input={prompt}
                         setInput={setPrompt}
@@ -356,12 +351,13 @@ export default function Chat() {
                         setIsDocumentOn={setIsDocumentOn}
                         isVectorBaseOn={isVectorBaseOn}
                         setIsVectorBaseOn={setIsVectorBaseOn}
+                        handleScroll={scrollToBottom}
                     />
+
                 </div>
             </div>
         </div>
-
-    )
+    );
 }
 
 
