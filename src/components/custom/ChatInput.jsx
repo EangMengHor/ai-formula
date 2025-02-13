@@ -309,8 +309,8 @@ export default function ChatInput({
                                 <TooltipTrigger>
                                     <button
                                         onClick={() => {
-                                            const url = import.meta.env.VITE_OPENAI_REALTIME_URL;
-                                            const url = files.length > 0
+                                            let url = import.meta.env.VITE_OPENAI_REALTIME_URL;
+                                            url = files.length > 0
                                                 ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`
                                                 : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}`;
                                             window.open(url, "_blank");
