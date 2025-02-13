@@ -310,9 +310,9 @@ export default function ChatInput({
                                     <button
                                         onClick={() => {
                                             const url = import.meta.env.VITE_OPENAI_REALTIME_URL;
-                                            // const url = files.length > 0
-                                            //     ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`
-                                            //     : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}`;
+                                            const url = files.length > 0
+                                                ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.map(file => file.name).join('||||')}&namespace=${id}`
+                                                : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}`;
                                             window.open(url, "_blank");
                                         }}
                                         className="flex items-center px-1 py-1 rounded-md border bg-green-300 hover:bg-slate-400  "
