@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
 import { _useSidebar } from "../../../../context/SidebarContext"
+import JamesLogo from "./components/JamesLogo"
 
 // This is sample data.
 const data = {
@@ -164,7 +165,7 @@ export function AppSidebar({ ...props }) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="flex items-center justify-center">
-            <img src='./james-logo.png' alt="James Logo" className="w-full h-14 bg-white rounded-md m-2 p-1" />
+            <JamesLogo />
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton

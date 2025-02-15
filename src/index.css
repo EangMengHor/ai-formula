@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 .chat-message {
   padding: 10px;
   background: #f9f9f9;
@@ -61,6 +62,7 @@ pre {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 224 71.4% 4.1%;
     --foreground: 210 20% 98%;
@@ -101,6 +103,7 @@ pre {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -109,6 +112,7 @@ pre {
 .hide-scrollbar {
   -ms-overflow-style: none;
 }
+
 ::-webkit-scrollbar {
   display: none;
 }
@@ -140,7 +144,7 @@ pre {
   color: rgb(255, 255, 255);
 }
 
-pre{
+pre {
   background: #545454;
   padding: 10px;
   border-radius: 5px;
@@ -157,18 +161,22 @@ table {
 }
 
 th {
-  background: #4a4a4a; /* Darker background for table headers */
-  color: #ffffff; /* White text for better contrast */
+  background: #4a4a4a;
+  /* Darker background for table headers */
+  color: #ffffff;
+  /* White text for better contrast */
 }
 
 tr {
-  background: #2c2c2c; /* Darker background for table rows */
+  background: #2c2c2c;
+  /* Darker background for table rows */
 }
 
 td,
 th {
-  border: 1px solid #555555; /* Darker border for better visibility */
+  border: 1px solid #555555;
+  /* Darker border for better visibility */
   padding: 8px;
-  color: #e0e0e0; /* Light text color for better readability */
+  color: #e0e0e0;
+  /* Light text color for better readability */
 }
-

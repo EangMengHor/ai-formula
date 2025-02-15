@@ -12,6 +12,7 @@ import { useEffect } from "react"
 import KnowledgeLayout from "./pages/_knowledge/KnowledgeLayout"
 import CreateKnowledgeBase from "./pages/_knowledge/pages/CreateKnowledgeBase"
 import Knowledge from "./pages/_knowledge/pages/Knowledge"
+import EditSuperPersona from "./pages/_knowledge/pages/EditSuperPersona"
 
 export default function App() {
   const location = useLocation();
@@ -42,8 +43,9 @@ export default function App() {
           </Route>
           <Route element={<KnowledgeLayout />} >
             <Route path="/knowledge" element={<Knowledge />} />
-            <Route path="/create-knowledge-base" elemet={<CreateKnowledgeBase />} />
+            <Route path="/create-knowledge-base" element={<CreateKnowledgeBase />} />
             <Route path="/chat/:idx" element={<CreateKnowledgeBase />} />
+            <Route path="/editSuperPersona/:idx" element={<EditSuperPersona />} />
           </Route>
         </Route>
       </Routes>
