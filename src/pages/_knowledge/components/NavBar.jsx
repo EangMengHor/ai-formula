@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/button";
 import JamesLogo from "../../_private/components/sidebarProvided/components/JamesLogo";
 import { useEffect, useState } from "react";
-const validToShowMenu = ['/create-knowledge-base']
+const validToShowMenu = ['/create-knowledge-base', '/editSuperPersona']
 export default function NavBar() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
@@ -10,9 +10,9 @@ export default function NavBar() {
     const [isShowMenu, setIsShowMenu] = useState(false);
 
 
-    useEffect(() => {
-        setIsShowMenu(validToShowMenu.includes(pathname))
-    }, [pathname])
+        useEffect(() => {
+            setIsShowMenu(validToShowMenu.some(curr => pathname.includes(curr)))
+        }, [pathname])
 
     return (
         <div className="w-full flex justify-between items-center px-4 py-2 border-b">

@@ -14,6 +14,7 @@ import { createTemplatePersona } from "../../../services/n8n-knowledge-apis/crea
 import { useToast } from "../../../hooks/use-toast"
 import { createPersona } from "../../../services/n8n-knowledge-apis/createPersona"
 import { useLocation, useNavigate } from "react-router-dom"
+import { useUser } from "../../../context/UserContext"
 
 
 export default function CreateKnowledgeBase() {
@@ -42,7 +43,8 @@ export default function CreateKnowledgeBase() {
     // create form
     const [isCreateLoading, setIsCreateLoading] = useState(false);
 
-
+    const { user } = useUser()
+    console.log(user, "kkkk")
 
 
     async function onSubmit(values) {
@@ -52,10 +54,11 @@ export default function CreateKnowledgeBase() {
             const response = await createPersona({
                 title: values.title,
                 description: values.prompt,
-                maxPer: values.maxPersonas
+                maxPer: values.maxPersonas,
+                userId: user.id
             })
 
-            navigate(`/editSuperPersona/${response.data}?title=${values.title}&description=${values.prompt}&maxPer=${values.maxPersonas}`)
+            navigate(`/editSuperPersona/${response.data}?title=${values.title}&description=${values.prompt}&maxPer=${values.maxPersonas}&poll=true`) // poll=true
 
             console.log(response)
             setIsCreateLoading(false);

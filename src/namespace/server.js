@@ -16,7 +16,12 @@ export const pollStatusUrl = `${url}/get-realtime-poll`
 
 
 
-// knowledge base
-export const createPersonasUrl = `${test}/create-persona-sup`
+//  - - - knowledge base - - -
+export const getUserSuperiorPersonaUrl = `${url}/get-user-superior-persona`
+export const createPersonasUrl = `${url}/create-persona-sup`
 export const createPersonaTemplate = `${url}/create-persona-template`
 export const pollCurrLoadingPersonaUrl = `${url}/poll-curr-loading-persona`
+export const getSuperPersonaUrl = `${url}/get-superior-persona`
+// Edit persona APIs
+export const saveEditedPersonaUrl = `${url}/save-edited-persoans`
+export const editGeneratedPersonaUrl = `${test}/edit-generated-persona`

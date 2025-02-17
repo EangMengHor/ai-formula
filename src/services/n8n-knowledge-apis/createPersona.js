@@ -2,12 +2,13 @@ import axios from "axios"
 import { response } from "../../lib/utils"
 import { createPersonasUrl } from "../../namespace/server"
 
-export async function createPersona({ title, description, maxPer }) {
+export async function createPersona({ title, description, maxPer,userId }) {
     try {
         const _res = await axios.post(createPersonasUrl, {
             name: title,
             description: description,
-            numberOfPersona: maxPer
+            numberOfPersona: maxPer,
+            userId:userId
         })
 
         console.log(_res.data);
