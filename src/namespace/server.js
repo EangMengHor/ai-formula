@@ -24,4 +24,4 @@ export const pollCurrLoadingPersonaUrl = `${url}/poll-curr-loading-persona`
 export const getSuperPersonaUrl = `${url}/get-superior-persona`
 // Edit persona APIs
 export const saveEditedPersonaUrl = `${url}/save-edited-persoans`
-export const editGeneratedPersonaUrl = `${test}/edit-generated-persona`
+export const editGeneratedPersonaUrl = `${url}/edit-generated-persona`
