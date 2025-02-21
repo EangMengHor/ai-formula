@@ -5,7 +5,7 @@ import { _useSidebar } from "../../../../../context/SidebarContext";
 import { getNewSession } from "../../../../../services/n8n-apis/_core/getNewSession.api";
 import { useEffect, useState } from "react";
 import { useUser } from "../../../../../context/UserContext";
-import { ArrowRight, School } from "lucide-react";
+import { ArrowRight, Brain, School } from "lucide-react";
 
 export default function Dashboard() {
     const [value, setValue] = useState("");
@@ -43,11 +43,29 @@ export default function Dashboard() {
         }
     }, [])
 
+    const navCards = [
+        {
+            id: 1,
+            to: '/knowledge',
+            icon: School,
+            title: 'Knowledge Base & Persona',
+            description: 'Create superior personas and knowledge base with chatting functionality'
+        },
+        // {
+        //     id: 2,
+        //     to: '/oasis',
+        //     icon: Brain,
+        //     title: "Oasis - Social Media Simulation",
+        //     description: "Create and analyze social media posts and simulate the social media environment"
+        // }
+        // You can add more cards here in the future.
+    ];
+
     return (
         <div className="flex w-full h-full items-center justify-center">
-            <div className=" w-full max-w-[900px] md:w-[54%]">
+            <div className="w-full max-w-[900px] md:w-[54%] mt-[10%]">
                 <p className="text-center font-semibold capitalize text-4xl font-mono mb-2">
-                    Let's create & Analyze some <span className="">amazing formulas</span> together.
+                    Let's create & Analyze some <span>amazing formulas</span> together.
                 </p>
 
                 <ChatInput
@@ -59,18 +77,22 @@ export default function Dashboard() {
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <Link
-                        to={'/knowledge'}
-                        className="bg-slate-700 hover:bg-slate-600 cursor-pointer rounded-lg shadow-md p-4 flex flex-col  items-start gap-4 justify-start">
-                        <div className="flex text-left rounded-full bg-blue text-slate-400 mx-auto">
-
-                            <School />
-                        </div>
-                        <h3 className="text-lg font-semibold  mt-2">Knowledge Base & Persona</h3>
-                        <p className="text-gray-300  mt-1">Create superior personas and knowledge base with chating functioanlity</p>
-                        <p className="flex gap-2 items-end text-right w-full">Click To Visit <ArrowRight width={20} height={20} /></p>
-                    </Link>
-
+                    {navCards.map((card) => (
+                        <Link
+                            key={card.id}
+                            to={card.to}
+                            className="bg-slate-700 hover:bg-slate-600 cursor-pointer rounded-lg shadow-md p-4 flex flex-col items-start gap-4 justify-start"
+                        >
+                            <div className="flex text-left rounded-full bg-blue text-slate-400 ">
+                                <card.icon />
+                            </div>
+                            <h3 className="text-lg font-semibold mt-2">{card.title}</h3>
+                            <p className="text-gray-300 mt-1">{card.description}</p>
+                            <p className="flex gap-2 items-end text-right w-full">
+                                Click To Visit <ArrowRight width={20} height={20} />
+                            </p>
+                        </Link>
+                    ))}
                 </div>
             </div>
         </div>

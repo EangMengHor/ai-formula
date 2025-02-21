@@ -143,3 +143,20 @@ export function parseContent(input) {
   console.log(sections);
   return sections.filter(item => item.content.trim() !== '');
 }
+
+export const getFavicon = (urls) => {
+  if (!Array.isArray(urls)) {
+    console.error("Expected an array of URLs");
+    return [];
+  }
+
+  return urls.map(url => {
+    try {
+      const domain = new URL(url).hostname;
+      const favImage = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+      return { link: url, favImage: favImage, root: domain };
+    } catch (error) {
+      return { link: url, favImage: '' };
+    }
+  });
+};

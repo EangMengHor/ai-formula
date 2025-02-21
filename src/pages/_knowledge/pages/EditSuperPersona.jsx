@@ -1,23 +1,31 @@
 import { AlertCircle, Atom } from 'lucide-react';
 import { useState, useEffect, useRef } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import { pollCurrLoadingPersona } from "../../../services/n8n-knowledge-apis/pollCurrLoadingPersona";
 import PersonaSkeleton from '../components/editPersona/persona-skeleton';
 import PersonaCard from '../components/editPersona/persona-card';
-import getSuperPersona from '../../../services/n8n-knowledge-apis/getSuperPersona';
 import { toast } from '../../../hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from '../../../components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { SuperPersonaProvider, useSuperPersona } from '../context/SuperPersonaContext';
+import { SuperPersonaHeader } from '../components/editPersona/SuperPersonaHeader';
 
 const descriptionLength = 200;
 
 export default function EditSuperPersona() {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [maxPer, setMaxPer] = useState(0);
-    const [expanded, setExpanded] = useState(false);
-    const [personas, setPersonas] = useState([]);
+    const { title, setTitle, description, setDescription, maxPer, setMaxPer, expanded, toggleExpanded, personas, setPersonas, getSuperPersonaData, currSessionId, setCurrSessionId, resetAllStates, setIsSuperPersonaLoading, isSuperPersonaLoading } = useSuperPersona();
     const [isPollingPersona, setIsPollingPersona] = useState(true);
     const location = useLocation();
     const { idx } = useParams();
@@ -25,15 +33,11 @@ export default function EditSuperPersona() {
     const [newPersonaAdded, setNewPersonaAdded] = useState(false);
     const [poll, setPoll] = useState(false);
     const [currSkeleton, setCurrSkeleton] = useState(4);
+    const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
+    const [isRefreshLoading, setIsRefreshLoading] = useState(false);
 
-    const toggleExpanded = () => {
-        setExpanded(!expanded);
-    };
 
-    const truncatedDescription = description.length > descriptionLength
-        ? description.substring(0, descriptionLength) + "..."
-        : description;
-
+    const navigate = useNavigate();
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
         setTitle(decodeURIComponent(queryParams.get("title") || ""));
@@ -41,25 +45,16 @@ export default function EditSuperPersona() {
         setMaxPer(parseInt(queryParams.get("maxPer") || "0", 10));
         setCurrSkeleton(maxPer || 4);
         setPoll(queryParams.get("poll") && queryParams.get("poll") === "true");
-    }, [location.search]);
 
+        return () => {
+            resetAllStates();
+        }
+
+
+    }, [location.search, setTitle, setDescription, setMaxPer]);
     useEffect(() => {
 
-        const getSuperPersonaData = async () => {
-            try {
-                const response = await getSuperPersona(idx);
-                console.log("data", response);
-                setTitle(response.data.sup_per_name);
-                setDescription(response.data.sup_per_description);
-                setMaxPer(response.data.numberOfPersona);
-            } catch (error) {
-                toast({
-                    title: 'Error',
-                    description: error.message || 'Something went wrong',
-                })
 
-            }
-        }
         const fetchData = async () => {
             if (!idx) return;
 
@@ -73,7 +68,7 @@ export default function EditSuperPersona() {
 
                         if (newPersonas.length > 0) {
                             setNewPersonaAdded(true);
-                            setTimeout(() => setNewPersonaAdded(false), 3000);
+                            setTimeout(() => (false), 3000);
                             return [...prevPersonas, ...newPersonas];
                         }
                         return prevPersonas;
@@ -106,23 +101,66 @@ export default function EditSuperPersona() {
                 }, 10000);
             }
         };
-
+        if (idx) {
+            setCurrSessionId(idx);
+        }
         if (isPollingPersona && poll) {
             fetchData();
             pollingInterval.current = setInterval(fetchData, 1500);
         }
         else {
-
             fetchData();
+        }
+
+        if (!title || !description || !maxPer) {
             getSuperPersonaData();
         }
         return () => clearInterval(pollingInterval.current);
-    }, [idx, maxPer, personas.length, isPollingPersona]);
+    }, [idx, maxPer, personas.length, isPollingPersona, setTitle, setDescription, setMaxPer]);
 
 
     useEffect(() => {
         setCurrSkeleton((maxPer - personas.length) >= 0 ? maxPer - personas.length : 0);
     }, [personas, maxPer])
+
+    const handleRefresh = async () => {
+        if (idx) {
+            setIsRefreshLoading(true);
+            try {
+                await pollCurrLoadingPersona(idx);
+                toast({
+                    title: "Refreshed!",
+                    description: "Persona data has been updated.",
+                })
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: "Failed to refresh persona data.",
+                })
+            } finally {
+                setIsRefreshLoading(false);
+            }
+        }
+    };
+
+    const handleAutoRefresh = () => {
+        setIsAutoRefreshing(!isAutoRefreshing);
+    };
+
+    useEffect(() => {
+        if (isAutoRefreshing) {
+            pollingInterval.current = setInterval(() => {
+                if (idx) {
+                    pollCurrLoadingPersona(idx);
+                }
+            }, 5000);
+        } else {
+            clearInterval(pollingInterval.current);
+        }
+
+        return () => clearInterval(pollingInterval.current);
+    }, [isAutoRefreshing, idx]);
 
 
     return (
@@ -137,36 +175,29 @@ export default function EditSuperPersona() {
                         </AlertDescription>
                     </Alert>
                 }
-                <div className="flex gap-4 items-center p-6 bg-slate-700 text-white rounded-lg shadow-md space-y-3">
-                    <Atom className="w-12 h-12 text-white" />
-                    <div>
-                        <p className="text-xl font-semibold text-white">{title}</p>
-                        <p className="text-slate-300">
-                            {expanded ? description : truncatedDescription}
-                            {description.length > descriptionLength && (
-                                <button onClick={toggleExpanded} className="text-blue-500 ml-1">
-                                    {expanded ? "Read Less" : "Read More"}
-                                </button>
-                            )}
-                        </p>
-                        <p className="text-slate-400">{maxPer} Persona</p>
-                    </div>
-                </div>
+                <SuperPersonaHeader
+                    title={title}
+                    description={description}
+                    descriptionLength={descriptionLength}
+                    expanded={expanded}
+                    toggleExpanded={toggleExpanded}
+                    maxPer={maxPer}
+                    loading={isSuperPersonaLoading}
+                />
                 <Alert variant="default" className="w-fit">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Note </AlertTitle>
                     <AlertDescription className="capitalize">
-                        Only First Persona Usually Take More Time To Appear
+                        Only First Persona Usually Takes More Time To Appear
                     </AlertDescription>
                 </Alert>
-                <Separator className="border border-white my-5" />
+                <Separator className="border border-gray-600 my-5" />
                 {/* Loading Status */}
 
                 <div className="grid grid-cols-3 gap-4">
                     {personas.map((persona, index) => (
                         <PersonaCard
-                            // isEditable={poll}
-                            isEditable={true}
+                            isEditable={poll}
                             key={persona.id}
                             persona={persona}
                             setPersona={(value) => setPersonas((prev) => [...prev.slice(0, index), value, ...prev.slice(index + 1)])}
@@ -179,18 +210,63 @@ export default function EditSuperPersona() {
                 </div>
 
             </div>
-            {
-                poll && currSkeleton == 0 && <div className='fixed bottom-0 left-0 right-0 flex items-center justify-center w-full p-5 '>
-                    <div className='bg-white bg-opacity-30 backdrop-blur-md rounded-full p-2  w-[30%] border-2 border-blue-500 shadow-lg'>
-                        <Button className="rounded-full w-full bg-blue-500 hover:bg-blue-700 text-white">
-                            Continue To Knowledge Base Scrapper
+            <div className='fixed bottom-0 left-0 right-0 flex items-center justify-center w-screen p-5 gap-4'>
+                <AlertDialog className={`${currSkeleton === 0 ? 'hidden' : ''}`}>
+                    <AlertDialogTrigger>
+                        <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2  border-2 border-blue-500 shadow-lg'>
+                            <Button className="rounded-full w-full bg-blue-500 hover:bg-blue-700 text-white">
+                                Continue To Knowledge Base Scraper
+                            </Button>
+                        </div>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-gray-800 text-slate-300">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>After Going Ahead, You Can't Edit Personas</AlertDialogTitle>
+                            <AlertDialogDescription className="text-slate-300">
+                                <ul className="list-disc list-inside">
+                                    <li>You can't edit the Super Persona after this</li>
+                                    <li>If you want to edit a persona, do that right now</li>
+                                    <li>You can always view the existing personas through the dashboard</li>
+                                </ul>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel className="text-gray-400">Back to Edit</AlertDialogCancel>
+                            <AlertDialogAction className="bg-blue-500 text-white hover:bg-blue-700" onClick={() => navigate(`/generatingKnowledge/${idx}/?isNew=true`)}>
+                                Continue To Knowledge Base Scraper
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+
+                {currSkeleton !== 0 && (
+                    <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2 w-[30%] border-2 shadow-lg'>
+                        <Button className="rounded-full w-full bg-gray-600 text-white">
+                            Please Wait While All Personas Are Loaded
                         </Button>
                     </div>
+                )}
+
+                <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2 w-[10%] border-2 border-gray-500 shadow-lg'>
+                    <Button
+                        className="rounded-full w-full bg-gray-500 hover:bg-gray-700 text-white"
+                        onClick={handleRefresh}
+                        disabled={isRefreshLoading}
+                    >
+                        {isRefreshLoading ? "Loading..." : "Refresh"}
+                    </Button>
                 </div>
-            }
-            {
-                currSkeleton == 0 && null
-            }
+                <div className='bg-gray-600 bg-opacity-30 backdrop-blur-md rounded-full p-2 w-[10%] border-2 border-gray-500 shadow-lg'>
+                    <Button
+                        className="rounded-full w-full text-white"
+                        onClick={handleAutoRefresh}
+                    >
+                        {isAutoRefreshing ? "Auto Refreshing On" : "Start Auto Refresh"}
+                    </Button>
+                </div>
+            </div>
         </>
     );
 }
+
+

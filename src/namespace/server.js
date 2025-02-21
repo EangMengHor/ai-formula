@@ -25,3 +25,6 @@ export const getSuperPersonaUrl = `${url}/get-superior-persona`
 // Edit persona APIs
 export const saveEditedPersonaUrl = `${url}/save-edited-persoans`
 export const editGeneratedPersonaUrl = `${url}/edit-generated-persona`
+// create knowledge base APIs
+export const scrapeKnowledgeBaseUrl = `${url}/scrape-and-knowledge-persona`;
+export const pollScapingStatusUrl = `${url}/poll-scraping-status`

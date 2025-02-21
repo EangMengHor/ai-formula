@@ -21,9 +21,9 @@ export default function CreateKnowledgeBase() {
     const createPersonaForm = useForm({
         resolver: zodResolver(createPersonaFormSchema),
         defaultValues: {
-            title: "",
-            prompt: "This superior persona for ",
-            maxPersonas: 1
+            title: "E sprot Expert",
+            prompt: "This superior persona embodies the comprehensive analysis expertise needed for the rapidly evolving esports industry. It brings together nuanced insights into market trends, player dynamics, audience engagement strategies, and financial modeling. By integrating various sub-personas specialized in distinct areas, this entity enables stakeholders to make informed decisions and seize opportunities in the competitive landscape of esports.1. The Market Trend Analyst: Specializes in identifying emerging trends, consumer behavior patterns, and growth opportunities within the esports market, enabling proactive adaptation to industry shifts.2. The Player Dynamics Specialist: Focuses on player performance analytics, contract negotiations, and personal branding, aiding teams and players in maximizing their value and career trajectories.3. The Audience Engagement Strategist: Develops innovative approaches for fan interaction, fan ecosystems, and digital content strategies to drive engagement and loyalty amongst the esports audience.4. The Financial Analyst: Concentrates on revenue streams, investment opportunities, sponsorship evaluations, and economic impact studies to ensure profitable operations and strategic financial decisions. ",
+            maxPersonas: 20
         },
     })
 

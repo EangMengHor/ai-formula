@@ -270,6 +270,13 @@ export default function ChatInput({
                                 <p className={` font-semibold ${isVectorBaseOn ? "border-white" : "text-slate-500"}`}>Knowledge Is {isVectorBaseOn ? "On" : "Off"}</p>
 
                             </div>
+                            {/* <div
+                                onClick={() => setIsVectorBaseOn(!isVectorBaseOn)}
+                                className={`px-4 py-2 flex gap-2 items-center ${isVectorBaseOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
+                                <DatabaseZap className={`${isVectorBaseOn ? "text-white" : "text-slate-500"}`} />
+                                <p className={` font-semibold ${isVectorBaseOn ? "border-white" : "text-slate-500"}`}>Attach Superior Persona</p>
+
+                            </div> */}
 
                             {
                                 files.length > 0 && (
@@ -312,8 +319,10 @@ export default function ChatInput({
                                         onClick={() => {
                                             let url = import.meta.env.VITE_OPENAI_REALTIME_URL;
                                             url = files.length > 0
-                                                ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.slice(0, 20).map(file => file.name).join('||||')}&namespace=${id}`
-                                                : `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}`;
+                                                ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.slice(0, 20).map(file => file.name).join('||||')}&namespace=${id || ''}`
+                                                : id && id != undefined ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}` : import.meta.env.VITE_OPENAI_REALTIME_URL;
+
+                                            console.log(url, id)
                                             window.open(url, "_blank");
                                         }}
                                         className="flex items-center px-1 py-1 rounded-md border bg-green-300 hover:bg-slate-400  "
