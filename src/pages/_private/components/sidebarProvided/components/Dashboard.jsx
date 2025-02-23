@@ -5,7 +5,7 @@ import { _useSidebar } from "../../../../../context/SidebarContext";
 import { getNewSession } from "../../../../../services/n8n-apis/_core/getNewSession.api";
 import { useEffect, useState } from "react";
 import { useUser } from "../../../../../context/UserContext";
-import { ArrowRight, Brain, School } from "lucide-react";
+import { ArrowRight, Brain, FileInput, School } from "lucide-react";
 
 export default function Dashboard() {
     const [value, setValue] = useState("");
@@ -51,13 +51,20 @@ export default function Dashboard() {
             title: 'Knowledge Base & Persona',
             description: 'Create superior personas and knowledge base with chatting functionality'
         },
-        // {
-        //     id: 2,
-        //     to: '/oasis',
-        //     icon: Brain,
-        //     title: "Oasis - Social Media Simulation",
-        //     description: "Create and analyze social media posts and simulate the social media environment"
-        // }
+        {
+            id: 3,
+            to: '/addToPermenentKnowledgeBase',
+            icon: FileInput,
+            title: "Add to Permenent Knowledge Base",
+            description: "Add New Document to the permenent knowledge base"
+        },
+        {
+            id: 2,
+            to: '/oasis',
+            icon: Brain,
+            title: "Oasis - Social Media Simulation",
+            description: "Create and analyze social media posts and simulate the social media environment"
+        }
         // You can add more cards here in the future.
     ];
 

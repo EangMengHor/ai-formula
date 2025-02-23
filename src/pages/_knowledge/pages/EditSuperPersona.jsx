@@ -1,4 +1,4 @@
-import { AlertCircle, Atom } from 'lucide-react';
+import { AlertCircle, Atom, TriangleAlert } from 'lucide-react';
 import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
@@ -21,6 +21,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { SuperPersonaProvider, useSuperPersona } from '../context/SuperPersonaContext';
 import { SuperPersonaHeader } from '../components/editPersona/SuperPersonaHeader';
+import { eachPersonaSchema } from '../../../Schema';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 
 const descriptionLength = 200;
 
@@ -35,7 +44,9 @@ export default function EditSuperPersona() {
     const [currSkeleton, setCurrSkeleton] = useState(4);
     const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
     const [isRefreshLoading, setIsRefreshLoading] = useState(false);
-
+    // improvements
+    const [isImprovements, setIsImprovements] = useState(false);
+    const [improvements, setImprovements] = useState([]);
 
     const navigate = useNavigate();
     useEffect(() => {
@@ -44,21 +55,41 @@ export default function EditSuperPersona() {
         setDescription(decodeURIComponent(queryParams.get("description") || ""));
         setMaxPer(parseInt(queryParams.get("maxPer") || "0", 10));
         setCurrSkeleton(maxPer || 4);
-        setPoll(queryParams.get("poll") && queryParams.get("poll") === "true");
-
+        setPoll(queryParams.get("poll") && queryParams.get("poll") == "true");
+        console.log(queryParams.get("poll"), queryParams.get("poll") == "true", "poll")
         return () => {
             resetAllStates();
         }
-
-
     }, [location.search, setTitle, setDescription, setMaxPer]);
-    useEffect(() => {
 
+    const fetchData = async () => {
+        if (!idx) return;
 
-        const fetchData = async () => {
-            if (!idx) return;
+        try {
+            const response = await pollCurrLoadingPersona(idx);
+            if (response?.data?.length > 0) {
+                setPersonas(prevPersonas => {
+                    const newPersonas = response.data.filter(persona =>
+                        !prevPersonas.find(p => p.id === persona.id)
+                    );
 
-            try {
+                    if (newPersonas.length > 0) {
+                        setNewPersonaAdded(true);
+                        setTimeout(() => (false), 3000);
+                        return [...prevPersonas, ...newPersonas];
+                    }
+                    return prevPersonas;
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching persona data:", error);
+        }
+
+        if (personas.length >= maxPer && maxPer !== 0) {
+            setIsPollingPersona(false);
+            clearInterval(pollingInterval.current);
+
+            setTimeout(async () => {
                 const response = await pollCurrLoadingPersona(idx);
                 if (response?.data?.length > 0) {
                     setPersonas(prevPersonas => {
@@ -68,39 +99,17 @@ export default function EditSuperPersona() {
 
                         if (newPersonas.length > 0) {
                             setNewPersonaAdded(true);
-                            setTimeout(() => (false), 3000);
+                            setTimeout(() => setNewPersonaAdded(false), 5000);
                             return [...prevPersonas, ...newPersonas];
                         }
                         return prevPersonas;
                     });
                 }
-            } catch (error) {
-                console.error("Error fetching persona data:", error);
-            }
+            }, 10000);
+        }
+    };
 
-            if (personas.length >= maxPer && maxPer !== 0) {
-                setIsPollingPersona(false);
-                clearInterval(pollingInterval.current);
-
-                setTimeout(async () => {
-                    const response = await pollCurrLoadingPersona(idx);
-                    if (response?.data?.length > 0) {
-                        setPersonas(prevPersonas => {
-                            const newPersonas = response.data.filter(persona =>
-                                !prevPersonas.find(p => p.id === persona.id)
-                            );
-
-                            if (newPersonas.length > 0) {
-                                setNewPersonaAdded(true);
-                                setTimeout(() => setNewPersonaAdded(false), 5000);
-                                return [...prevPersonas, ...newPersonas];
-                            }
-                            return prevPersonas;
-                        });
-                    }
-                }, 10000);
-            }
-        };
+    useEffect(() => {
         if (idx) {
             setCurrSessionId(idx);
         }
@@ -112,22 +121,54 @@ export default function EditSuperPersona() {
             fetchData();
         }
 
-        if (!title || !description || !maxPer) {
-            getSuperPersonaData();
-        }
+        console.log("loading 234234")
         return () => clearInterval(pollingInterval.current);
-    }, [idx, maxPer, personas.length, isPollingPersona, setTitle, setDescription, setMaxPer]);
-
+    }, [idx, maxPer, personas.length, isPollingPersona, setTitle, setDescription, setMaxPer, poll]);
+    useEffect(() => {
+        getSuperPersonaData();
+    }, [idx, currSessionId])
 
     useEffect(() => {
         setCurrSkeleton((maxPer - personas.length) >= 0 ? maxPer - personas.length : 0);
     }, [personas, maxPer])
 
+    // improvement checked algorithm
+    useEffect(() => {
+        if (personas.length > 0) {
+            let newImprovements = [];
+
+            personas.forEach((data) => {
+                const result = eachPersonaSchema.safeParse(data);
+                console.log(result, "result")
+                if (!result.success) {
+                    result.error.issues.forEach((issue) => {
+                        newImprovements.push({ id: data.id, improvement: issue.message, field: issue.path });
+                    });
+                }
+            });
+
+            setImprovements(newImprovements);
+        }
+        console.log(personas, "personas")
+    }, [currSkeleton, personas])
+
+    useEffect(() => {
+        console.log(improvements,
+            improvements.map(i => {
+                console.log(personas.find(a => {
+                    console.log(a.id, i.id, a.id === i.id, a, i)
+                    return a.id === i.id
+                }), i)
+                return i
+            }),
+            "improvements")
+    }, [improvements])
+
     const handleRefresh = async () => {
         if (idx) {
             setIsRefreshLoading(true);
             try {
-                await pollCurrLoadingPersona(idx);
+                await fetchData();
                 toast({
                     title: "Refreshed!",
                     description: "Persona data has been updated.",
@@ -148,19 +189,7 @@ export default function EditSuperPersona() {
         setIsAutoRefreshing(!isAutoRefreshing);
     };
 
-    useEffect(() => {
-        if (isAutoRefreshing) {
-            pollingInterval.current = setInterval(() => {
-                if (idx) {
-                    pollCurrLoadingPersona(idx);
-                }
-            }, 5000);
-        } else {
-            clearInterval(pollingInterval.current);
-        }
 
-        return () => clearInterval(pollingInterval.current);
-    }, [isAutoRefreshing, idx]);
 
 
     return (
@@ -213,11 +242,15 @@ export default function EditSuperPersona() {
             <div className='fixed bottom-0 left-0 right-0 flex items-center justify-center w-screen p-5 gap-4'>
                 <AlertDialog className={`${currSkeleton === 0 ? 'hidden' : ''}`}>
                     <AlertDialogTrigger>
-                        <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2  border-2 border-blue-500 shadow-lg'>
-                            <Button className="rounded-full w-full bg-blue-500 hover:bg-blue-700 text-white">
-                                Continue To Knowledge Base Scraper
-                            </Button>
-                        </div>
+                        {
+                            currSkeleton == 0 && poll && (
+                                <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2  border-2 border-blue-500 shadow-lg'>
+                                    <Button className="rounded-full w-full bg-blue-500 hover:bg-blue-700 text-white">
+                                        Continue To Knowledge Base Scraper
+                                    </Button>
+                                </div>
+                            )
+                        }
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-gray-800 text-slate-300">
                         <AlertDialogHeader>
@@ -246,7 +279,19 @@ export default function EditSuperPersona() {
                         </Button>
                     </div>
                 )}
-
+                {
+                    !isImprovements && poll && (
+                        <div className='bg-yellow-500 bg-opacity-30 backdrop-blur-md rounded-full p-2 w-[10%] border-2 border-gray-500 shadow-lg'>
+                            <Button
+                                className="rounded-full w-full text-black bg-yellow-500 hover:bg-yellow-600"
+                                onClick={handleAutoRefresh}
+                            >
+                                <TriangleAlert />
+                                <p>{improvements.length} Improvements</p>
+                            </Button>
+                        </div>
+                    )
+                }
                 <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2 w-[10%] border-2 border-gray-500 shadow-lg'>
                     <Button
                         className="rounded-full w-full bg-gray-500 hover:bg-gray-700 text-white"
@@ -256,14 +301,8 @@ export default function EditSuperPersona() {
                         {isRefreshLoading ? "Loading..." : "Refresh"}
                     </Button>
                 </div>
-                <div className='bg-gray-600 bg-opacity-30 backdrop-blur-md rounded-full p-2 w-[10%] border-2 border-gray-500 shadow-lg'>
-                    <Button
-                        className="rounded-full w-full text-white"
-                        onClick={handleAutoRefresh}
-                    >
-                        {isAutoRefreshing ? "Auto Refreshing On" : "Start Auto Refresh"}
-                    </Button>
-                </div>
+
+
             </div>
         </>
     );

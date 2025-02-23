@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowUpRight, ChevronDown, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip } from "lucide-react";
+import { ArrowUp, ArrowUpRight, BookHeart, ChevronDown, ChevronUp, CircleUserRound, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip, SquarePlus, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
@@ -15,6 +15,30 @@ import {
 } from "@/components/ui/tooltip"
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useUser } from "../../context/UserContext";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+    Command,
+    CommandDialog,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandSeparator,
+    CommandShortcut,
+} from "@/components/ui/command"
+import getUserSuperiorPersona from "../../services/n8n-knowledge-apis/getUserSuperiorPersona";
+import { formatDistanceToNow } from "date-fns";
+import { CommandLoading } from "cmdk";
+const maxRows = 30;
 
 export default function ChatInput({
     input,
@@ -39,9 +63,15 @@ export default function ChatInput({
     const { isDocumentOn, setIsDocumentOn, isSearchOn, setIsSearchOn, isVectorBaseOn, setIsVectorBaseOn } = useUser();
     // component states
     const [rows, setRows] = useState(1);
-
+    const [isToolBoxOpen, setIsToolBoxOpen] = useState(false)
     const [isTransribed, setIsTransribed] = useState(false);
-    const maxRows = 30;
+    const [isSuperiorPersonaAttached, setIsSuperiorPersonaAttached] = useState(false)
+    const [selectedSuperiorPersona, setSelectedSuperiorPersona] = useState({})
+    const [isSupPerItemLoading, setSupPerItemLoading] = useState(false)
+    const [SupPerItems, setSupPerItems] = useState([])
+    const [isSupDialogOpen, setIsSupDialogOpen] = useState(false)
+    const { user } = useUser()
+
     const handleChange = (event) => {
         const textareaLineHeight = 24;
         const previousRows = event.target.rows;
@@ -85,24 +115,7 @@ export default function ChatInput({
         }
     }, [isTransribed])
 
-    useEffect(() => {
-        const handleShortcutKeys = (event) => {
-            if (event.key === '3') {
-                setIsDocumentOn((prev) => !prev);
-            } else if (event.key === '2') {
-                setIsVectorBaseOn((prev) => !prev);
-            } else if (event.key === '1') {
-                setIsSearchOn((prev) => !prev);
-            }
-        };
-
-        window.addEventListener('keydown', handleShortcutKeys);
-
-        return () => {
-            window.removeEventListener('keydown', handleShortcutKeys);
-        };
-    }, []);
-
+    // file scroller
     const scrollContainerRef = useRef(null);
 
     const scrollLeft = () => {
@@ -117,6 +130,8 @@ export default function ChatInput({
         }
     };
 
+
+    // clean up on route change
     useEffect(() => {
         if (pathname.includes('/dashboard')) {
             resetAllStates();
@@ -124,8 +139,36 @@ export default function ChatInput({
     }, [pathname])
 
 
+    // get superior persona
+    async function getSuperiorPersona() {
+        if (SupPerItems.length > 0) return;
+        setSupPerItemLoading(true);
+        try {
+            const response = await getUserSuperiorPersona(user.id);
+            console.log(response)
+            if (response.success && response.data.length > 0) {
+                setSupPerItems(response.data.map(item => ({
+                    id: item.id,
+                    date: item.created_at,
+                    title: item.sup_per_name,
+                })))
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message || "Something went wrong",
+                variant: "destructive"
+            })
+
+        } finally {
+            setSupPerItemLoading(false)
+        }
+    }
+
+
+
     return (
-        <div className="flex w-full flex-col">
+        <div className="flex w-full flex-col animate-fade-in">
             {/* {
                 fileCount > 0 && (
                     <div className="bg-slate-600 rounded-md my-2 p-3 flex gap-2 w-fit">
@@ -159,7 +202,12 @@ export default function ChatInput({
 
 
 
-            <div className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}>
+            <motion.div
+                className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: files.length > 0 ? 1 : 0, y: files.length > 0 ? 0 : -10 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
                 {
                     files.length > 3 &&
                     <button
@@ -212,7 +260,7 @@ export default function ChatInput({
                         <ChevronRight />
                     </button>
                 }
-            </div>
+            </motion.div>
 
             {/* <p className="text-center font-bold text-4xl font-mono mb-5">Let's Start The Todays Science!</p> */}
             <div className="border border-gray-800 bg-slate-800 hide-scrollbar rounded-lg p-2">
@@ -257,40 +305,55 @@ export default function ChatInput({
                         }
                         <div className="flex gap-2 items-center">
                             <div
-                                onClick={() => setIsSearchOn(!isSearchOn)}
-                                className={`px-4 py-2 flex gap-2 items-center ${isSearchOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
-                                <Globe className={`${isSearchOn ? "text-white" : "text-slate-500"}`} />
-                                <p className={` font-semibold ${isSearchOn ? "border-white" : "text-slate-500"}`}>Search Is {isSearchOn ? "On" : "Off"}</p>
+                                onClick={() => {
+                                    setIsToolBoxOpen(!isToolBoxOpen)
+                                }}
+                                className="px-4 py-2 rounded-md bg-slate-600 cursor-pointer flex gap-2">
+                                {
+                                    isSearchOn && <Globe />
+                                }
+                                {
+                                    isDocumentOn && <File />
+                                }
+                                {
+                                    isVectorBaseOn && <DatabaseZap />
+                                }
+                                {
+                                    isSuperiorPersonaAttached && <CircleUserRound />
+                                }
+
+                                {/* default */}
+                                {
+                                    !isSearchOn && !isDocumentOn && !isVectorBaseOn && !isSuperiorPersonaAttached && <div className="flex gap-2 font-semibold">
+                                        <SquarePlus />
+                                        Tool Box
+                                    </div>
+                                }
+                                {
+                                    !isToolBoxOpen ? <ChevronDown /> : <ChevronUp />
+                                }
+
 
                             </div>
-                            <div
-                                onClick={() => setIsVectorBaseOn(!isVectorBaseOn)}
-                                className={`px-4 py-2 flex gap-2 items-center ${isVectorBaseOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
-                                <DatabaseZap className={`${isVectorBaseOn ? "text-white" : "text-slate-500"}`} />
-                                <p className={` font-semibold ${isVectorBaseOn ? "border-white" : "text-slate-500"}`}>Knowledge Is {isVectorBaseOn ? "On" : "Off"}</p>
 
-                            </div>
-                            {/* <div
-                                onClick={() => setIsVectorBaseOn(!isVectorBaseOn)}
-                                className={`px-4 py-2 flex gap-2 items-center ${isVectorBaseOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
-                                <DatabaseZap className={`${isVectorBaseOn ? "text-white" : "text-slate-500"}`} />
-                                <p className={` font-semibold ${isVectorBaseOn ? "border-white" : "text-slate-500"}`}>Attach Superior Persona</p>
-
-                            </div> */}
 
                             {
-                                files.length > 0 && (
-                                    <div
-                                        onClick={() => setIsDocumentOn(!isDocumentOn)}
-                                        className={`px-4 py-2 flex gap-2 items-center ${isDocumentOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}>
-                                        <File className={`${isDocumentOn ? "text-white" : "text-slate-500"}`} />
-                                        <p className={` font-semibold ${isDocumentOn ? "border-white" : "text-slate-500"}`}>File Data Is {isDocumentOn ? "On" : "Off"}</p>
+                                Object.keys(selectedSuperiorPersona).length > 0 && (
+                                    <div className="p-2 bg-slate-600 rounded-md relative flex gap-2 mr-2 ">
+                                        <div className="absolute -top-3 -right-3 cursor-pointer" onClick={() => {
+                                            setIsSuperiorPersonaAttached(false)
+                                            setSelectedSuperiorPersona({})
+                                        }}>
+                                            <X className="w-5 h-5 rounded-md bg-slate-700 hover:bg-slate-400" />
+                                        </div>
+                                        <CircleUserRound />
+                                        <div className="flex gap-0 flex-col">
+                                            <p>{selectedSuperiorPersona.title.length > 20 ? selectedSuperiorPersona.title.slice(0, 20) + '...' : selectedSuperiorPersona.title}</p>
+                                        </div>
 
                                     </div>
                                 )
                             }
-
-
 
                         </div>
                         <TooltipProvider>
@@ -366,6 +429,116 @@ export default function ChatInput({
 
                     </button>
                 </div>
+                <AnimatePresence>
+                    {isToolBoxOpen && (
+                        <motion.div
+                            key="toolbox"
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }} // Moves up when disappearing
+                            transition={{ duration: 0.25, ease: "easeInOut" }}
+                            className="flex gap-2  mt-2 border-t border-slate-500  pt-2"
+                        >
+                            <div
+                                onClick={() => setIsSearchOn(!isSearchOn)}
+                                className={`px-4 py-2 flex gap-2 items-center ${isSearchOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
+                            >
+                                <Globe className={`${isSearchOn ? "text-white" : "text-slate-500"}`} />
+                                <p className={`font-semibold ${isSearchOn ? "text-white" : "text-slate-500"}`}>
+                                    Search Is {isSearchOn ? "On" : "Off"}
+                                </p>
+                            </div>
+
+                            <div
+                                onClick={() => setIsVectorBaseOn(!isVectorBaseOn)}
+                                className={`px-4 py-2 flex gap-2 items-center ${isVectorBaseOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
+                            >
+                                <DatabaseZap className={`${isVectorBaseOn ? "text-white" : "text-slate-500"}`} />
+                                <p className={`font-semibold ${isVectorBaseOn ? "text-white" : "text-slate-500"}`}>
+                                    Knowledge Is {isVectorBaseOn ? "On" : "Off"}
+                                </p>
+                            </div>
+
+                            {files.length > 0 && (
+                                <div
+                                    onClick={() => setIsDocumentOn(!isDocumentOn)}
+                                    className={`px-4 py-2 flex gap-2 items-center ${isDocumentOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
+                                >
+                                    <File className={`${isDocumentOn ? "text-white" : "text-slate-500"}`} />
+                                    <p className={`font-semibold ${isDocumentOn ? "text-white" : "text-slate-500"}`}>
+                                        File Data Is {isDocumentOn ? "On" : "Off"}
+                                    </p>
+                                </div>
+                            )}
+
+                            <Dialog open={Object.keys(selectedSuperiorPersona).length == 0 && isSupDialogOpen} onOpenChange={setIsSupDialogOpen}>
+                                <DialogTrigger>
+                                    <div
+                                        onClick={() => {
+                                            if (Object.keys(selectedSuperiorPersona).length > 0) {
+                                                setIsSuperiorPersonaAttached(!isSuperiorPersonaAttached)
+                                                setSelectedSuperiorPersona({})
+                                            }
+                                            else {
+                                                getSuperiorPersona()
+                                            }
+                                        }}
+                                        className={`px-4 py-2 flex gap-2 items-center ${isSuperiorPersonaAttached && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
+                                    >
+                                        <BookHeart className={`${isSuperiorPersonaAttached ? "text-white" : "text-slate-500"}`} />
+                                        <p className={`font-semibold ${isSuperiorPersonaAttached ? "text-white" : "text-slate-500"}`}>
+                                            {isSuperiorPersonaAttached ? "Detach Superior Persona" : "Attach Superior Persona"}
+                                        </p>
+                                    </div>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl bg-slate-700 p-0 border-2 border-slate-500">
+                                    <Command
+                                        onOpenChange={() => setIsSupDialogOpen(true)}
+                                        open={false}
+                                        className="bg-slate-900 text-white"
+                                    >
+                                        <CommandInput placeholder="Type Title Or Date (Ex. '3 days Ago' or Title) " />
+                                        <CommandList className="p-4 m-4">
+                                            <div>
+                                                Use ▲▽ Keys Or Click To Select
+                                            </div>
+                                            {
+                                                isSupPerItemLoading && <div className="flex gap-2 w-full items-center">
+                                                    <LoaderCircle className="animate-spin" />
+                                                    <p>Loading Your Superior Persona</p>
+                                                </div>
+                                            }
+                                            {
+                                                !isSupPerItemLoading && <CommandEmpty> You Don't Have Any Superior Persona</CommandEmpty>
+                                            }
+                                            {
+                                                SupPerItems && SupPerItems.length > 0 && SupPerItems.reverse().map((item, index) => (
+                                                    <CommandItem
+                                                        onSelect={(value) => {
+                                                            console.log(value)
+                                                            setIsSuperiorPersonaAttached(true)
+                                                            setIsSupDialogOpen(false)
+                                                            setSelectedSuperiorPersona(item)
+                                                        }}
+                                                        key={index}
+                                                        className="flex gap-2 items-start bg-slate-700  my-2">
+                                                        <CircleUserRound />
+                                                        <div>
+                                                            <p>{item.title}</p>
+                                                            <p className="text-slate-500">Created {formatDistanceToNow(item.date)} Ago</p>
+
+                                                        </div>
+                                                    </CommandItem>
+                                                ))
+                                            }
+                                        </CommandList>
+                                    </Command>
+
+                                </DialogContent>
+                            </Dialog>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

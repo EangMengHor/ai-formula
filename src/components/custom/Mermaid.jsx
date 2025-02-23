@@ -1,4 +1,4 @@
-import { ChartPie } from 'lucide-react';
+import { ChartPie, Download } from 'lucide-react';
 import mermaid from 'mermaid';
 import panzoom from 'panzoom';
 import React, { useEffect, useRef, useState } from 'react';
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 
 export const Mermaid = ({ chart }) => {
-    const mermaidRef = useRef(null); // will reference only the mermaid diagram
+    const mermaidRef = useRef(null);
     const [isOpen, setIsOpen] = useState(false);
     const panZoomInstanceRef = useRef(null);
 
@@ -25,30 +25,21 @@ export const Mermaid = ({ chart }) => {
             fontFamily: 'Arial, sans-serif',
             background: '#2b2b2b',
         },
-
     };
 
-    // Initialize mermaid when the chart updates
     useEffect(() => {
         if (chart) {
-            mermaid.initialize({
-                ...customConfig
-            });
+            mermaid.initialize({ ...customConfig });
             mermaid.contentLoaded();
-            mermaid.parseError = (err, hash) => {
-                console.log(err, hash)
-            }
         }
     }, [chart]);
 
-    // When Dialog opens, attach panzoom to the Mermaid diagram element
     useEffect(() => {
         if (isOpen && mermaidRef.current) {
             panZoomInstanceRef.current = panzoom(mermaidRef.current, {
                 maxZoom: 5,
                 minZoom: 0.5,
                 wheelAction: 'zoom',
-                // You can customize additional options as needed
             });
         }
         return () => {
@@ -59,41 +50,118 @@ export const Mermaid = ({ chart }) => {
         };
     }, [isOpen]);
 
+    // Download as SVG
+    const downloadSVG = () => {
+        const svg = mermaidRef.current.querySelector('svg');
+        if (!svg) return;
+
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'mermaid-diagram.svg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // Download as PNG
+    const downloadPNG = async () => {
+        const svg = mermaidRef.current?.querySelector("svg");
+        if (!svg) return;
+
+        // Set width & height explicitly to avoid cropping issues
+        const { width, height } = svg.getBBox();
+        svg.setAttribute("width", width);
+        svg.setAttribute("height", height);
+
+        const serializer = new XMLSerializer();
+        const svgData = serializer.serializeToString(svg);
+        const img = new Image();
+
+        img.onload = () => {
+            const scaleFactor = 3; // Increase for better resolution
+            const canvas = document.createElement("canvas");
+            canvas.width = width * scaleFactor;
+            canvas.height = height * scaleFactor;
+
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "white"; // Background fix
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const link = document.createElement("a");
+            link.href = canvas.toDataURL("image/png");
+            link.download = "mermaid-diagram.png";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+    };
+
+
     return (
         <div className='w-full h-full my-5 border border-gray-500 rounded-lg'>
             <div className='flex items-center justify-between'>
                 <div></div>
+
                 <div className='p-2'>
                     <Dialog onOpenChange={setIsOpen}>
                         <DialogTrigger>
-                            <div className="flex gap-2 w-fit bg-gray-500 hover:bg-slate-500 px-2 py-1 rounded-md cursor-pointer items-center">
+                            <div
+                                className="flex gap-2 w-fit bg-gray-500 hover:bg-slate-500 px-2 py-1 rounded-md cursor-pointer items-center"
+                            >
                                 <ChartPie className="w-5 h-5" />
                                 <p>Open Visualization</p>
                             </div>
                         </DialogTrigger>
                         <DialogContent
                             className="bg-slate-800 border-0 w-[calc(100vw-10rem)] h-[calc(100vh-5rem)] "
-                            onOpenAutoFocus={() => {
-                                // Refresh mermaid rendering when the Dialog opens
-                                mermaid.contentLoaded();
-                            }}
+                            onOpenAutoFocus={() => mermaid.contentLoaded()}
                         >
+                            <div className=''>
+                                <div className='h-fit flex  justify-between w-full my-7 gap-2  items-center'>
+                                    <div className='text-white font-semibold'>
+                                        Scroll & Zoom (via PanZoom)
+                                    </div>
+                                    <div className='flex gap-2 w-fit w-fit'>
+                                        <button
+                                            onClick={downloadPNG}
+                                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-2"
+                                        >
+                                            <Download className="w-5 h-5" />
+                                            Download PNG
+                                        </button>
+                                        <button
+                                            onClick={downloadSVG}
+                                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center gap-2"
+                                        >
+                                            <Download className="w-5 h-5" />
+                                            Download SVG
+                                        </button>
 
-                            {/* Scrollable container that initially shows only the top-left part */}
-                            <div
-                                style={{
-                                    width: '100%',
-                                    height: 'calc(100% - 2rem)',
-                                    overflow: 'auto',
-                                    position: 'relative',
-                                }}
-                                className='border-2 border-slate-500  rounded-md'
-                            >
+                                    </div>
+                                </div>
+
                                 <div
-                                    ref={mermaidRef}
-                                    className="mermaid"
-                                    dangerouslySetInnerHTML={{ __html: chart }}
-                                ></div>
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        overflow: 'auto',
+                                        position: 'relative',
+                                    }}
+                                    className='border-2 border-slate-500 rounded-md'
+                                >
+                                    <div
+                                        ref={mermaidRef}
+                                        className="mermaid"
+                                        dangerouslySetInnerHTML={{ __html: chart }}
+                                    ></div>
+                                </div>
                             </div>
                         </DialogContent>
                     </Dialog>

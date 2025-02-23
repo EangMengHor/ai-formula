@@ -15,6 +15,7 @@ import Knowledge from "./pages/_knowledge/pages/Knowledge"
 import EditSuperPersona from "./pages/_knowledge/pages/EditSuperPersona"
 import UploadDocumentKnowledge from "./pages/_knowledge/pages/UploadDocumentKnowledge"
 import GenerateKnowledgeBase from "./pages/_knowledge/pages/GenerateKnowledgeBase"
+import AddToExistingKnowledge from "./pages/_addToExisitingKnowledge/AddToExistingKnowledge"
 
 export default function App() {
   const location = useLocation();
@@ -49,7 +50,9 @@ export default function App() {
             <Route path="/chat/:idx" element={<CreateKnowledgeBase />} />
             <Route path="/editSuperPersona/:idx" element={<EditSuperPersona />} />
             <Route path="/uploadDocumentKnowledgeBase/:idx" element={<UploadDocumentKnowledge />} />
-            {/* <Route path="/generatingKnowledge/:idx" element={<GenerateKnowledgeBase />} /> */}
+            <Route path="/generatingKnowledge/:idx" element={<GenerateKnowledgeBase />} />
+            <Route path="/addToPermenentKnowledgeBase" element={<AddToExistingKnowledge />} />
+
           </Route>
         </Route>
       </Routes>

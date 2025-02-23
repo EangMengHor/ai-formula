@@ -56,7 +56,7 @@ const editableField = [
     { label: 'Name', value: 'name' },
     { label: 'Description', value: 'description' },
 ]
-export default function PersonaCard({ isEditable, persona, setPersona, isKnowledgeCard = false, sources = [], KnowledgeLoading = false }) {
+export default function PersonaCard({ isEditable, persona, setPersona, isKnowledgeCard = false, sources = [], KnowledgeLoading = false, isMemoried = false }) {
     const [expanded, setExpanded] = useState(false)
     const [open, setOpen] = useState(false)
     const [selectedEditableField, setSelectedEditableField] = useState([])
@@ -95,7 +95,6 @@ export default function PersonaCard({ isEditable, persona, setPersona, isKnowled
                     description: "Edited Successfully",
                     varient: "success"
                 })
-
             }
 
             setPersona({
@@ -130,9 +129,7 @@ export default function PersonaCard({ isEditable, persona, setPersona, isKnowled
 
     }
         , [selectedEditableField, persona, prompt, setPersona, toast])
-    useEffect(() => {
-        console.log("Selected Editable Field", selectedEditableField)
-    }, [selectedEditableField])
+
 
 
 
@@ -154,9 +151,17 @@ export default function PersonaCard({ isEditable, persona, setPersona, isKnowled
                         </div>
                         <HoverCard open={open} setOpen={setOpen}  >
                             {
-                                isEditLoading || KnowledgeLoading ? <div className="bg-slate-700 p-4 rounded-md">
+                                isMemoried && (
+                                    <div className='bg-green-300 px-4 py-1 rounded-md flex gap-2 text-black font-semibold'>
+                                        <Check />
+                                        <p>Added Data To Knowledge</p>
+                                    </div>
+                                )
+                            }
+                            {
+                                isEditLoading || KnowledgeLoading ? <div className="bg-slate-700 p-4 rounded-md flex gap-2 font-semibold">
                                     <LoaderCircle className="animate-spin" />
-
+                                    {sources.length > 0 ? <p className="text-slate-400">Storing Knowledge</p> : <p className="text-slate-400">Loading Knowledge Sources</p>}
                                 </div> :
                                     <HoverCardTrigger className={`${isEditable ? "block" : "hidden"}`}>
                                         <Button onClick={() => setOpen(!open)}>{open ? "Click To Close" : "Edit With AI"}</Button>
@@ -336,7 +341,7 @@ export default function PersonaCard({ isEditable, persona, setPersona, isKnowled
                             </DialogTrigger>
                             <DialogContent className="w-[90%] max-w-4xl bg-slate-800 h-[60%]">
                                 <DialogHeader>
-                                    <DialogTitle className="text-2xl text-white">Sources</DialogTitle>
+                                    <DialogTitle className="text-2xl text-white">Creating Knowledge Base Using {sources.length} Sources</DialogTitle>
                                     <div className="flex gap-2 text-slate-200">
                                         <p>Scroll For More Links</p>
                                         •

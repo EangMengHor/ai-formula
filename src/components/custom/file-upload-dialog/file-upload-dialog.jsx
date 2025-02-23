@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { X, Upload, FileText, Paperclip, LoaderCircle, Check } from 'lucide-react'
+import { X, Upload, FileText, Paperclip, LoaderCircle, Check, FileInput } from 'lucide-react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { vectorizeOneFile } from '../../../services/n8n-apis/_core/vectorizeOneFile.api'
@@ -13,6 +13,7 @@ import { getChatSession } from '../../../namespace/server'
 import { getNewSession } from '../../../services/n8n-apis/_core/getNewSession.api'
 import { useUser } from '../../../context/UserContext'
 import { _useSidebar } from '../../../context/SidebarContext'
+import { addToPermenentKnowledgeBase } from '../../../namespace/client'
 
 export default function FileUploadDialog() {
     // global states
@@ -204,7 +205,16 @@ export default function FileUploadDialog() {
                     await handleOpenNewSession()
                 }
                 const file = files.find(file => file.name === fileNameToMemorize);
-                const res = await vectorizeOneFile(file, id);
+                let res;
+                console.log(pathname, "is here asfksdhf")
+                if (pathname == addToPermenentKnowledgeBase) {
+                    console.log("yes here!!!!")
+                    // res = await vectorizeOneFile(file, id, "global")
+                }
+                else {
+                    console.log("11yes here!!!!");
+                    res = await vectorizeOneFile(file, id);
+                }
 
                 if (res && res.data && !res.data.success) {
                     setMemorizationStatuses(prev => ({ ...prev, [fileNameToMemorize]: "error" }));
@@ -239,12 +249,104 @@ export default function FileUploadDialog() {
 
     return (
         <div>
-            <div
-                onClick={() => setIsOpen(true)}
-                className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
-            >
-                <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
-            </div>
+            {
+                pathname == addToPermenentKnowledgeBase ? (
+                    <div>
+                        <div
+                            onClick={() => setIsOpen(true)}
+                            className='w-fit p-4 border-2 border-slate-600 rounded-md text-white flex flex-col gap-3 bg-slate-800 hover:bg-slate-600 cursor-pointer items-center justify-center font-semibold my-4 '>
+                            <FileInput />
+                            <p>Click To Open Document Upload Section</p>
+                        </div>
+                        <hr />
+                        {
+                            isMemorizationLoading && (
+                                <div className='flex w-fit p-4 text-white rounded-md my-4 border-2 border-slate-700  gap-2'>
+                                    <LoaderCircle className='animate-spin' />
+                                    <p>Memorizing Files...</p>
+                                </div>
+                            )
+                        }
+                        {
+                            memorizedFiles.map((file, index) => (
+                                <div className="z-10 flex flex-col md:grid grid-cols-1 sm:grid-cols-2 h-fit w-full md:w-3/4 ">
+                                    {files.map((file, index) => (
+                                        <div
+                                            key={index}
+                                            className="bg-[#2a3444]/80 backdrop-blur-sm rounded-lg p-4 m-2"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="bg-gray-200 p-3 rounded-lg">
+                                                        <FileText className="w-5 h-5 text-gray-700" />
+                                                    </div>
+                                                    <div className="overflow-hidden">
+                                                        <h3 className="text-white font-medium truncate  w-full">{file.name.length > 25 ? file.name.slice(0, 25) + '...' : file.name}
+                                                        </h3>
+                                                        <p className="text-sm text-gray-400 truncate">
+                                                            <span className="uppercase">{file.type.replaceAll('application/', '')}</span> File
+                                                        </p>
+                                                    </div>
+
+                                                </div>
+                                                <div className="flex  md:flex-row flex-col items-center space-x-3">
+                                                    {fileQueueError.some(item => item.index === index) ? (
+                                                        <div className='bg-red-300 px-4 py-1 rounded-md'>
+                                                            {fileQueueError.find(item => item.index === index).message || "Error Occured"}
+                                                        </div>
+                                                    ) : memorizationStatuses[file.name] === "memorizing" ? (
+                                                        <div className="flex items-center space-x-2  bg-white text-black px-4 py-1 rounded-md">
+                                                            <LoaderCircle className='animate-spin' />
+                                                            <span>Memorizing...</span>
+                                                        </div>
+                                                    ) : memorizationStatuses[file.name] === "memorized" ? (
+                                                        <div className='bg-green-300 px-4 py-1 rounded-md flex gap-2'>
+                                                            <Check />
+                                                            <p>Memorized</p>
+                                                        </div>
+                                                    ) : memorizationStatuses[file.name] === "queued" ? (
+                                                        <div className="flex items-center space-x-2 bg-gray-300 text-black px-4 py-1 rounded-md">
+                                                            <span>Queued</span>
+                                                        </div>
+                                                    ) : memorizationStatuses[file.name] === "error" ? (
+                                                        <div className='bg-red-300 px-4 py-1 rounded-md'>
+                                                            Error
+                                                        </div>
+                                                    ) : (
+                                                        <Button
+                                                            // onClick={() => handleMemorize(file, index)} // Removed this line
+                                                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded px-4 py-1 text-sm"
+                                                            disabled
+                                                        >
+                                                            <span>Memorize Data</span>
+                                                        </Button>
+                                                    )}
+
+                                                    {!memorizedFiles.includes(file.name) && ( // Removed this line
+                                                        <Button
+                                                            onClick={() => removeFile(file)}
+                                                            className="bg-red-200 hover:bg-red-300 text-red-700 rounded px-4 py-1 text-sm"
+                                                        >
+                                                            <X />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))
+                        }
+                    </div>
+                ) : (
+                    <div
+                        onClick={() => setIsOpen(true)}
+                        className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
+                    >
+                        <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
+                    </div>
+                )
+            }
             {
                 fileCount > 0 && (
                     <div className="absolute top-0 right-0 bg-gray-200 text-gray-800 text-xs rounded-full p-1">

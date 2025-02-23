@@ -12,7 +12,7 @@ export async function scrapeKnowledgeBase(searchTerm, personaId) {
             id: personaId
         });
         if (res.status === 200) {
-            return response(true, "Successfully fetched", res.data)
+            return response(true, "Successfully fetched", res.data[0])
         }
     } catch (error) {
         return response(false, error.message)

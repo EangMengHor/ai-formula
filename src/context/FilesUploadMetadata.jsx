@@ -4,7 +4,7 @@ export const FilesUploadMetadataContext = createContext();
 
 export const FilesUploadMetadataProvider = ({ children }) => {
     const [fileCount, setFileCount] = useState(0);
-    const [memorizedFiles, setMemorizedFiles] = useState([]);
+    const [memorizedFiles, setMemorizedFiles] = useState(["d.d"]);
     const [isMemorizationLoading, setIsMemorizationLoading] = useState(false);
     const [fileName, setFileName] = useState([]);
     const [files, setFiles] = useState([])
