@@ -503,7 +503,7 @@ export default function ChatInput({
                                             if (Object.keys(selectedSuperiorPersona).length > 0) {
                                                 setIsSuperiorPersonaAttached(!isSuperiorPersonaAttached)
                                                 setSelectedSuperiorPersona({})
-                                                
+
                                             }
                                             else {
                                                 getSuperiorPersona()

@@ -41,7 +41,7 @@ export default function App() {
           <Route element={<SidebarProvided />} >
             <Route index path="/dashboard" element={<Dashboard />} />
             <Route path="/chat/:id" element={<Chat />} />
-        </Route>
+          </Route>
           <Route element={<KnowledgeLayout />} >
             <Route path="/knowledge" element={<Knowledge />} />
             <Route path="/create-knowledge-base" element={<CreateKnowledgeBase />} />

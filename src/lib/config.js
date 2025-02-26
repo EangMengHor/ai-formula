@@ -30,13 +30,13 @@ export const aiIntractions = [
         label: "Sequential Intraction",
         description: "Agents Work One By One",
         value: "sequential",
-        icon: '/public/knowledge/sequential.svg'
+        icon: '/knowledge/sequential.svg'
     },
     {
         id: 2,
         label: "Unstructured Cohesive Interaction",
         description: "Agent work Parrellaly and establish meaning full communication with each other",
         value: "unstructured",
-        icon: '/public/knowledge/unsturctredC.svg'
+        icon: '/knowledge/unsturctredC.svg'
     }
 ]
