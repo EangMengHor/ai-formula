@@ -16,7 +16,6 @@ export const SidebarProvider = ({ children }) => {
             if (user.id && user.isAuthenticated) {
                 setIsSidebarChatHistoryLoading(true);
                 const res = await getChatSessionHistory(user.id);
-                console.log(res, 'res');
                 if (res.success) {
                     setChatHistory(prevChatHistory => {
                         const newChatHistory = { ...prevChatHistory };
@@ -40,7 +39,6 @@ export const SidebarProvider = ({ children }) => {
 
     function appendToChatHistory(item) {
         const isToday = Object.keys(chatHistory).includes('today');
-        console.log(chatHistory, "here", item, isToday);
         if (isToday) {
             setChatHistory(prevChatHistory => {
                 const newChatHistory = { ...prevChatHistory };
@@ -57,9 +55,7 @@ export const SidebarProvider = ({ children }) => {
         }
     }
 
-    useEffect(() => {   
-        console.log(currentActiveChat, "chatHistory")
-    }, [currentActiveChat])
+
 
     function clearAllStates() {
         setChatHistory({})

@@ -108,14 +108,29 @@ export default function EditSuperPersona() {
             }, 10000);
         }
     };
-
+    const [pendingRequests, setPendingRequests] = useState(0);
+    const maxPendingRequests = 2;
     useEffect(() => {
         if (idx) {
             setCurrSessionId(idx);
         }
+
+        const fetchDataWithLimit = async () => {
+            if (pendingRequests < maxPendingRequests) {
+                setPendingRequests(prev => prev + 1);
+                try {
+                    await fetchData();
+                } finally {
+                    setPendingRequests(prev => prev - 1);
+                }
+            } else {
+                console.log("Max pending requests reached. Waiting...");
+            }
+        };
+
         if (isPollingPersona && poll) {
-            fetchData();
-            pollingInterval.current = setInterval(fetchData, 1500);
+            fetchDataWithLimit();
+            pollingInterval.current = setInterval(fetchDataWithLimit, 10000);
         }
         else {
             fetchData();

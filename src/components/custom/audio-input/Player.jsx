@@ -9,7 +9,6 @@ const Player = () => {
         const handleAudioEnd = () => {
             setIsPlaying(false);
             stopAudio(); // Stop audio playback when it ends
-            console.log("Audio playback ended");
         };
 
         const audioElement = audioRef.current;

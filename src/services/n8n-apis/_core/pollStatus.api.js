@@ -8,7 +8,7 @@ export async function pollStatus(sessionId) {
         const res = await axios.post(pollStatusUrl, {
             sessionId: sessionId
         })
-
+        
         return response(true, "Status fetched", res.data);
     } catch (error) {
         return response(false, error.message, null);

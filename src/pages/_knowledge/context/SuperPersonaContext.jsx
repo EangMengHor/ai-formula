@@ -1,6 +1,7 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import getSuperPersona from '../../../services/n8n-knowledge-apis/getSuperPersona';
 import { useParams } from 'react-router-dom';
+import { useToast } from '../../../hooks/use-toast';
 
 const SuperPersonaContext = createContext();
 
@@ -18,6 +19,7 @@ export const SuperPersonaProvider = ({ children }) => {
     const toggleExpanded = () => {
         setExpanded(!expanded);
     };
+    const { toast } = useToast();
     const getSuperPersonaData = async () => {
         setIsSuperPersonaLoading(true);
         if (!currSessionId) return;

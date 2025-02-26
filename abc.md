@@ -1,1 +1,5 @@
- https://en.wikipedia.org/wiki/Electoral_system ,https://techpolicy.press/online-election-manipulation-is-a-challenge-for-democracy-its-about-to-get-a-whole-lot-worse ,https://eujournal.org/index.php/esj/article/view/19112/18851 ,https://arxiv.org/html/2411.01582v2 ,https://www.ncsl.org/elections-and-campaigns/election-administration-at-state-and-local-levels ,https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5082311 ,https://www.cambridge.org/core/journals/british-journal-of-political-science/article/do-voters-pay-attention-to-transnational-politics-party-positions-transnational-families-and-voter-perceptions/2767DAD9263F96460E8CDBB4A767FE04 ,https://electionline.org/electionline-weekly/ ,https://fairvote.org/our-reforms/ranked-choice-voting/ ,https://journals.sagepub.com/doi/10.1177/13540688251319516
+1. create knowledge base get api to check knowledge base sources
+2. use IRS api for data 
+3. make chat interaction system 
+4. make agents for document given by james 
+5. testing

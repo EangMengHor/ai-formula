@@ -17,9 +17,7 @@ export const FilesUploadMetadataProvider = ({ children }) => {
     }
 
     
-    useEffect(() => {
-        console.log(memorizedFiles, "memorizedFiles", fileCount, "fileCount", isMemorizationLoading, "isMemorizationLoading");
-    }, [fileCount, memorizedFiles, isMemorizationLoading])
+
     return (
         <FilesUploadMetadataContext.Provider
             value={{

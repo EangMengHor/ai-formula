@@ -86,7 +86,6 @@ const AudioRecorder = ({
                 onClick={async () => {
                     if (isTranscribing) return;
                     if (isRecording) {
-                        console.log("giving api audioElement")
                         setIsPlaying(false);
                         setIsRecording(false);
                         stopRecording();

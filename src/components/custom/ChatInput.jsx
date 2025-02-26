@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowUpRight, BookHeart, ChevronDown, ChevronUp, CircleUserRound, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip, SquarePlus, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, BookHeart, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip, SquarePlus, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
@@ -35,10 +35,23 @@ import {
     CommandSeparator,
     CommandShortcut,
 } from "@/components/ui/command"
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+
 import getUserSuperiorPersona from "../../services/n8n-knowledge-apis/getUserSuperiorPersona";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, set } from "date-fns";
 import { CommandLoading } from "cmdk";
+import { aiIntractions } from "../../lib/config";
 const maxRows = 30;
+
+
+
 
 export default function ChatInput({
     input,
@@ -47,9 +60,7 @@ export default function ChatInput({
     isLoading,
     setLoading,
     handleScroll
-
 }) {
-
     // global states
     const { id } = useParams();
     const { pathname } = useLocation();
@@ -60,17 +71,32 @@ export default function ChatInput({
         resetAllStates,
         files
     } = useFilesUploadMetadata();
-    const { isDocumentOn, setIsDocumentOn, isSearchOn, setIsSearchOn, isVectorBaseOn, setIsVectorBaseOn } = useUser();
+    const {
+        isDocumentOn,
+        setIsDocumentOn,
+        isSearchOn,
+        setIsSearchOn,
+        isVectorBaseOn,
+        setIsVectorBaseOn,
+        isSuperiorPersonaAttached,
+        setIsSuperiorPersonaAttached,
+        selectedSuperiorPersona,
+        setSelectedSuperiorPersona,
+        SupPerItems,
+        setSupPerItems,
+        currActiveIntraction,
+        setCurrActiveIntraction
+    } = useUser();
     // component states
     const [rows, setRows] = useState(1);
     const [isToolBoxOpen, setIsToolBoxOpen] = useState(false)
     const [isTransribed, setIsTransribed] = useState(false);
-    const [isSuperiorPersonaAttached, setIsSuperiorPersonaAttached] = useState(false)
-    const [selectedSuperiorPersona, setSelectedSuperiorPersona] = useState({})
+
     const [isSupPerItemLoading, setSupPerItemLoading] = useState(false)
-    const [SupPerItems, setSupPerItems] = useState([])
     const [isSupDialogOpen, setIsSupDialogOpen] = useState(false)
     const { user } = useUser()
+
+    // superiro persona
 
     const handleChange = (event) => {
         const textareaLineHeight = 24;
@@ -95,7 +121,6 @@ export default function ChatInput({
             event.preventDefault();
             if (input.length > 0 && !isLoading) {
                 handleSubmit();
-                setInput("");
             }
         } else if (event.key === 'Enter' && event.shiftKey) {
             event.preventDefault();
@@ -112,6 +137,7 @@ export default function ChatInput({
     useEffect(() => {
         if (input.length > 0) {
             handleSubmit();
+
         }
     }, [isTransribed])
 
@@ -145,7 +171,6 @@ export default function ChatInput({
         setSupPerItemLoading(true);
         try {
             const response = await getUserSuperiorPersona(user.id);
-            console.log(response)
             if (response.success && response.data.length > 0) {
                 setSupPerItems(response.data.map(item => ({
                     id: item.id,
@@ -164,7 +189,6 @@ export default function ChatInput({
             setSupPerItemLoading(false)
         }
     }
-
 
 
     return (
@@ -347,8 +371,10 @@ export default function ChatInput({
                                             <X className="w-5 h-5 rounded-md bg-slate-700 hover:bg-slate-400" />
                                         </div>
                                         <CircleUserRound />
-                                        <div className="flex gap-0 flex-col">
-                                            <p>{selectedSuperiorPersona.title.length > 20 ? selectedSuperiorPersona.title.slice(0, 20) + '...' : selectedSuperiorPersona.title}</p>
+                                        <div className="flex gap-3 items-center ">
+                                            <p>{selectedSuperiorPersona.title.length > 15 ? selectedSuperiorPersona.title.slice(0, 15) + '...' : selectedSuperiorPersona.title}</p>
+                                            •
+                                            <p className="text-xs capitalize">{currActiveIntraction}</p>
                                         </div>
 
                                     </div>
@@ -385,7 +411,6 @@ export default function ChatInput({
                                                 ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.slice(0, 20).map(file => file.name).join('||||')}&namespace=${id || ''}`
                                                 : id && id != undefined ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}` : import.meta.env.VITE_OPENAI_REALTIME_URL;
 
-                                            console.log(url, id)
                                             window.open(url, "_blank");
                                         }}
                                         className="flex items-center px-1 py-1 rounded-md border bg-green-300 hover:bg-slate-400  "
@@ -478,6 +503,7 @@ export default function ChatInput({
                                             if (Object.keys(selectedSuperiorPersona).length > 0) {
                                                 setIsSuperiorPersonaAttached(!isSuperiorPersonaAttached)
                                                 setSelectedSuperiorPersona({})
+                                                
                                             }
                                             else {
                                                 getSuperiorPersona()
@@ -499,9 +525,42 @@ export default function ChatInput({
                                     >
                                         <CommandInput placeholder="Type Title Or Date (Ex. '3 days Ago' or Title) " />
                                         <CommandList className="p-4 m-4">
-                                            <div>
+                                            <div className="text-slate-400">
                                                 Use ▲▽ Keys Or Click To Select
                                             </div>
+                                            <hr className="border-slate-300 border-2" />
+
+                                            <div>
+                                                Select Intractions
+                                            </div>
+                                            <div className="grid grid-rows-1 grid-cols-2 gap-2 my-2">
+                                                {
+                                                    aiIntractions.map((item, index) => {
+                                                        const isActive = currActiveIntraction === item.value;
+                                                        return (
+                                                            <Card
+                                                                className={`relative ${isActive ? "border-2 border-white bg-slate-700 " : "border-2 border-slate-500"} rounded-md cursor-pointer p-0 flex items-start flex-col`}
+                                                                onClick={() => setCurrActiveIntraction(item.value)}>
+                                                                {
+                                                                    isActive && <div className="absolute top-5 right-5">
+                                                                        <CircleCheck className="text-slate-300" />
+                                                                    </div>
+                                                                }
+                                                                <img src={item.icon} alt={item.label} className="w-full h-24" />
+                                                                <CardHeader className="p-2">
+                                                                    <CardTitle className="font-semibold text-xl text-white">{item.label}</CardTitle>
+                                                                    <p className=" text-slate-300">{item.description}</p>
+                                                                </CardHeader>
+                                                            </Card>
+
+                                                        )
+                                                    })
+                                                }
+                                            </div>
+
+
+
+                                            <hr className="border-slate-300 border-2" />
                                             {
                                                 isSupPerItemLoading && <div className="flex gap-2 w-full items-center">
                                                     <LoaderCircle className="animate-spin" />
@@ -512,10 +571,9 @@ export default function ChatInput({
                                                 !isSupPerItemLoading && <CommandEmpty> You Don't Have Any Superior Persona</CommandEmpty>
                                             }
                                             {
-                                                SupPerItems && SupPerItems.length > 0 && SupPerItems.reverse().map((item, index) => (
+                                                SupPerItems && SupPerItems.length > 0 && [...SupPerItems].reverse().map((item, index) => (
                                                     <CommandItem
                                                         onSelect={(value) => {
-                                                            console.log(value)
                                                             setIsSuperiorPersonaAttached(true)
                                                             setIsSupDialogOpen(false)
                                                             setSelectedSuperiorPersona(item)

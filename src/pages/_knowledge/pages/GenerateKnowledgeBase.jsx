@@ -93,30 +93,42 @@ export default function GenerateKnowledgeBase() {
                             try {
                                 await Promise.race([
                                     new Promise((resolve) => {
+                                        let pendingRequests = 0;
+                                        const maxPendingRequests = 2;
                                         const intervalId = setInterval(async () => {
-                                            const res = await pollScapingStatus(persona.id);
-                                            console.log(res);
-                                            if (
-                                                Object.keys(res.data).length > 0 &&
-                                                res.data.citations
-                                            ) {
-                                                console.log("called 5");
-                                                setScrapeDone((prev) => ({
-                                                    ...prev,
-                                                    [persona.id]: {
-                                                        citations: res.data.citations,
-                                                        isMemoried: res.data.isMemoried,
-                                                    },
-                                                }));
+                                            if (pendingRequests >= maxPendingRequests) {
+                                                console.log(`Too many pending requests (${pendingRequests}), waiting...`);
+                                                return;
                                             }
-                                            if (res?.data?.isMemoried) {
-                                                if (personas[personas.length - 1].id === persona.id) {
-                                                    setCurrLoadingPersona(null);
+
+                                            pendingRequests++;
+                                            try {
+                                                const res = await pollScapingStatus(persona.id);
+                                                console.log(res);
+                                                if (
+                                                    Object.keys(res.data).length > 0 &&
+                                                    res.data.citations
+                                                ) {
+                                                    console.log("called 5");
+                                                    setScrapeDone((prev) => ({
+                                                        ...prev,
+                                                        [persona.id]: {
+                                                            citations: res.data.citations,
+                                                            isMemoried: res.data.isMemoried,
+                                                        },
+                                                    }));
                                                 }
-                                                clearInterval(intervalId);
-                                                resolve();
+                                                if (res?.data?.isMemoried) {
+                                                    if (personas[personas.length - 1].id === persona.id) {
+                                                        setCurrLoadingPersona(null);
+                                                    }
+                                                    clearInterval(intervalId);
+                                                    resolve();
+                                                }
+                                            } finally {
+                                                pendingRequests--;
                                             }
-                                        }, 5000);
+                                        }, 8000);
                                     }),
                                     timeoutPromise,
                                 ]);

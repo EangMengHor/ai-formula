@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { LAYOUT_CONFIG } from "./config";
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -99,21 +100,23 @@ export function sortByDateGroup(data) {
 
   return sortedData;
 }
+
 export function parseContent(input) {
-  if (!input.trim()) {
+  if (input.length <= 0) {
     throw new Error('Please enter some content to parse.');
   }
 
   const sections = [];
   const blockRegex = /```(mermaid)([\s\S]*?)```/g; // Match mermaid blocks
+  const agentRegex = /<\|agent\|([\s\S]*?)<\|end\|>/g; // Match agent blocks
 
   let lastIndex = 0;
   let match;
 
-  // First, split by mermaid blocks
-  while ((match = blockRegex.exec(input)) !== null) {
-    const [fullMatch, blockType, blockContent] = match;
+  // Combined regex to match both patterns
+  const combinedRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)/g;
 
+  while ((match = combinedRegex.exec(input)) !== null) {
     // Process text before the block
     if (match.index > lastIndex) {
       sections.push({
@@ -122,15 +125,22 @@ export function parseContent(input) {
       });
     }
 
-    // Add the mermaid block content
-    if (blockContent.trim()) {
+    // Determine if it's a mermaid block or agent block
+    if (match[0].startsWith('```mermaid')) {
+      // Handle mermaid block
       sections.push({
         type: 'mermaid',
-        content: blockContent.trim(),
+        content: match[2].trim(),
+      });
+    } else {
+      // Handle agent block
+      sections.push({
+        type: 'persona',
+        content: match[4],
       });
     }
 
-    lastIndex = blockRegex.lastIndex;
+    lastIndex = combinedRegex.lastIndex;
   }
 
   // Process remaining text
@@ -140,7 +150,7 @@ export function parseContent(input) {
       content: input.substring(lastIndex).trim(),
     });
   }
-  console.log(sections);
+
   return sections.filter(item => item.content.trim() !== '');
 }
 
@@ -160,3 +170,134 @@ export const getFavicon = (urls) => {
     }
   });
 };
+
+
+
+export class LayoutEngine {
+  constructor(config) {
+    this.config = config;
+    this.nodeSize = {
+      width: LAYOUT_CONFIG.NODE_WIDTH,
+      height: LAYOUT_CONFIG.NODE_HEIGHT
+    };
+  }
+
+  calculateNodeDistance(node1, node2) {
+    const dx = node2.x - node1.x;
+    const dy = node2.y - node1.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  adjustNodePosition(position, nodes, minDistance = 350) {
+    let adjustedPosition = { ...position };
+    let attempts = 0;
+    const maxAttempts = 50;
+    const angleStep = (2 * Math.PI) / 8;
+
+    while (attempts < maxAttempts) {
+      let hasOverlap = false;
+
+      for (const node of nodes) {
+        const distance = this.calculateNodeDistance(adjustedPosition, node.position);
+        if (distance < minDistance) {
+          hasOverlap = true;
+          break;
+        }
+      }
+
+      if (!hasOverlap) break;
+
+      // Try positions in a spiral pattern
+      const radius = (Math.floor(attempts / 8) + 1) * 100;
+      const angle = (attempts % 8) * angleStep;
+      adjustedPosition = {
+        x: position.x + radius * Math.cos(angle),
+        y: position.y + radius * Math.sin(angle)
+      };
+
+      attempts++;
+    }
+
+    return adjustedPosition;
+  }
+
+  calculateOptimalPosition(level, totalLevels, nodesInLevel, nodeIndexInLevel, totalNodes) {
+    const padding = 200;
+    const availableWidth = this.config.canvasWidth - (2 * padding);
+    const availableHeight = this.config.canvasHeight - (2 * padding);
+
+    // Calculate angle for circular distribution
+    const angleStep = (2 * Math.PI) / totalNodes;
+    const currentAngle = (level * angleStep * 3) + (nodeIndexInLevel * angleStep);
+
+    // Use a spiral layout with increasing radius based on level
+    const baseRadius = Math.min(availableWidth, availableHeight) * 0.35;
+    const radiusIncrease = level * (baseRadius * 0.15);
+    const radius = baseRadius + radiusIncrease;
+
+    // Calculate position using parametric equations with some randomness
+    const centerX = this.config.canvasWidth / 2;
+    const centerY = this.config.canvasHeight / 2;
+
+    let x = centerX + radius * Math.cos(currentAngle);
+    let y = centerY + radius * Math.sin(currentAngle);
+
+    // Add slight randomness to prevent perfect alignment
+    const randomOffset = 50;
+    x += (Math.random() - 0.5) * randomOffset;
+    y += (Math.random() - 0.5) * randomOffset;
+
+    // Ensure nodes stay within canvas bounds
+    x = Math.max(padding, Math.min(this.config.canvasWidth - padding, x));
+    y = Math.max(padding, Math.min(this.config.canvasHeight - padding, y));
+
+    return { x, y };
+  }
+
+  calculateNodePositions(nodes, maxExecution) {
+    const totalNodes = nodes.length;
+    const nodesByLevel = new Map();
+    const positionedNodes = [];
+
+    // Group nodes by level
+    nodes.forEach(node => {
+      const level = node.data.execution;
+      if (!nodesByLevel.has(level)) {
+        nodesByLevel.set(level, []);
+      }
+      nodesByLevel.get(level).push(node);
+    });
+
+    // Position nodes level by level
+    for (let level = 1; level <= maxExecution; level++) {
+      const levelNodes = nodesByLevel.get(level) || [];
+      const nodesInLevel = levelNodes.length;
+
+      levelNodes.forEach((node, index) => {
+        const basePosition = this.calculateOptimalPosition(
+          level - 1,
+          maxExecution,
+          nodesInLevel,
+          index,
+          totalNodes
+        );
+
+        // Adjust position to avoid overlaps with already positioned nodes
+        const adjustedPosition = this.adjustNodePosition(basePosition, positionedNodes);
+
+        const positionedNode = {
+          ...node,
+          position: adjustedPosition,
+          style: {
+            ...node.style,
+            zIndex: maxExecution - level + 1,
+          },
+        };
+
+        positionedNodes.push(positionedNode);
+      });
+    }
+
+    return positionedNodes;
+  }
+}

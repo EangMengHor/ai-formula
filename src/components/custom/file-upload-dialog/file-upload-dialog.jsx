@@ -156,7 +156,6 @@ export default function FileUploadDialog() {
             })
             const res = await getNewSession("New Document Uploaded", user.id)
             if (res.success) {
-                console.log(res, 'res')
                 appendToChatHistory(res.data)
                 // localStorage.setItem('prompt', "New Document Uploaded");
                 // localStorage.setItem('isFallbackedUser', 'true');
@@ -201,18 +200,14 @@ export default function FileUploadDialog() {
 
             try {
                 if (pathname == '/dashboard') {
-                    console.log("creating new session")
                     await handleOpenNewSession()
                 }
                 const file = files.find(file => file.name === fileNameToMemorize);
                 let res;
-                console.log(pathname, "is here asfksdhf")
                 if (pathname == addToPermenentKnowledgeBase) {
-                    console.log("yes here!!!!")
-                    // res = await vectorizeOneFile(file, id, "global")
+                    res = await vectorizeOneFile(file, id, "global")
                 }
                 else {
-                    console.log("11yes here!!!!");
                     res = await vectorizeOneFile(file, id);
                 }
 

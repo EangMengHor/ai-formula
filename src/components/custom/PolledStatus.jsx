@@ -4,19 +4,175 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, FileText, Database, Globe, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+    Drawer,
+    DrawerClose,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger,
+} from "@/components/ui/drawer"
 
+import '@xyflow/react/dist/style.css';
+import PollInteraction from "../PollInteraction"
+import { useLocation, useParams } from "react-router-dom"
 export default function PollStatus({
-    workflow = [],
-    updated = [],
+    workflow = [
+        "interaction",
+        "generate"
+    ],
+    updated = [
+        {
+            "label": "Software Development Lifecycle",
+            "data": "none",
+            "other": [
+                {
+                    "group": [
+                        {
+                            "goal": "Gather initial requirements from stakeholders",
+                            "input": [],
+                            "execution": 1,
+                            "personaId": "req1",
+                            "name": "Requirements Analyst"
+                        },
+                        {
+                            "goal": "Conduct market research and competitor analysis",
+                            "input": [],
+                            "execution": 1,
+                            "personaId": "req2",
+                            "name": "Market Researcher"
+                        }
+                    ]
+                },
+                {
+                    "group": [
+                        {
+                            "goal": "Create detailed functional specifications",
+                            "input": ["req1"],
+                            "execution": 2,
+                            "personaId": "spec1",
+                            "name": "System Analyst"
+                        },
+                        {
+                            "goal": "Design system architecture",
+                            "input": ["req1", "req2"],
+                            "execution": 2,
+                            "personaId": "arch1",
+                            "name": "Solution Architect"
+                        },
+                        {
+                            "goal": "Define technical requirements",
+                            "input": ["req2"],
+                            "execution": 2,
+                            "personaId": "tech1",
+                            "name": "Technical Lead"
+                        }
+                    ]
+                },
+                {
+                    "group": [
+                        {
+                            "goal": "Develop core features and functionality",
+                            "input": ["spec1", "arch1"],
+                            "execution": 3,
+                            "personaId": "dev1",
+                            "name": "Senior Developer"
+                        },
+                        {
+                            "goal": "Implement user interface components",
+                            "input": ["spec1"],
+                            "execution": 3,
+                            "personaId": "dev2",
+                            "name": "Frontend Developer"
+                        },
+                        {
+                            "goal": "Set up infrastructure and DevOps pipeline",
+                            "input": ["arch1", "tech1"],
+                            "execution": 3,
+                            "personaId": "ops1",
+                            "name": "DevOps Engineer"
+                        }
+                    ]
+                },
+                {
+                    "group": [
+                        {
+                            "goal": "Perform unit and integration testing",
+                            "input": ["dev1", "dev2"],
+                            "execution": 4,
+                            "personaId": "test1",
+                            "name": "QA Engineer"
+                        },
+                        {
+                            "goal": "Conduct security assessment",
+                            "input": ["dev1", "ops1"],
+                            "execution": 4,
+                            "personaId": "sec1",
+                            "name": "Security Specialist"
+                        },
+                        {
+                            "goal": "Execute performance testing",
+                            "input": ["dev2", "ops1"],
+                            "execution": 4,
+                            "personaId": "perf1",
+                            "name": "Performance Engineer"
+                        }
+                    ]
+                },
+                {
+                    "group": [
+                        {
+                            "goal": "Prepare deployment documentation",
+                            "input": ["test1", "sec1"],
+                            "execution": 5,
+                            "personaId": "doc1",
+                            "name": "Technical Writer"
+                        },
+                        {
+                            "goal": "Conduct user acceptance testing",
+                            "input": ["test1", "perf1"],
+                            "execution": 5,
+                            "personaId": "uat1",
+                            "name": "UAT Coordinator"
+                        }
+                    ]
+                },
+                {
+                    "group": [
+                        {
+                            "goal": "Deploy to production environment",
+                            "input": ["doc1", "uat1"],
+                            "execution": 6,
+                            "personaId": "deploy1",
+                            "name": "Release Manager"
+                        },
+                        {
+                            "goal": "Monitor system performance",
+                            "input": ["perf1", "deploy1"],
+                            "execution": 6,
+                            "personaId": "mon1",
+                            "name": "System Monitor"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
     isActive = true,
     isCompleted = false,
     added = "",
     isOpen = false,
+    sessionId = ""
 }) {
+    console.log(workflow, updated, isActive, isCompleted, added, "workflow")
     const [isExpanded, setIsExpanded] = useState(isOpen)
     const [currLoading, setCurrLoading] = useState(workflow)
     console.log(workflow, updated, isActive, isCompleted, added, "workflow")
-
+    useEffect(() => {
+        console.log(sessionId, "sessionId")
+    }, [sessionId])
     useEffect(() => {
         if (updated.length === workflow.length) {
             const timer = setTimeout(() => {
@@ -62,6 +218,12 @@ export default function PollStatus({
         if (currLoading.includes(type)) return "Loading...";
         return "Pending...";
     };
+    const getOthers = (type) => {
+        const updatedItem = updated.find((item) => item.label === type);
+        if (updatedItem) return updatedItem;
+        if (currLoading.includes(type)) return "Loading...";
+        return "Pending...";
+    };
 
     return (
         <motion.div
@@ -93,7 +255,8 @@ export default function PollStatus({
                                 const status = getStatus(type)
                                 const Icon = getIcon(type)
                                 const text = getText(type)
-
+                                const other = getOthers(type)
+                                { console.log(other, "dashboard") }
                                 return (
                                     <motion.div
                                         key={type}
@@ -106,9 +269,9 @@ export default function PollStatus({
                                         <div
                                             className={cn(
                                                 "absolute -left-8 flex h-6 w-6 items-center justify-center rounded-full border-2",
-                                                status === "completed"&& (isCompleted && type === "generate")
+                                                status === "completed" && (isCompleted && type === "generate")
                                                     ? "border-slate-400 bg-slate-400"
-                                                    : status === "loading" 
+                                                    : status === "loading"
                                                         ? "border-blue-500 bg-blue-200"
                                                         : "border-slate-600 bg-slate-800",
                                             )}
@@ -131,8 +294,24 @@ export default function PollStatus({
                                                 <Icon className="h-5 w-5" />
                                                 <h3 className="font-medium capitalize">{type}</h3>
                                             </div>
+                                            {console.log(Object.keys(other).length > 0 && other.hasOwnProperty("other") ? {
+                                                label: other.label,
+                                                data: other.data,
+                                                other: other.other.output
+                                            } : [], "is here 234", other)}
                                             <p className={cn("text-sm", status === "completed" ? "text-slate-400" : "text-slate-500")}>
-                                                {isCompleted && type === "generate" ? added : text}
+                                                {(type == "interaction") && Object.keys(other).length > 0 ? (
+                                                    <div>
+                                                        <PollInteraction
+                                                            interactionData={Object.keys(other).length > 0 && other.hasOwnProperty("other") ? {
+                                                                label: other.label,
+                                                                data: other.data,
+                                                                other: other.other.output
+                                                            } : []}
+                                                            sessionId={sessionId}
+                                                        />
+                                                    </div>
+                                                ) : (isCompleted && type === "generate" ? added : text)}
                                             </p>
                                         </div>
                                     </motion.div>
