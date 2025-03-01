@@ -19,8 +19,8 @@ export const LAYOUT_CONFIG = {
     EDGE_ANIMATION_SPEED: '0.8s',
 
     // Layout
-    MIN_ZOOM: 0.1,
-    MAX_ZOOM: 1.5,
+    MIN_ZOOM: 0.01,
+    MAX_ZOOM: 5.5,
     FIT_VIEW_PADDING: 0.2,
 };
 

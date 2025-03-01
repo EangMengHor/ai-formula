@@ -30,7 +30,7 @@ export default function PollInteraction({
                     }
                 </DialogTrigger>
                 <DialogContent className="w-[calc(100%-5rem)] h-[calc(100%-5rem)] bg-slate-700">
-                    <div className="w-[60%] h-full ">
+                    <div className="w-full h-full ">
                         <p className="font-semibold text-2xl text-white mb-3">Interaction Workflow</p>
                         <WorkflowDiagram data={interactionData} />
                     </div>

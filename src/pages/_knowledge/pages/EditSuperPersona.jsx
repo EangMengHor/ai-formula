@@ -255,17 +255,15 @@ export default function EditSuperPersona() {
 
             </div>
             <div className='fixed bottom-0 left-0 right-0 flex items-center justify-center w-screen p-5 gap-4'>
-                <AlertDialog className={`${currSkeleton === 0 ? 'hidden' : ''}`}>
+                <AlertDialog>
                     <AlertDialogTrigger>
-                        {
-                            currSkeleton == 0 && poll && (
-                                <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2  border-2 border-blue-500 shadow-lg'>
-                                    <Button className="rounded-full w-full bg-blue-500 hover:bg-blue-700 text-white">
-                                        Continue To Knowledge Base Scraper
-                                    </Button>
-                                </div>
-                            )
-                        }
+
+                        <div className='bg-gray-800 bg-opacity-30 backdrop-blur-md rounded-full p-2  border-2 border-blue-500 shadow-lg'>
+                            <Button className="rounded-full w-full bg-blue-500 hover:bg-blue-700 text-white">
+                                Continue To Knowledge Base Scraper
+                            </Button>
+                        </div>
+
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-gray-800 text-slate-300">
                         <AlertDialogHeader>
