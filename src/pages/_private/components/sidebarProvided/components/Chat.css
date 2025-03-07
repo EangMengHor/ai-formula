@@ -1,8 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@100..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
 
-.module{
+.module {
     font-family: 'Lato', sans-serif !important;
 }
+
 /* Heading Tags */
 .module h1 {
     font-size: 2rem;
@@ -204,5 +205,16 @@
 }
 
 mrow {
-    font-size: 1.5rem;  ;
+    font-size: 1.5rem;
+    ;
+}
+
+.griddy-box {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.griddy-box .griddy-cude{
+    
 }

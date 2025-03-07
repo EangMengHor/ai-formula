@@ -21,6 +21,8 @@ export const voiceToText = `${url}/voice-to-text`
 export const getUploadedDocumentHistoryUrl = `${url}/get-uploaded-document`
 export const pollStatusUrl = `${url}/get-realtime-poll`
 
+
+export const pollInteractionLogsUrl = `${url}/get-interaction-logs`
 //  - - - knowledge base - - -
 export const getUserSuperiorPersonaUrl = `${url}/get-user-superior-persona`
 export const createPersonasUrl = `${url}/create-persona-sup`
@@ -33,3 +35,5 @@ export const editGeneratedPersonaUrl = `${url}/edit-generated-persona`
 // create knowledge base APIs
 export const scrapeKnowledgeBaseUrl = `${url}/scrape-and-knowledge-persona`;
 export const pollScapingStatusUrl = `${url}/poll-knowlege-scrape-status`
+
+

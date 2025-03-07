@@ -5,7 +5,7 @@ import { _useSidebar } from "../../../../../context/SidebarContext";
 import { getNewSession } from "../../../../../services/n8n-apis/_core/getNewSession.api";
 import { useEffect, useState } from "react";
 import { useUser } from "../../../../../context/UserContext";
-import { ArrowRight, Brain, FileInput, School } from "lucide-react";
+import { ArrowRight, Brain, CalendarSync, FileInput, School } from "lucide-react";
 
 export default function Dashboard() {
     const [value, setValue] = useState("");
@@ -64,13 +64,20 @@ export default function Dashboard() {
             icon: Brain,
             title: "Oasis - Social Media Simulation",
             description: "Create and analyze social media posts and simulate the social media environment"
+        },
+        {
+            id: 4,
+            to: '/persona-automation',
+            icon: CalendarSync,
+            title: "Superior persona Automation",
+            description: "Create Automations for superior persona"
         }
         // You can add more cards here in the future.
     ];
 
     return (
         <div className="flex w-full h-full items-center justify-center">
-            <div className="w-full max-w-[900px] md:w-[54%] mt-[10%]">
+            <div className="w-full max-w-[900px] md:w-[54%] mt-[20%]">
                 <p className="text-center font-semibold capitalize text-4xl font-mono mb-2">
                     Let's create & Analyze some <span>amazing formulas</span> together.
                 </p>

@@ -26,9 +26,7 @@ export function NavMain({
     const { isMobile } = useSidebar()
     const navigate = useNavigate()
     const { chatHistory, isSidebarChatHistoryLoading, currentActiveChat, setCurrentActiveChat } = _useSidebar()
-    useEffect(() => {
-        console.log(chatHistory);
-    }, [chatHistory])
+
     return (
         <SidebarGroup>
             <SidebarMenu>
@@ -39,16 +37,23 @@ export function NavMain({
                         </div>
                     )
                 }
-                {!isSidebarChatHistoryLoading && Object.keys(chatHistory).map((label) => (
-                    <div key={label}>
+                {!isSidebarChatHistoryLoading && Object.keys(chatHistory).map((label) => {
+                    const uniqueItems = chatHistory[label].reduce((acc, curr) => {
+                        if (!acc.find((item) => item?.id == curr?.id)) {
+                            acc.push(curr)
+                        }
+                        return acc
+                    }, [])
+
+                    return <div key={label}>
                         <div className="font-semibold capitalize text-lg px-2 py-1 w-full rounded-md bg-slate-700 my-2 ">{label}</div>
-                        {chatHistory[label].map((item) => (
+                        {uniqueItems && uniqueItems.map((item, index) => (
                             <div
                                 onClick={() => {
                                     setCurrentActiveChat(item.chatname)
                                     navigate(`/chat/${item.sessionid}`)
                                 }}
-                                key={item.id} className={`${String(id) == item.sessionid ? 'bg-slate-700' : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-700 rounded-md cursor-pointer px-2 items-center`}>
+                                key={index} className={`${String(id) == item.sessionid ? 'bg-slate-700' : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-700 rounded-md cursor-pointer px-2 items-center`}>
                                 <p className="truncate max-w-xs">
                                     {item.chatname}
                                 </p>
@@ -74,7 +79,7 @@ export function NavMain({
                             </div>
                         ))}
                     </div>
-                ))}
+                })}
             </SidebarMenu>
         </SidebarGroup>
     )

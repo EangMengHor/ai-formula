@@ -36,7 +36,10 @@ export async function chat(
         });
         console.log(res, 'chat response');
         if (res.status == 200) {
-            return response(true, "Chat message sent", res.data.id);
+            return response(true, "Chat message sent", {
+                id: res.data.id,
+                identity: res.data.identity
+            });
         }
         return response(false, "Chat message not sent", null);
 

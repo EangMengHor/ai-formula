@@ -16,7 +16,7 @@ export const UserProvider = ({ children }) => {
     const [isDocumentOn, setIsDocumentOn] = useState(false);
     const [isVectorBaseOn, setIsVectorBaseOn] = useState(false);
     const [isSuperiorPersonaAttached, setIsSuperiorPersonaAttached] = useState(false)
-    const [selectedSuperiorPersona, setSelectedSuperiorPersona] = useState({})
+    const [selectedSuperiorPersona, setSelectedSuperiorPersona] = useState([])
     const [SupPerItems, setSupPerItems] = useState([])
     const [currActiveIntraction, setCurrActiveIntraction] = useState(aiIntractions[0].value || "sequential")
 

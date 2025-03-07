@@ -13,7 +13,7 @@ export const LAYOUT_CONFIG = {
     // Visual settings
     EDGE_STROKE_WIDTH: 2,
     EDGE_COLOR: '#60A5FA',
-    EDGE_HOVER_COLOR: '#93C5FD',
+    EDGE_HOVER_COLOR: '#93C5FD',    
 
     // Animation
     EDGE_ANIMATION_SPEED: '0.8s',

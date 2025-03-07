@@ -10,6 +10,7 @@ export async function pollChatOutput(id) {
         });
 
         // get output condition
+        console.log(res,"is here ")
         if (res.status == 200 && res.data.length > 0) {
             return response(true, "Output fetched", res.data[0].output);
         }

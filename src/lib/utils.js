@@ -100,21 +100,15 @@ export function sortByDateGroup(data) {
 
   return sortedData;
 }
-
 export function parseContent(input) {
   if (input.length <= 0) {
     throw new Error('Please enter some content to parse.');
   }
 
   const sections = [];
-  const blockRegex = /```(mermaid)([\s\S]*?)```/g; // Match mermaid blocks
-  const agentRegex = /<\|agent\|([\s\S]*?)<\|end\|>/g; // Match agent blocks
-
+  const combinedRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)/g;
   let lastIndex = 0;
   let match;
-
-  // Combined regex to match both patterns
-  const combinedRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)/g;
 
   while ((match = combinedRegex.exec(input)) !== null) {
     // Process text before the block
@@ -125,25 +119,26 @@ export function parseContent(input) {
       });
     }
 
-    // Determine if it's a mermaid block or agent block
+    // Check if it's a mermaid block or an agent block
     if (match[0].startsWith('```mermaid')) {
-      // Handle mermaid block
       sections.push({
         type: 'mermaid',
         content: match[2].trim(),
       });
     } else {
-      // Handle agent block
+      // Parse the persona/agent block
+      const agentContent = match[4];
+      const parsedAgent = parseAgentBlock(agentContent);
       sections.push({
         type: 'persona',
-        content: match[4],
+        ...parsedAgent,
       });
     }
 
     lastIndex = combinedRegex.lastIndex;
   }
 
-  // Process remaining text
+  // Process any remaining text after the last match
   if (lastIndex < input.length) {
     sections.push({
       type: 'text',
@@ -151,8 +146,99 @@ export function parseContent(input) {
     });
   }
 
-  return sections.filter(item => item.content.trim() !== '');
+  // Remove sections with empty content
+  const validSections = sections.filter(item => item.content?.trim() !== '');
+
+  // Build the final array:
+  // - All persona sections are merged into a single simulation object.
+  // - The simulation object is inserted in place of the first encountered persona block.
+  const finalSections = [];
+  let simulationInserted = false;
+  const personaSections = validSections.filter(item => item.type === 'persona');
+
+  for (const section of validSections) {
+    if (section.type === 'persona') {
+      if (!simulationInserted) {
+        finalSections.unshift({
+          type: "simulation",
+          items: personaSections
+        });
+        simulationInserted = true;
+      }
+      // Skip adding individual persona sections
+    } else {
+      finalSections.push(section);
+    }
+  }
+  console.log(finalSections,"sadjh392874")
+
+  return finalSections;
 }
+
+function parseAgentBlock(agentContent) {
+  const result = {
+    content: agentContent
+  };
+
+  // Extract title
+  const titleMatch = /<\|title\|([\s\S]*?)<\|title\|>/g.exec(agentContent);
+  if (titleMatch) {
+    let title = titleMatch[1].trim();
+    if (title.startsWith('>')) {
+      title = title.substring(1).trim();
+    }
+    result.title = title;
+    result.content = result.content.replace(titleMatch[0], '');
+  }
+
+  // Extract goal
+  const goalMatch = /<\|goal\|([\s\S]*?)<\|goal\|>/g.exec(agentContent);
+  if (goalMatch) {
+    let goal = goalMatch[1].trim();
+    if (goal.startsWith('>')) {
+      goal = goal.substring(1).trim();
+    }
+    result.goal = goal;
+    result.content = result.content.replace(goalMatch[0], '');
+  }
+
+  // Extract all team entries
+  result.team = [];
+  const teamRegex = /<\|team\|([\s\S]*?)<\|team\|>/g;
+  let teamMatch;
+  
+  while ((teamMatch = teamRegex.exec(agentContent)) !== null) {
+    const teamContent = teamMatch[1].trim();
+    
+    if (teamContent.startsWith('"') && teamContent.endsWith('"')) {
+      let member = teamContent.slice(1, -1).trim();
+      if (member.startsWith('>')) {
+        member = member.substring(1).trim();
+      }
+      result.team.push(member);
+    } else {
+      const members = teamContent.split(',').map(item => {
+        let trimmed = item.trim();
+        if (trimmed.startsWith('>')) {
+          trimmed = trimmed.substring(1).trim();
+        }
+        return trimmed.startsWith('"') && trimmed.endsWith('"') 
+          ? trimmed.slice(1, -1).trim() 
+          : trimmed;
+      });
+      result.team.push(...members);
+    }
+    
+    result.content = result.content.replace(teamMatch[0], '');
+  }
+
+  result.content = result.content.trim();
+  if (result.content.startsWith('>')) {
+    result.content = result.content.substring(1).trim();
+  }
+  return result;
+}
+
 
 export const getFavicon = (urls) => {
   if (!Array.isArray(urls)) {
@@ -301,3 +387,7 @@ export class LayoutEngine {
     return positionedNodes;
   }
 }
+
+
+
+

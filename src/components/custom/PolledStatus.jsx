@@ -229,7 +229,7 @@ export default function PollStatus({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full  rounded-lg bg-slate-900 p-4 text-white shadow-lg"
+            className="w-full  rounded-lg bg-slate-900 p-4 text-white shadow-lg max-w-4xl"
         >
             <button onClick={() => setIsExpanded(!isExpanded)} className="flex w-full items-center justify-between pb-2">
                 <span className="text-lg font-semibold">Workflow</span>
@@ -294,11 +294,7 @@ export default function PollStatus({
                                                 <Icon className="h-5 w-5" />
                                                 <h3 className="font-medium capitalize">{type}</h3>
                                             </div>
-                                            {console.log(Object.keys(other).length > 0 && other.hasOwnProperty("other") ? {
-                                                label: other.label,
-                                                data: other.data,
-                                                other: other.other.output
-                                            } : [], "is here 234", other)}
+
                                             <p className={cn("text-sm", status === "completed" ? "text-slate-400" : "text-slate-500")}>
                                                 {(type == "interaction") && Object.keys(other).length > 0 ? (
                                                     <div>
@@ -311,7 +307,7 @@ export default function PollStatus({
                                                             sessionId={sessionId}
                                                         />
                                                     </div>
-                                                ) : (isCompleted && type === "generate" ? added : text)}
+                                                ) : (isCompleted && type === "generate" ? "Responded" : text)}
                                             </p>
                                         </div>
                                     </motion.div>

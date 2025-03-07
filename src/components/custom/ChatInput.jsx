@@ -24,22 +24,9 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-    Command,
-    CommandDialog,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-    CommandSeparator,
-    CommandShortcut,
-} from "@/components/ui/command"
+
 import {
     Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
@@ -48,6 +35,9 @@ import getUserSuperiorPersona from "../../services/n8n-knowledge-apis/getUserSup
 import { formatDistanceToNow, set } from "date-fns";
 import { CommandLoading } from "cmdk";
 import { aiIntractions } from "../../lib/config";
+import { toast } from "sonner";
+import { useToast } from "../../hooks/use-toast";
+import { useStackSidebar } from "../../context/StackSidebarContext";
 const maxRows = 30;
 
 
@@ -85,8 +75,10 @@ export default function ChatInput({
         SupPerItems,
         setSupPerItems,
         currActiveIntraction,
-        setCurrActiveIntraction
+        setCurrActiveIntraction,
+        user
     } = useUser();
+    const { sidebarStack } = useStackSidebar();
     // component states
     const [rows, setRows] = useState(1);
     const [isToolBoxOpen, setIsToolBoxOpen] = useState(false)
@@ -94,8 +86,7 @@ export default function ChatInput({
 
     const [isSupPerItemLoading, setSupPerItemLoading] = useState(false)
     const [isSupDialogOpen, setIsSupDialogOpen] = useState(false)
-    const { user } = useUser()
-
+    const { toast } = useToast();
     // superiro persona
 
     const handleChange = (event) => {
@@ -190,7 +181,9 @@ export default function ChatInput({
         }
     }
 
-
+    useEffect(() => {
+        console.log(isSuperiorPersonaAttached, 'isSuperiorPersonaAttached')
+    }, [isSuperiorPersonaAttached])
     return (
         <div className="flex w-full flex-col animate-fade-in">
             {/* {
@@ -223,9 +216,6 @@ export default function ChatInput({
                 )
             } */}
 
-
-
-
             <motion.div
                 className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
                 initial={{ opacity: 0, y: -10 }}
@@ -241,7 +231,6 @@ export default function ChatInput({
                         <ChevronLeft />
                     </button>
                 }
-
                 <div
                     ref={scrollContainerRef}
                     className="flex gap-2 items-center overflow-x-scroll scroll-smooth hide-scrollbar"
@@ -314,7 +303,7 @@ export default function ChatInput({
                                         <Tooltip delayDuration={0}>
                                             <TooltipTrigger>
                                                 <div
-                                                    className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
+                                                    className="flex items-center px-1 py-1 rounded-md border border-gray-600 "
                                                 >
                                                     <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
                                                 </div>
@@ -356,43 +345,69 @@ export default function ChatInput({
                                 {
                                     !isToolBoxOpen ? <ChevronDown /> : <ChevronUp />
                                 }
-
-
                             </div>
 
-
+                            {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
+                            {/* {
+                                selectedSuperiorPersona.length > 0 && (
+                                    <Dialog>
+                                        <DialogTrigger>
+                                            <div className="p-2 bg-slate-600 hover:bg-slate-500 transition-all cursor-pointer rounded-md relative flex gap-2 mr-2 ">
+                                                <div className="absolute -top-3 -right-3 cursor-pointer" onClick={() => {
+                                                    setIsSuperiorPersonaAttached(false)
+                                                    setSelectedSuperiorPersona([])
+                                                }}>
+                                                    <X className="w-5 h-5 rounded-md bg-slate-700 hover:bg-slate-400" />
+                                                </div>
+                                                <CircleUserRound />
+                                                <div className="flex gap-3 items-center  ">
+                                                    <p>{sidebarStack.length > 0 ? `${selectedSuperiorPersona.length} Selected` : `${selectedSuperiorPersona.length} Superior Persona Selected`}</p>
+                                                    <p className="text-slate-400">Click</p>
+                                                </div>
+                                            </div>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-[90vw] bg-slate-700 text-white min-h-[90vh]">
+                                           <SelectedPersonaDetails/>
+                                        </DialogContent>
+                                    </Dialog>
+                                )
+                            } */}
                             {
-                                Object.keys(selectedSuperiorPersona).length > 0 && (
-                                    <div className="p-2 bg-slate-600 rounded-md relative flex gap-2 mr-2 ">
+
+                                selectedSuperiorPersona.length > 0 && (
+                                    <div className="p-2 bg-slate-600 hover:bg-slate-500 transition-all cursor-pointer rounded-md relative flex gap-2 mr-2 ">
                                         <div className="absolute -top-3 -right-3 cursor-pointer" onClick={() => {
                                             setIsSuperiorPersonaAttached(false)
-                                            setSelectedSuperiorPersona({})
+                                            setSelectedSuperiorPersona([])
                                         }}>
                                             <X className="w-5 h-5 rounded-md bg-slate-700 hover:bg-slate-400" />
                                         </div>
                                         <CircleUserRound />
-                                        <div className="flex gap-3 items-center ">
-                                            <p>{selectedSuperiorPersona.title.length > 15 ? selectedSuperiorPersona.title.slice(0, 15) + '...' : selectedSuperiorPersona.title}</p>
-                                            •
-                                            <p className="text-xs capitalize">{currActiveIntraction}</p>
+                                        <div className="flex gap-3 items-center  ">
+                                            <p>{sidebarStack.length > 0 ? `${selectedSuperiorPersona.length} Selected` : `${selectedSuperiorPersona.length} Superior Persona Selected`}</p>
+                                            {/* <p className="text-slate-400">Click</p> */}
                                         </div>
-
                                     </div>
                                 )
                             }
+
 
                         </div>
                         <TooltipProvider>
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger>
-                                    <button
-                                        onClick={() => {
-                                            window.open(import.meta.env.VITE_GEMINI_REALTIME_URL, "_blank")
-                                        }}
-                                        className="flex items-center px-1 py-1 rounded-md bg-red-400 border border-gray-600 hover:bg-slate-600 "
-                                    >
-                                        <img src="/small-log.png" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
-                                    </button>
+                                    {
+                                        sidebarStack.length == 0 && (
+                                            <button
+                                                onClick={() => {
+                                                    window.open(import.meta.env.VITE_GEMINI_REALTIME_URL, "_blank")
+                                                }}
+                                                className="flex items-center px-1 py-1 rounded-md bg-red-400 border border-gray-600 hover:bg-slate-600 "
+                                            >
+                                                <img src="/small-log.png" alt="Gemini Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
+                                            </button>
+                                        )
+                                    }
                                 </TooltipTrigger>
                                 <TooltipContent className="bg-slate-600 p-2 rounded-md">
                                     <p>Up coming realtime</p>
@@ -470,7 +485,9 @@ export default function ChatInput({
                             >
                                 <Globe className={`${isSearchOn ? "text-white" : "text-slate-500"}`} />
                                 <p className={`font-semibold ${isSearchOn ? "text-white" : "text-slate-500"}`}>
-                                    Search Is {isSearchOn ? "On" : "Off"}
+                                    {
+                                        sidebarStack.length > 0 ? ("Search") : (`Search Is ${isSearchOn ? "On" : "Off"}`)
+                                    }
                                 </p>
                             </div>
 
@@ -480,7 +497,9 @@ export default function ChatInput({
                             >
                                 <DatabaseZap className={`${isVectorBaseOn ? "text-white" : "text-slate-500"}`} />
                                 <p className={`font-semibold ${isVectorBaseOn ? "text-white" : "text-slate-500"}`}>
-                                    Knowledge Is {isVectorBaseOn ? "On" : "Off"}
+                                    {
+                                        sidebarStack.length > 0 ? ("Knowledge") : (`Knowledge Base Is ${isVectorBaseOn ? "On" : "Off"}`)
+                                    }
                                 </p>
                             </div>
 
@@ -491,37 +510,119 @@ export default function ChatInput({
                                 >
                                     <File className={`${isDocumentOn ? "text-white" : "text-slate-500"}`} />
                                     <p className={`font-semibold ${isDocumentOn ? "text-white" : "text-slate-500"}`}>
-                                        File Data Is {isDocumentOn ? "On" : "Off"}
+                                        {
+                                            sidebarStack.length > 0 ? ("Files Data") : (`File Data Is ${isDocumentOn ? "On" : "Off"}`)
+                                        }
                                     </p>
                                 </div>
                             )}
-
-                            <Dialog open={Object.keys(selectedSuperiorPersona).length == 0 && isSupDialogOpen} onOpenChange={setIsSupDialogOpen}>
+                            <Dialog open={isSupDialogOpen} onOpenChange={setIsSupDialogOpen}>
                                 <DialogTrigger>
                                     <div
                                         onClick={() => {
-                                            if (Object.keys(selectedSuperiorPersona).length > 0) {
-                                                setIsSuperiorPersonaAttached(!isSuperiorPersonaAttached)
-                                                setSelectedSuperiorPersona({})
-
-                                            }
-                                            else {
-                                                getSuperiorPersona()
-                                            }
+                                            getSuperiorPersona();
                                         }}
-                                        className={`px-4 py-2 flex gap-2 items-center ${isSuperiorPersonaAttached && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
+                                        className={`px-4 py-2 flex gap-2 items-center ${selectedSuperiorPersona.length > 0 && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
                                     >
-                                        <BookHeart className={`${isSuperiorPersonaAttached ? "text-white" : "text-slate-500"}`} />
-                                        <p className={`font-semibold ${isSuperiorPersonaAttached ? "text-white" : "text-slate-500"}`}>
-                                            {isSuperiorPersonaAttached ? "Detach Superior Persona" : "Attach Superior Persona"}
+                                        <BookHeart className={`${selectedSuperiorPersona.length > 0 ? "text-white" : "text-slate-500"}`} />
+                                        <p className={`font-semibold ${selectedSuperiorPersona.length > 0 ? "text-white" : "text-slate-500"}`}>
+                                            {
+                                                sidebarStack.length > 0 ? (
+                                                    selectedSuperiorPersona.length > 0 ? "Manage" : "Attach"
+                                                ) : (
+                                                    selectedSuperiorPersona.length > 0 ? "Manage Superior Personas" : "Attach Superior Persona"
+                                                )
+                                            }
                                         </p>
                                     </div>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-3xl bg-slate-700 p-0 border-2 border-slate-500">
-                                    <Command
-                                        onOpenChange={() => setIsSupDialogOpen(true)}
+                                <DialogContent className="max-w-5xl h-[80%] bg-slate-700 p-0 border-2 border-slate-500 overflow-y-scroll">
+                                    <div className="p-3">
+                                        <div className="font-semibold text-xl text-white">
+                                            Select Interactions
+                                        </div>
+                                        <div className="grid grid-rows-1 grid-cols-2 gap-2 my-2">
+                                            {aiIntractions.map((item, index) => {
+                                                const isActive = currActiveIntraction === item.value;
+                                                return (
+                                                    <Card
+                                                        key={index}
+                                                        className={`relative ${isActive ? "border-2 border-white bg-slate-600 " : "border-2 border-slate-500"} rounded-md cursor-pointer p-0 flex items-start flex-col`}
+                                                        onClick={() => setCurrActiveIntraction(item.value)}
+                                                    >
+                                                        {isActive && <div className="absolute top-5 right-5">
+                                                            <CircleCheck className="text-slate-300" />
+                                                        </div>}
+                                                        <img src={item.icon} alt={item.label} className="w-full h-24" />
+                                                        <CardHeader className="p-2">
+                                                            <CardTitle className="font-semibold text-xl text-white">{item.label}</CardTitle>
+                                                            <p className=" text-slate-300">{item.description}</p>
+                                                        </CardHeader>
+                                                    </Card>
+                                                );
+                                            })}
+                                        </div>
+                                        <hr className="border-slate-300 border-2" />
+
+                                        <div className="overflow-y-scroll ">
+                                            {isSupPerItemLoading && <div className="flex gap-2 w-full items-center text-white justify-center bg-slate-500 m-2 rounded-md ">
+                                                <div className="flex w-fit">
+                                                    <LoaderCircle className="animate-spin" />
+                                                    <p>Loading Your Superior Persona</p>
+                                                </div>
+                                            </div>}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2 overflow-y-scroll">
+                                                {SupPerItems && SupPerItems.length > 0 && [...SupPerItems].reverse().map((item, index) => {
+                                                    const isSelected = selectedSuperiorPersona.find(itm => itm.id == item.id);
+                                                    return <div
+                                                        onClick={() => {
+                                                            if (isSelected) {
+                                                                setSelectedSuperiorPersona(prev => {
+                                                                    if ([...prev.filter(itm => itm.id !== item.id)].length == 0) {
+                                                                        setIsSuperiorPersonaAttached(false)
+                                                                    }
+                                                                    return [...prev.filter(itm => itm.id !== item.id)]
+                                                                });
+                                                                return;
+                                                            }
+
+                                                            if (selectedSuperiorPersona.length >= 5) {
+                                                                toast({
+                                                                    title: "Can't Group More Than 5",
+                                                                    description: "More Personas Make Overall Planning And Interaction Ineffecient",
+                                                                    variant: "destructive"
+                                                                })
+                                                                return;
+                                                            }
+                                                            setIsSuperiorPersonaAttached(true)
+                                                            console.log(item, selectedSuperiorPersona, 'skajdflks345345')
+                                                            setSelectedSuperiorPersona(prev => [...prev, item]);
+                                                        }}
+                                                        key={index}
+                                                        className={`${isSelected ? 'border-slate-500 bg-slate-500' : "border-slate-400 bg-slate-700"} flex gap-1 items-start border  p-2 hover:bg-slate-600 transition-all rounded-md cursor-pointer`}
+                                                    >
+                                                        <div>
+                                                            <p className="text-ellipsis line-clamp-2 text-white w-[90%]">{item.title}</p>
+                                                            <p className="text-slate-400">Created {formatDistanceToNow(item.date)} Ago</p>
+                                                        </div>
+                                                        {
+                                                            isSelected && <div>
+                                                                <CircleCheck className="text-white" />
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                })}
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+
+                                    {/* <Command
+                                        onOpenChange={() => setIsSupDialogOpen(!isSupDialogOpen)}
                                         open={false}
-                                        className="bg-slate-900 text-white"
+                                        className="bg-slate-900 text-white h-full"
                                     >
                                         <CommandInput placeholder="Type Title Or Date (Ex. '3 days Ago' or Title) " />
                                         <CommandList className="p-4 m-4">
@@ -531,73 +632,74 @@ export default function ChatInput({
                                             <hr className="border-slate-300 border-2" />
 
                                             <div>
-                                                Select Intractions
+                                                Select Interactions
                                             </div>
                                             <div className="grid grid-rows-1 grid-cols-2 gap-2 my-2">
-                                                {
-                                                    aiIntractions.map((item, index) => {
-                                                        const isActive = currActiveIntraction === item.value;
-                                                        return (
-                                                            <Card
-                                                                className={`relative ${isActive ? "border-2 border-white bg-slate-700 " : "border-2 border-slate-500"} rounded-md cursor-pointer p-0 flex items-start flex-col`}
-                                                                onClick={() => setCurrActiveIntraction(item.value)}>
-                                                                {
-                                                                    isActive && <div className="absolute top-5 right-5">
-                                                                        <CircleCheck className="text-slate-300" />
-                                                                    </div>
-                                                                }
-                                                                <img src={item.icon} alt={item.label} className="w-full h-24" />
-                                                                <CardHeader className="p-2">
-                                                                    <CardTitle className="font-semibold text-xl text-white">{item.label}</CardTitle>
-                                                                    <p className=" text-slate-300">{item.description}</p>
-                                                                </CardHeader>
-                                                            </Card>
-
-                                                        )
-                                                    })
-                                                }
+                                                {aiIntractions.map((item, index) => {
+                                                    const isActive = currActiveIntraction === item.value;
+                                                    return (
+                                                        <Card
+                                                            key={index}
+                                                            className={`relative ${isActive ? "border-2 border-white bg-slate-700 " : "border-2 border-slate-500"} rounded-md cursor-pointer p-0 flex items-start flex-col`}
+                                                            onClick={() => setCurrActiveIntraction(item.value)}
+                                                        >
+                                                            {isActive && <div className="absolute top-5 right-5">
+                                                                <CircleCheck className="text-slate-300" />
+                                                            </div>}
+                                                            <img src={item.icon} alt={item.label} className="w-full h-24" />
+                                                            <CardHeader className="p-2">
+                                                                <CardTitle className="font-semibold text-xl text-white">{item.label}</CardTitle>
+                                                                <p className=" text-slate-300">{item.description}</p>
+                                                            </CardHeader>
+                                                        </Card>
+                                                    );
+                                                })}
                                             </div>
 
-
-
                                             <hr className="border-slate-300 border-2" />
-                                            {
-                                                isSupPerItemLoading && <div className="flex gap-2 w-full items-center">
-                                                    <LoaderCircle className="animate-spin" />
-                                                    <p>Loading Your Superior Persona</p>
-                                                </div>
-                                            }
-                                            {
-                                                !isSupPerItemLoading && <CommandEmpty> You Don't Have Any Superior Persona</CommandEmpty>
-                                            }
-                                            {
-                                                SupPerItems && SupPerItems.length > 0 && [...SupPerItems].reverse().map((item, index) => (
-                                                    <CommandItem
-                                                        onSelect={(value) => {
-                                                            setIsSuperiorPersonaAttached(true)
-                                                            setIsSupDialogOpen(false)
-                                                            setSelectedSuperiorPersona(item)
-                                                        }}
-                                                        key={index}
-                                                        className="flex gap-2 items-start bg-slate-700  my-2">
-                                                        <CircleUserRound />
-                                                        <div>
-                                                            <p>{item.title}</p>
-                                                            <p className="text-slate-500">Created {formatDistanceToNow(item.date)} Ago</p>
-
-                                                        </div>
-                                                    </CommandItem>
-                                                ))
-                                            }
+                                            {isSupPerItemLoading && <div className="flex gap-2 w-full items-center">
+                                                <LoaderCircle className="animate-spin" />
+                                                <p>Loading Your Superior Persona</p>
+                                            </div>}
+                                            {!isSupPerItemLoading && <CommandEmpty> You Don't Have Any Superior Persona</CommandEmpty>}
+                                            {SupPerItems && SupPerItems.length > 0 && [...SupPerItems].reverse().map((item, index) => (
+                                                <CommandItem
+                                                    onSelect={() => {
+                                                        setSelectedSuperiorPersona(prev => [...prev, item]);
+                                                    }}
+                                                    key={index}
+                                                    className="flex gap-2 items-start bg-slate-700 my-2"
+                                                >
+                                                    <CircleUserRound />
+                                                    <div>
+                                                        <p>{item.title}</p>
+                                                        <p className="text-slate-500">Created {formatDistanceToNow(item.date)} Ago</p>
+                                                    </div>
+                                                </CommandItem>
+                                            ))}
                                         </CommandList>
-                                    </Command>
-
+                                    </Command> */}
                                 </DialogContent>
                             </Dialog>
+
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
         </div>
     );
+}
+
+
+
+
+function SelectedPersonaDetails({
+    selectedSuperiorPersona
+}) {
+
+    return (
+        <div>
+
+        </div>
+    )
 }

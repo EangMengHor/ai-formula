@@ -17,10 +17,46 @@ import { useLocation } from "react-router-dom"
 import Dashboard from "./components/Dashboard"
 import Chat from "./components/Chat"
 import { _useSidebar } from "../../../../context/SidebarContext"
+import StackSidebarProvider, { useStackSidebar } from "../../../../context/StackSidebarContext"
+import StackSidebarContainer from "../../../../components/custom/StackableSidebar/StackSidebarContainer"
+import { motion } from "framer-motion"
+import { useEffect } from "react"
 export default function Page() {
     const { pathname } = useLocation()
     console.log(pathname, "dfsd")
     const { currentActiveChat } = _useSidebar()
+    const { sidebarStack, setSidebarStack } = useStackSidebar();
+    const variants = {
+        open: {
+            x: 0,
+            width: "60%",
+            transition: {
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+            },
+        },
+        closed: {
+            x: "100%",
+            width: "auto",
+            transition: {
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+            },
+        },
+    };
+
+    useEffect(() => {
+        if (pathname) {
+            setSidebarStack([])
+        }
+    }, [pathname])
+
+    useEffect(() => {
+
+    }, [sidebarStack])
+
     return (
         <SidebarProvider>
             <AppSidebar />
@@ -33,19 +69,35 @@ export default function Page() {
                     <p className="text-white font-medium">{currentActiveChat}</p>
                     <div className="w-1/4"></div>
                 </header>
-                <div className="flex text-white flex-1 mt-12 flex-col gap-4 p-4 pt-0">
-                    {
-                        pathname === "/dashboard" && (
-                            <Dashboard />
-                        )
-                    }
-                    {
-                        pathname.startsWith("/chat/") && (
-                            <Chat />
-                        )
-                    }
+                <div className="flex gap-2 flex-1 w-full">
+
+                    <div className="flex text-white flex-1 mt-12 flex-col gap-2 p-2 pt-0">
+                        {
+                            pathname === "/dashboard" && (
+                                <Dashboard />
+                            )
+                        }
+                        {
+                            pathname.startsWith("/chat/") && (
+                                <Chat />
+                            )
+                        }
+                    </div>
+                    <motion.div
+                        className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && 'w-[80%]'}`}
+                        variants={variants}
+                        animate={sidebarStack.length > 0 ? "open" : "closed"}
+                    >
+
+                        <div>
+                            <StackSidebarContainer />
+                        </div>
+
+                    </motion.div>
                 </div>
+
             </SidebarInset>
         </SidebarProvider>
+
     )
 }
