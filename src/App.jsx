@@ -18,7 +18,7 @@ import GenerateKnowledgeBase from "./pages/_knowledge/pages/GenerateKnowledgeBas
 import AddToExistingKnowledge from "./pages/_addToExisitingKnowledge/AddToExistingKnowledge"
 import AgenticAutomationLayout from "./pages/_AgenticAutomation/AgenticAutomationLayout"
 import AgenticAutomation from "./pages/_AgenticAutomation/pages/AgenticAutomation"
-import CreateNewAgenticAutomation from "./pages/_AgenticAutomation/pages/createNewAgenticAutomation.jsx"
+import CreateAutomationForm from "./pages/_AgenticAutomation/pages/createNewAgenticAutomation.jsx"
 import AgenticJobs from "./pages/_AgenticAutomation/pages/AgenticJobs"
 import JobDetails from "./pages/_AgenticAutomation/pages/JobDetails"
 
@@ -61,7 +61,7 @@ export default function App() {
           {/* agentic automation interface */}
           <Route element={<AgenticAutomationLayout />} >
             <Route path="/agenticAutomation" element={<AgenticAutomation />} />
-            <Route path="/agenticAutomation/createNewAgenticAutomation" element={<CreateNewAgenticAutomation />} />
+            <Route path="/agenticAutomation/createNewAgenticAutomation" element={<CreateAutomationForm />} />
             <Route path="/agenticAutomation/automationJobsDetails/:automationId" element={<AgenticJobs />} />
             <Route path="/agenticAutomation/jobDetails/:jobId" element={<JobDetails />} />
           </Route>
