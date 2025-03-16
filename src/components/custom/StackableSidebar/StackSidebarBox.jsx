@@ -10,11 +10,14 @@ import {
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 export default function StackSidebarBox({ header, component, onClose, index }) {
     const [isClosing, setIsClosing] = useState(false);
     const [hasOpened, setHasOpened] = useState(false); // Track if it's already opened
-
+    const { pathname } = useLocation();
+    const isChatPage = pathname.includes('chat')
+    console.log(isChatPage, "sdfsdkfweru")
     useEffect(() => {
         setHasOpened(true);
     }, []);
@@ -57,7 +60,7 @@ export default function StackSidebarBox({ header, component, onClose, index }) {
     return (
         <motion.div
             className="bg-slate-800 border border-slate-500 min-w-full mr-10 rounded-md h-auto mb-5"
-            style={{ marginLeft: `${index * 10}px`, marginTop: `${index * 10}px` }}
+            style={{ marginLeft: `${index * 10}px`, marginTop: `${(index * 10) + 50}px` }}
             variants={variants}
             initial="closed" // Set initial state to closed
             animate={isClosing ? "closing" : hasOpened ? "open" : "closed"} // Prevent re-animation

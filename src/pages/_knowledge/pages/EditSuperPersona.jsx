@@ -30,6 +30,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
+import { getKnowledgeBaseSourcesOfPersonas } from '../../../services/n8n-knowledge-apis/getKnowledgeBaseSources';
 
 const descriptionLength = 200;
 
@@ -47,6 +48,7 @@ export default function EditSuperPersona() {
     // improvements
     const [isImprovements, setIsImprovements] = useState(false);
     const [improvements, setImprovements] = useState([]);
+    const [personaCitations, setPersonaCitations] = useState([]);
 
     const navigate = useNavigate();
     useEffect(() => {
@@ -205,6 +207,23 @@ export default function EditSuperPersona() {
     };
 
 
+    // get the already existing knowledge base sources of the personas
+    useEffect(() => {
+        async function getKnowledgeOfPersona() {
+            const data = await getKnowledgeBaseSourcesOfPersonas(idx);
+            if (data.success) {
+                setPersonaCitations(data.data);
+                toast({
+                    title: "Success",
+                    description: "Knowledge Base Sources Fetched",
+                })
+            }
+        }
+
+        if ((!poll) && idx) {
+            getKnowledgeOfPersona()
+        }
+    }, [poll, idx])
 
 
     return (
@@ -244,8 +263,10 @@ export default function EditSuperPersona() {
                             isEditable={poll}
                             key={persona.id}
                             persona={persona}
+                            sources={personaCitations.find(p => p.personaId === persona.id)?.citations || []}
                             setPersona={(value) => setPersonas((prev) => [...prev.slice(0, index), value, ...prev.slice(index + 1)])}
                             className={newPersonaAdded ? 'new-persona' : ''}
+                            isMemoried={personaCitations.find(p => p.personaId === persona.id)?.isMemorized || false}
                         />
                     ))}
                     {[...Array(currSkeleton)].map((_, index) => (

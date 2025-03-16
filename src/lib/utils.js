@@ -170,7 +170,7 @@ export function parseContent(input) {
       finalSections.push(section);
     }
   }
-  console.log(finalSections,"sadjh392874")
+  console.log(finalSections, "sadjh392874")
 
   return finalSections;
 }
@@ -206,10 +206,10 @@ function parseAgentBlock(agentContent) {
   result.team = [];
   const teamRegex = /<\|team\|([\s\S]*?)<\|team\|>/g;
   let teamMatch;
-  
+
   while ((teamMatch = teamRegex.exec(agentContent)) !== null) {
     const teamContent = teamMatch[1].trim();
-    
+
     if (teamContent.startsWith('"') && teamContent.endsWith('"')) {
       let member = teamContent.slice(1, -1).trim();
       if (member.startsWith('>')) {
@@ -222,13 +222,13 @@ function parseAgentBlock(agentContent) {
         if (trimmed.startsWith('>')) {
           trimmed = trimmed.substring(1).trim();
         }
-        return trimmed.startsWith('"') && trimmed.endsWith('"') 
-          ? trimmed.slice(1, -1).trim() 
+        return trimmed.startsWith('"') && trimmed.endsWith('"')
+          ? trimmed.slice(1, -1).trim()
           : trimmed;
       });
       result.team.push(...members);
     }
-    
+
     result.content = result.content.replace(teamMatch[0], '');
   }
 
@@ -391,3 +391,51 @@ export class LayoutEngine {
 
 
 
+export function groupWorkflowData(flatData) {
+  // Group nodes by execution level using a reducer.
+  const groups = flatData.reduce((acc, item) => {
+    // Initialize an array for the level if it doesn't exist
+    const level = item.execution;
+    if (!acc[level]) {
+      acc[level] = [];
+    }
+    acc[level].push(item);
+    return acc;
+  }, {});
+
+  // Convert the groups object into an array sorted by execution level.
+  const sortedGroups = Object.keys(groups)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((key) => groups[key]);
+
+  // Return an object matching the expected structure for the component.
+  return { other: sortedGroups };
+}
+
+
+
+export const getStatusColor = (status) => {
+  const colors = {
+    running: " bg-blue-500/20 text-blue-400 border-blue-500/30",
+    failed: "bg-red-500/20 text-red-400 border-red-500/30",
+    completed: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    pending: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  }
+  return colors[status?.toLowerCase()] || "bg-slate-500/20 text-slate-400 border-slate-500/30"
+}
+
+export const formatDate = (dateString) => {
+  if (!dateString) return "Not set"
+  try {
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+    }).format(date)
+  } catch (e) {
+    return dateString
+  }
+}

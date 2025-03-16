@@ -36,6 +36,14 @@ export const eachPersonaSchema = z.object({
     name: z.string().min(3, "Title is too short"),
     description: z.string().min(50, "Description is too short"),
     knowledgeBaseSearch: z.array(z.string().min(10, "Each knowledge base entry must be at least 10 characters"))
-      .min(1, "Knowledge base search is empty or missing"),
+        .min(1, "Knowledge base search is empty or missing"),
     isLiked: z.boolean().optional(),
-  });
+});
+
+
+export const createAgenticAutomationSchema = z.object({
+    name: z.string().min(5, "Enter Descriptive Name for Automation"),
+    interval: z.enum(["daily", "weekly", "monthly", "yearly"]),
+    superiorPersonaId: z.number(),
+    task: z.string().min(10, "Enter Proper Task To Perform"),
+})

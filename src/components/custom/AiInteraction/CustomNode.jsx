@@ -1,5 +1,5 @@
 import { Handle, Position } from 'reactflow';
-import { User } from 'lucide-react';
+import { ListTodo, User } from 'lucide-react';
 
 export function CustomNode({ data }) {
     const getBgColor = () => {
@@ -32,6 +32,17 @@ export function CustomNode({ data }) {
                     {data.goal}
                 </div>
             )}
+            {
+                data?.isAgenticWorkflowExecuted && (
+                    <div>
+                        <div className='px-2 py-1 bg-purple-900 mt-2 rounded-md flex gap-2 text-white'>
+                            <ListTodo />
+                            Agentic Workflow Executed
+                        </div>
+                        <p className='text-xs my-2 text-slate-400'>Agent Have Executed Workflow Given By User To Archive This Goal!</p>
+                    </div>
+                )
+            }
             <Handle
                 type="source"
                 position={Position.Right}

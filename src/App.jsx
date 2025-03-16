@@ -16,6 +16,11 @@ import EditSuperPersona from "./pages/_knowledge/pages/EditSuperPersona"
 import UploadDocumentKnowledge from "./pages/_knowledge/pages/UploadDocumentKnowledge"
 import GenerateKnowledgeBase from "./pages/_knowledge/pages/GenerateKnowledgeBase"
 import AddToExistingKnowledge from "./pages/_addToExisitingKnowledge/AddToExistingKnowledge"
+import AgenticAutomationLayout from "./pages/_AgenticAutomation/AgenticAutomationLayout"
+import AgenticAutomation from "./pages/_AgenticAutomation/pages/AgenticAutomation"
+import CreateNewAgenticAutomation from "./pages/_AgenticAutomation/pages/createNewAgenticAutomation"
+import AgenticJobs from "./pages/_AgenticAutomation/pages/AgenticJobs"
+import JobDetails from "./pages/_AgenticAutomation/pages/JobDetails"
 
 export default function App() {
   const location = useLocation();
@@ -38,10 +43,12 @@ export default function App() {
         </Route>
 
         <Route element={<PrivateRoute />}>
+          {/* code chat interface */}
           <Route element={<SidebarProvided />} >
             <Route index path="/dashboard" element={<Dashboard />} />
             <Route path="/chat/:id" element={<Chat />} />
           </Route>
+          {/* knowledge base and persona generation */}
           <Route element={<KnowledgeLayout />} >
             <Route path="/knowledge" element={<Knowledge />} />
             <Route path="/create-knowledge-base" element={<CreateKnowledgeBase />} />
@@ -50,8 +57,15 @@ export default function App() {
             <Route path="/uploadDocumentKnowledgeBase/:idx" element={<UploadDocumentKnowledge />} />
             <Route path="/generatingKnowledge/:idx" element={<GenerateKnowledgeBase />} />
             <Route path="/addToPermenentKnowledgeBase" element={<AddToExistingKnowledge />} />
-
           </Route>
+          {/* agentic automation interface */}
+          <Route element={<AgenticAutomationLayout />} >
+            <Route path="/agenticAutomation" element={<AgenticAutomation />} />
+            <Route path="/agenticAutomation/createNewAgenticAutomation" element={<CreateNewAgenticAutomation />} />
+            <Route path="/agenticAutomation/automationJobsDetails/:automationId" element={<AgenticJobs />} />
+            <Route path="/agenticAutomation/jobDetails/:jobId" element={<JobDetails />} />
+          </Route>
+          <Route path="*" element={<div>404 Page not found</div>} />
         </Route>
       </Routes>
     </>

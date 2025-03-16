@@ -20,7 +20,7 @@ export const UserProvider = ({ children }) => {
     const [SupPerItems, setSupPerItems] = useState([])
     const [currActiveIntraction, setCurrActiveIntraction] = useState(aiIntractions[0].value || "sequential")
 
-
+    console.log(user, 'user')
     useEffect(() => {
         console.log("Changs", currActiveIntraction, isSuperiorPersonaAttached)
     }, [currActiveIntraction, isSuperiorPersonaAttached,])
@@ -34,21 +34,7 @@ export const UserProvider = ({ children }) => {
         console.log(user, 'user')
     }, [user])
 
-    useEffect(() => {
-        localStorage.getItem('id') && setUser({
-            id: localStorage.getItem('id'),
-            email: localStorage.getItem('email'),
-            isAuthenticated: true
-        })
-
-    }, [])
-
-    useEffect(() => {
-        if (!user.isAuthenticated) {
-            navigate('/login')
-        }
-    }, [user.isAuthenticated])
-
+ 
 
     function logout() {
         localStorage.removeItem('id')

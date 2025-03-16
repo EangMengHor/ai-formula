@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useUser } from './UserContext';
 import { getChatSessionHistory } from '../services/n8n-apis/_core/getChatSessionHistory.api';
+import { useLocation } from 'react-router-dom';
 
 const SidebarContext = createContext();
 
@@ -10,7 +11,7 @@ export const SidebarProvider = ({ children }) => {
     const [isCurrentActiveChat, setIsCurrentActiveChat] = useState(false);
     const [isSidebarChatHistoryLoading, setIsSidebarChatHistoryLoading] = useState(false);
     const { user } = useUser();
-
+    const { pathname } = useLocation();
     useEffect(() => {
         const fetchChatHistory = async () => {
             if (user.id && user.isAuthenticated) {
@@ -33,9 +34,11 @@ export const SidebarProvider = ({ children }) => {
                 setIsSidebarChatHistoryLoading(false);
             }
         };
-
-        fetchChatHistory();
-    }, [user, user.isAuthenticated]);
+        if ((pathname.includes('dashboard') || pathname.includes('chat')) && Object.keys(chatHistory).length === 0) {
+            fetchChatHistory();
+            console.log(chatHistory, 'chatHistory')
+        }
+    }, [user, user.isAuthenticated, pathname]);
 
     function appendToChatHistory(item) {
         const isToday = Object.keys(chatHistory).includes('today');

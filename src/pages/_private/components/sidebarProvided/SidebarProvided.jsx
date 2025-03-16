@@ -21,31 +21,13 @@ import StackSidebarProvider, { useStackSidebar } from "../../../../context/Stack
 import StackSidebarContainer from "../../../../components/custom/StackableSidebar/StackSidebarContainer"
 import { motion } from "framer-motion"
 import { useEffect } from "react"
+import { variants } from "../../../../lib/config"
 export default function Page() {
     const { pathname } = useLocation()
     console.log(pathname, "dfsd")
     const { currentActiveChat } = _useSidebar()
     const { sidebarStack, setSidebarStack } = useStackSidebar();
-    const variants = {
-        open: {
-            x: 0,
-            width: "60%",
-            transition: {
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-            },
-        },
-        closed: {
-            x: "100%",
-            width: "auto",
-            transition: {
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-            },
-        },
-    };
+   
 
     useEffect(() => {
         if (pathname) {

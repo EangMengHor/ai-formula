@@ -40,3 +40,25 @@ export const aiIntractions = [
         icon: '/knowledge/unsturctredC.svg'
     }
 ]
+
+// animation for stack sidebar
+ export const variants = {
+        open: {
+            x: 0,
+            width: "60%",
+            transition: {
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+            },
+        },
+        closed: {
+            x: "100%",
+            width: "auto",
+            transition: {
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+            },
+        },
+    };

@@ -1,6 +1,6 @@
 import { ArrowUp, ArrowUpRight, BookHeart, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, Paperclip, SquarePlus, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
 import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
@@ -19,31 +19,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
 
-import {
-    Card,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-
-import getUserSuperiorPersona from "../../services/n8n-knowledge-apis/getUserSuperiorPersona";
-import { formatDistanceToNow, set } from "date-fns";
-import { CommandLoading } from "cmdk";
-import { aiIntractions } from "../../lib/config";
-import { toast } from "sonner";
 import { useToast } from "../../hooks/use-toast";
 import { useStackSidebar } from "../../context/StackSidebarContext";
+import GroupSuperiorPersonaSection from "./GroupSuperiorPersonaSection";
 const maxRows = 30;
 
 
 
-
-export default function ChatInput({
+function ChatInput({
     input,
     setInput,
     handleSubmit,
@@ -72,19 +58,16 @@ export default function ChatInput({
         setIsSuperiorPersonaAttached,
         selectedSuperiorPersona,
         setSelectedSuperiorPersona,
-        SupPerItems,
-        setSupPerItems,
-        currActiveIntraction,
-        setCurrActiveIntraction,
-        user
+
     } = useUser();
     const { sidebarStack } = useStackSidebar();
     // component states
+    const [fetchSuperiorPersona, setFetchSuperiorPersona] = useState(null);
+
     const [rows, setRows] = useState(1);
     const [isToolBoxOpen, setIsToolBoxOpen] = useState(false)
     const [isTransribed, setIsTransribed] = useState(false);
 
-    const [isSupPerItemLoading, setSupPerItemLoading] = useState(false)
     const [isSupDialogOpen, setIsSupDialogOpen] = useState(false)
     const { toast } = useToast();
     // superiro persona
@@ -156,65 +139,14 @@ export default function ChatInput({
     }, [pathname])
 
 
-    // get superior persona
-    async function getSuperiorPersona() {
-        if (SupPerItems.length > 0) return;
-        setSupPerItemLoading(true);
-        try {
-            const response = await getUserSuperiorPersona(user.id);
-            if (response.success && response.data.length > 0) {
-                setSupPerItems(response.data.map(item => ({
-                    id: item.id,
-                    date: item.created_at,
-                    title: item.sup_per_name,
-                })))
-            }
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: error.message || "Something went wrong",
-                variant: "destructive"
-            })
 
-        } finally {
-            setSupPerItemLoading(false)
-        }
-    }
 
     useEffect(() => {
         console.log(isSuperiorPersonaAttached, 'isSuperiorPersonaAttached')
     }, [isSuperiorPersonaAttached])
     return (
         <div className="flex w-full flex-col animate-fade-in">
-            {/* {
-                fileCount > 0 && (
-                    <div className="bg-slate-600 rounded-md my-2 p-3 flex gap-2 w-fit">
-                        <div>
-                            <Files />
-                        </div>
-                        <div className="flex gap-2 flex-col">
-                            <div className="flex gap-4 items-center ">
-                                <p className="font-bold ">
-                                    {fileCount} Files Selected
-                                </p>
-                                <div className="w-2 h-2 bg-white rounded-full "></div>
-                                <p>
-                                    {memorizedFiles.length} Files Memoried
-                                </p>
-                            </div>
 
-                            {
-                                isMemorizationLoading && (
-                                    <div className="flex gap-2">
-                                        <LoaderCircle className="animate-spin" />
-                                        <p>Memorizing Files...</p>
-                                    </div>
-                                )
-                            }
-                        </div>
-                    </div>
-                )
-            } */}
 
             <motion.div
                 className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
@@ -348,30 +280,7 @@ export default function ChatInput({
                             </div>
 
                             {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
-                            {/* {
-                                selectedSuperiorPersona.length > 0 && (
-                                    <Dialog>
-                                        <DialogTrigger>
-                                            <div className="p-2 bg-slate-600 hover:bg-slate-500 transition-all cursor-pointer rounded-md relative flex gap-2 mr-2 ">
-                                                <div className="absolute -top-3 -right-3 cursor-pointer" onClick={() => {
-                                                    setIsSuperiorPersonaAttached(false)
-                                                    setSelectedSuperiorPersona([])
-                                                }}>
-                                                    <X className="w-5 h-5 rounded-md bg-slate-700 hover:bg-slate-400" />
-                                                </div>
-                                                <CircleUserRound />
-                                                <div className="flex gap-3 items-center  ">
-                                                    <p>{sidebarStack.length > 0 ? `${selectedSuperiorPersona.length} Selected` : `${selectedSuperiorPersona.length} Superior Persona Selected`}</p>
-                                                    <p className="text-slate-400">Click</p>
-                                                </div>
-                                            </div>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-[90vw] bg-slate-700 text-white min-h-[90vh]">
-                                           <SelectedPersonaDetails/>
-                                        </DialogContent>
-                                    </Dialog>
-                                )
-                            } */}
+
                             {
 
                                 selectedSuperiorPersona.length > 0 && (
@@ -520,7 +429,8 @@ export default function ChatInput({
                                 <DialogTrigger>
                                     <div
                                         onClick={() => {
-                                            getSuperiorPersona();
+                                            console.log(fetchSuperiorPersona, 'fetchSuperiorPersona')
+                                            if (fetchSuperiorPersona) fetchSuperiorPersona()
                                         }}
                                         className={`px-4 py-2 flex gap-2 items-center ${selectedSuperiorPersona.length > 0 && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
                                     >
@@ -537,148 +447,10 @@ export default function ChatInput({
                                     </div>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-5xl h-[80%] bg-slate-700 p-0 border-2 border-slate-500 overflow-y-scroll">
-                                    <div className="p-3">
-                                        <div className="font-semibold text-xl text-white">
-                                            Select Interactions
-                                        </div>
-                                        <div className="grid grid-rows-1 grid-cols-2 gap-2 my-2">
-                                            {aiIntractions.map((item, index) => {
-                                                const isActive = currActiveIntraction === item.value;
-                                                return (
-                                                    <Card
-                                                        key={index}
-                                                        className={`relative ${isActive ? "border-2 border-white bg-slate-600 " : "border-2 border-slate-500"} rounded-md cursor-pointer p-0 flex items-start flex-col`}
-                                                        onClick={() => setCurrActiveIntraction(item.value)}
-                                                    >
-                                                        {isActive && <div className="absolute top-5 right-5">
-                                                            <CircleCheck className="text-slate-300" />
-                                                        </div>}
-                                                        <img src={item.icon} alt={item.label} className="w-full h-24" />
-                                                        <CardHeader className="p-2">
-                                                            <CardTitle className="font-semibold text-xl text-white">{item.label}</CardTitle>
-                                                            <p className=" text-slate-300">{item.description}</p>
-                                                        </CardHeader>
-                                                    </Card>
-                                                );
-                                            })}
-                                        </div>
-                                        <hr className="border-slate-300 border-2" />
 
-                                        <div className="overflow-y-scroll ">
-                                            {isSupPerItemLoading && <div className="flex gap-2 w-full items-center text-white justify-center bg-slate-500 m-2 rounded-md ">
-                                                <div className="flex w-fit">
-                                                    <LoaderCircle className="animate-spin" />
-                                                    <p>Loading Your Superior Persona</p>
-                                                </div>
-                                            </div>}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2 overflow-y-scroll">
-                                                {SupPerItems && SupPerItems.length > 0 && [...SupPerItems].reverse().map((item, index) => {
-                                                    const isSelected = selectedSuperiorPersona.find(itm => itm.id == item.id);
-                                                    return <div
-                                                        onClick={() => {
-                                                            if (isSelected) {
-                                                                setSelectedSuperiorPersona(prev => {
-                                                                    if ([...prev.filter(itm => itm.id !== item.id)].length == 0) {
-                                                                        setIsSuperiorPersonaAttached(false)
-                                                                    }
-                                                                    return [...prev.filter(itm => itm.id !== item.id)]
-                                                                });
-                                                                return;
-                                                            }
-
-                                                            if (selectedSuperiorPersona.length >= 5) {
-                                                                toast({
-                                                                    title: "Can't Group More Than 5",
-                                                                    description: "More Personas Make Overall Planning And Interaction Ineffecient",
-                                                                    variant: "destructive"
-                                                                })
-                                                                return;
-                                                            }
-                                                            setIsSuperiorPersonaAttached(true)
-                                                            console.log(item, selectedSuperiorPersona, 'skajdflks345345')
-                                                            setSelectedSuperiorPersona(prev => [...prev, item]);
-                                                        }}
-                                                        key={index}
-                                                        className={`${isSelected ? 'border-slate-500 bg-slate-500' : "border-slate-400 bg-slate-700"} flex gap-1 items-start border  p-2 hover:bg-slate-600 transition-all rounded-md cursor-pointer`}
-                                                    >
-                                                        <div>
-                                                            <p className="text-ellipsis line-clamp-2 text-white w-[90%]">{item.title}</p>
-                                                            <p className="text-slate-400">Created {formatDistanceToNow(item.date)} Ago</p>
-                                                        </div>
-                                                        {
-                                                            isSelected && <div>
-                                                                <CircleCheck className="text-white" />
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                })}
-
-                                            </div>
-
-                                        </div>
-                                    </div>
+                                    <GroupSuperiorPersonaSection onFetchSuperiorPersona={setFetchSuperiorPersona} />
 
 
-                                    {/* <Command
-                                        onOpenChange={() => setIsSupDialogOpen(!isSupDialogOpen)}
-                                        open={false}
-                                        className="bg-slate-900 text-white h-full"
-                                    >
-                                        <CommandInput placeholder="Type Title Or Date (Ex. '3 days Ago' or Title) " />
-                                        <CommandList className="p-4 m-4">
-                                            <div className="text-slate-400">
-                                                Use ▲▽ Keys Or Click To Select
-                                            </div>
-                                            <hr className="border-slate-300 border-2" />
-
-                                            <div>
-                                                Select Interactions
-                                            </div>
-                                            <div className="grid grid-rows-1 grid-cols-2 gap-2 my-2">
-                                                {aiIntractions.map((item, index) => {
-                                                    const isActive = currActiveIntraction === item.value;
-                                                    return (
-                                                        <Card
-                                                            key={index}
-                                                            className={`relative ${isActive ? "border-2 border-white bg-slate-700 " : "border-2 border-slate-500"} rounded-md cursor-pointer p-0 flex items-start flex-col`}
-                                                            onClick={() => setCurrActiveIntraction(item.value)}
-                                                        >
-                                                            {isActive && <div className="absolute top-5 right-5">
-                                                                <CircleCheck className="text-slate-300" />
-                                                            </div>}
-                                                            <img src={item.icon} alt={item.label} className="w-full h-24" />
-                                                            <CardHeader className="p-2">
-                                                                <CardTitle className="font-semibold text-xl text-white">{item.label}</CardTitle>
-                                                                <p className=" text-slate-300">{item.description}</p>
-                                                            </CardHeader>
-                                                        </Card>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            <hr className="border-slate-300 border-2" />
-                                            {isSupPerItemLoading && <div className="flex gap-2 w-full items-center">
-                                                <LoaderCircle className="animate-spin" />
-                                                <p>Loading Your Superior Persona</p>
-                                            </div>}
-                                            {!isSupPerItemLoading && <CommandEmpty> You Don't Have Any Superior Persona</CommandEmpty>}
-                                            {SupPerItems && SupPerItems.length > 0 && [...SupPerItems].reverse().map((item, index) => (
-                                                <CommandItem
-                                                    onSelect={() => {
-                                                        setSelectedSuperiorPersona(prev => [...prev, item]);
-                                                    }}
-                                                    key={index}
-                                                    className="flex gap-2 items-start bg-slate-700 my-2"
-                                                >
-                                                    <CircleUserRound />
-                                                    <div>
-                                                        <p>{item.title}</p>
-                                                        <p className="text-slate-500">Created {formatDistanceToNow(item.date)} Ago</p>
-                                                    </div>
-                                                </CommandItem>
-                                            ))}
-                                        </CommandList>
-                                    </Command> */}
                                 </DialogContent>
                             </Dialog>
 
@@ -690,7 +462,7 @@ export default function ChatInput({
     );
 }
 
-
+export default memo(ChatInput);
 
 
 function SelectedPersonaDetails({

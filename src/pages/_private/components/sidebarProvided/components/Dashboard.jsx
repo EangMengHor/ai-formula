@@ -3,11 +3,13 @@ import ChatInput from "../../../../../components/custom/ChatInput";
 import { useToast } from "../../../../../hooks/use-toast";
 import { _useSidebar } from "../../../../../context/SidebarContext";
 import { getNewSession } from "../../../../../services/n8n-apis/_core/getNewSession.api";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useUser } from "../../../../../context/UserContext";
 import { ArrowRight, Brain, CalendarSync, FileInput, School } from "lucide-react";
+import { Badge } from "@/components/ui/badge"
+import AnimatedBadge from "../../../../../components/custom/AnimatedBadge";
 
-export default function Dashboard() {
+function Dashboard() {
     const [value, setValue] = useState("");
     const { toast } = useToast();
     const navigate = useNavigate();
@@ -52,14 +54,14 @@ export default function Dashboard() {
             description: 'Create superior personas and knowledge base with chatting functionality'
         },
         {
-            id: 3,
-            to: '/addToPermenentKnowledgeBase',
-            icon: FileInput,
-            title: "Add to Permenent Knowledge Base",
-            description: "Add New Document to the permenent knowledge base"
+            id: 2,
+            to: '/agenticAutomation',
+            icon: CalendarSync,
+            title: "Superior persona Automation",
+            description: "Create Automations for superior persona"
         },
         {
-            id: 2,
+            id: 3,
             to: '/oasis',
             icon: Brain,
             title: "Oasis - Social Media Simulation",
@@ -67,17 +69,22 @@ export default function Dashboard() {
         },
         {
             id: 4,
-            to: '/persona-automation',
-            icon: CalendarSync,
-            title: "Superior persona Automation",
-            description: "Create Automations for superior persona"
+            to: '/addToPermenentKnowledgeBase',
+            icon: FileInput,
+            title: "Add to Permenent Knowledge Base",
+            description: "Add New Document to the permenent knowledge base"
         }
-        // You can add more cards here in the future.
     ];
 
     return (
         <div className="flex w-full h-full items-center justify-center">
             <div className="w-full max-w-[900px] md:w-[54%] mt-[20%]">
+                <div className="-mt-11 mb-8 w-full flex items-center justify-center">
+                    <AnimatedBadge onClick={() => window.open('https://ai-formula-user-manual.notion.site/Chat-Interface-User-Manual-1b805ab349a7806a8263f5556c809970', '_blank')}>
+                        Work Along With Interactive User Manual
+                    </AnimatedBadge>
+
+                </div>
                 <p className="text-center font-semibold capitalize text-4xl font-mono mb-2">
                     Let's create & Analyze some <span>amazing formulas</span> together.
                 </p>
@@ -112,3 +119,5 @@ export default function Dashboard() {
         </div>
     )
 }
+
+export default memo(Dashboard);

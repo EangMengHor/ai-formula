@@ -14,6 +14,9 @@ import { CustomNode } from './CustomNode';
 import { LayoutEngine } from '../../../lib/utils';
 import { LAYOUT_CONFIG } from '../../../lib/config';
 
+import { useReactFlow } from '@xyflow/react';
+import { ListTodo } from 'lucide-react';
+
 const nodeTypes = { custom: CustomNode };
 
 const getEdgeStyle = (sourceX, sourceY, targetX, targetY) => {
@@ -28,7 +31,7 @@ const getEdgeStyle = (sourceX, sourceY, targetX, targetY) => {
     };
 };
 
-export function WorkflowDiagram({ data }) {
+export function WorkflowDiagram({ data, isAgenticWorkflowExecuted = false, isFullSize = false }) {
     const layoutEngine = useMemo(
         () =>
             new LayoutEngine({
@@ -38,6 +41,7 @@ export function WorkflowDiagram({ data }) {
             }),
         []
     );
+    const { fitView } = useReactFlow();
 
     const processWorkflowData = useCallback(() => {
         const nodes = [];
@@ -70,6 +74,7 @@ export function WorkflowDiagram({ data }) {
                         name: node.name || `Node ${node.personaId}`,
                         goal: node.goal,
                         execution: node.execution + 1,
+                        isAgenticWorkflowExecuted: isAgenticWorkflowExecuted
                     },
                 });
 
@@ -210,6 +215,7 @@ export function WorkflowDiagram({ data }) {
         [nodes]
     );
 
+
     return (
         <div className="w-full h-[95%] bg-slate-900 rounded-xl overflow-hidden">
             <ReactFlow
@@ -237,29 +243,27 @@ export function WorkflowDiagram({ data }) {
                         color: LAYOUT_CONFIG.EDGE_COLOR,
                     },
                 }}
+                proOptions={{
+                    hideAttribution: true
+                }}
+
             >
                 <Background color="#475569" gap={16} />
-                <Controls className="!bg-slate-800 !border-slate-700" />
-                <Panel
-                    position="top-left"
-                    className="bg-slate-800/90 backdrop-blur p-4 rounded-lg text-slate-200 shadow-xl"
-                >
-                    <h3 className="text-sm font-medium mb-2">Workflow Legend</h3>
-                    <div className="flex flex-col gap-2 text-xs">
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-emerald-600"></div>
-                            <span>Start Node</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-rose-600"></div>
-                            <span>End Node</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-sm bg-slate-800"></div>
-                            <span>Process Node</span>
-                        </div>
-                    </div>
-                </Panel>
+                {
+                    isFullSize && isAgenticWorkflowExecuted && (
+                        <Panel position="bottom-center">
+                            <div className=' animate-bounce duration-1000 rounded-md p-2'>
+                                <div className='flex gap-2 p-2 bg-purple-900 rounded-md'>
+                                    <ListTodo className='text-white'/>
+                                    <p className='text-white'>Agentic Workflow Executed By Each Agent</p>
+                                </div>
+                                <div className='p-1 bg-slate-800 rounded-b-md text-white mx-2 text-center'>
+                                    <p className='text-slate-400'>Explore Workflow Below</p>
+                                </div>
+                            </div>
+                        </Panel>
+                    )
+                }
             </ReactFlow>
         </div>
     );

@@ -5,12 +5,17 @@ import { useToast } from "../../hooks/use-toast";
 
 export default function PrivateRoute() {
 
-    const { user } = useUser();
+    const { user, setUser } = useUser();
     const navigate = useNavigate();
     const { toast } = useToast()
     const location = useLocation()
     useEffect(() => {
         if (!user.isAuthenticated) {
+            localStorage.getItem('id') && setUser({
+                id: localStorage.getItem('id'),
+                email: localStorage.getItem('email'),
+                isAuthenticated: true
+            })
             toast({
                 title: 'Access Not Allowed',
                 description: 'You are not authenticated! Please login to continue',
@@ -26,6 +31,7 @@ export default function PrivateRoute() {
             navigate(location.pathname)
         }
     }, [user.isAuthenticated])
+
     return (
         <div>
             <Outlet />

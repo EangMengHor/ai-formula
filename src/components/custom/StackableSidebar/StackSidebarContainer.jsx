@@ -55,7 +55,7 @@ export default function StackSidebarContainer() {
 
         <div className="text-white relative h-full w-full flex flex-col">
             {sidebarStack.map((item, index) => (
-                <div key={index} className={`absolute top-0 min-w-[calc(100%-2rem)] mt-16`} style={{ zIndex: (index + 1) * 10 }}>
+                <div key={index} className={`absolute top-0 min-w-[calc(100%-2rem)] `} style={{ zIndex: (index + 1) * 10 }}>
                     <StackSidebarBox
                         key={index}
                         header={item.header}

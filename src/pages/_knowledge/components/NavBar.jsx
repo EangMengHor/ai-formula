@@ -3,7 +3,10 @@ import { Button } from "../../../components/ui/button";
 import JamesLogo from "../../_private/components/sidebarProvided/components/JamesLogo";
 import { useEffect, useState } from "react";
 const validToShowMenu = ['/create-knowledge-base', '/editSuperPersona', '/uploadDocumentKnowledgeBase']
-export default function NavBar() {
+export default function NavBar({
+    href="/dashboard",
+    label=""
+}) {
     const navigate = useNavigate();
     const { pathname } = useLocation();
 
@@ -21,8 +24,8 @@ export default function NavBar() {
                 {
                     isShowMenu && (
                         <Button
-                            onClick={() => navigate('/knowledge')}
-                        >Back To Knowledge Dashboard</Button>
+                            onClick={() => navigate(href)}
+                        >{label}</Button>
                     )
                 }
                 <Button

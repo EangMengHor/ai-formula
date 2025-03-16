@@ -9,6 +9,7 @@ import { SidebarProvider } from './context/SidebarContext'
 import { FilesUploadMetadataProvider } from './context/FilesUploadMetadata'
 import { AudioProvider } from './context/AudioContext'
 import StackSidebarProvider from './context/StackSidebarContext'
+import { ReactFlowProvider } from '@xyflow/react'
 
 createRoot(document.getElementById('root')).render(
 
@@ -16,12 +17,13 @@ createRoot(document.getElementById('root')).render(
     <UserProvider>
       <SidebarProvider>
         <FilesUploadMetadataProvider>
-                  <StackSidebarProvider>
-          
-          <AudioProvider>
-            <App />
-          </AudioProvider>
-                  </StackSidebarProvider>
+          <StackSidebarProvider>
+            <AudioProvider>
+              <ReactFlowProvider>
+                <App />
+              </ReactFlowProvider>
+            </AudioProvider>
+          </StackSidebarProvider>
         </FilesUploadMetadataProvider>
       </SidebarProvider>
     </UserProvider>

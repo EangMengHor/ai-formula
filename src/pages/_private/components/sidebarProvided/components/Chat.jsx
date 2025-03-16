@@ -15,7 +15,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import 'katex/dist/katex.min.css';
-import './Chat.css';
+import '../../../../_private/components/sidebarProvided/components/Chat.css';
 import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_core/getUploadedDocumentHis.api";
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
 import PollStatus from "../../../../../components/custom/PolledStatus";
@@ -344,6 +344,7 @@ export default function Chat() {
                                                     }}
                                                 >
                                                     {itm.content}
+
                                                 </ReactMarkdown>
                                             </div>
                                         );

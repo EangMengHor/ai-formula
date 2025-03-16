@@ -1,18 +1,43 @@
-import { Briefcase, Users, FileText, Goal, HeartHandshake, Hand } from "lucide-react";
+import { Briefcase, Users, FileText, Goal, HeartHandshake, Hand, Brain, Terminal } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import 'katex/dist/katex.min.css';
-import remarkGfm from "remark-gfm";import {
+import remarkGfm from "remark-gfm";
+ import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Button } from "../../ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useStackSidebar } from "../../../context/StackSidebarContext";
+import ChainOfThoughtVisualizer from "../agenticAutomation/ChainOfThoughtVisualizer";
 
-export default function PersonaDetails({ output, title, goal, team }) {
+export default function PersonaDetails({ output, title, goal, team, cot = [] }) {
+    const { sidebarStack, setSidebarStack } = useStackSidebar()
+    function handleCoT() {
+        console.log("clicked")
+        if (cot.length > 0) {
+            setSidebarStack((prev) => [...prev, {
+                component: <ChainOfThoughtVisualizer data={cot} />
+            }])
+        }
+    }
     return (
         <div className="p-6 bg-slate-800 rounded-lg shadow-md">
+            {
+                cot.length > 0 && (
+                    <Alert variant="green" className="mb-4">
+                        <AlertTitle>Note !</AlertTitle>
+                        <AlertDescription className="capitalize">
+                            This Agent Have Used Custom Agentic Workflow To archive the goal
+                        </AlertDescription>
+                    </Alert>
+
+                )
+            }
             <div className="flex items-center gap-4 mb-5">
                 <Briefcase className="text-slate-400 w-6 h-6" />
                 <h2 className="text-2xl font-bold text-slate-100">{title}</h2>
@@ -33,6 +58,7 @@ export default function PersonaDetails({ output, title, goal, team }) {
                 </div>
 
                 }
+
 
                 <div className={`grid ${team.length >= 2 ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
                     {team && team.length > 0 && team.map(item => (
@@ -55,6 +81,22 @@ export default function PersonaDetails({ output, title, goal, team }) {
                         </TooltipProvider>
                     ))}
                 </div>
+
+                {
+                    cot.length > 0 && (
+                        <div className="my-4 flex gap-2 flex-col">
+                            <div className="flex gap-2 items-center">
+                                <Brain className="w-5 h-5 text-slate-400" />
+                                <span className="text-slate-200 font-semibold text-lg">Open Chain Of Thoughts</span>
+                            </div>
+                            <div>
+                                <Button
+                                onClick={handleCoT}
+                                >Open Chain Of Thoughts</Button>
+                            </div>
+                        </div>
+                    )
+                }
             </div>
 
             <div>
