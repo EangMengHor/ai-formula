@@ -18,7 +18,7 @@ import GenerateKnowledgeBase from "./pages/_knowledge/pages/GenerateKnowledgeBas
 import AddToExistingKnowledge from "./pages/_addToExisitingKnowledge/AddToExistingKnowledge"
 import AgenticAutomationLayout from "./pages/_AgenticAutomation/AgenticAutomationLayout"
 import AgenticAutomation from "./pages/_AgenticAutomation/pages/AgenticAutomation"
-import CreateAutomationForm from "./pages/_AgenticAutomation/pages/createNewAgenticAutomation"
+import CreateAutomationForm from "./pages/_AgenticAutomation/pages/CreateNewAgenticAutomation.jsx"
 import AgenticJobs from "./pages/_AgenticAutomation/pages/AgenticJobs"
 import JobDetails from "./pages/_AgenticAutomation/pages/JobDetails"
 
