@@ -163,7 +163,7 @@ export default function ChainOfThoughtVisualizer({ data }) {
           </div>
         </div>
       ) : (
-        <div className="workflow-container relative max-w-3xl mx-auto overflow-y-auto">
+        <div className="workflow-container relative max-w-6xl mx-auto overflow-y-auto">
           {/* Workflow view with connected circles */}
           <div className="workflow-steps">
             {data.map((item, index) => (
@@ -187,7 +187,7 @@ export default function ChainOfThoughtVisualizer({ data }) {
 
                     <div
                       ref={(el) => (expandRefs.current[index] = el)}
-                      className={`relative bg-slate-900 p-4 rounded-lg transition-all duration-300 ease-in-out ${expandedItems.includes(index) ? "max-h-[1000px]" : "max-h-32 overflow-hidden"
+                      className={`relative bg-slate-900 p-4 rounded-lg transition-all duration-300 ease-in-out ${expandedItems.includes(index) ? "h-fit" : "max-h-32 overflow-hidden"
                         }`}
                     >
                       <div className="whitespace-pre-wrap text-sm ">

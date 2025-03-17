@@ -4,7 +4,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import 'katex/dist/katex.min.css';
 import remarkGfm from "remark-gfm";
- import {
+import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
@@ -91,7 +91,7 @@ export default function PersonaDetails({ output, title, goal, team, cot = [] }) 
                             </div>
                             <div>
                                 <Button
-                                onClick={handleCoT}
+                                    onClick={handleCoT}
                                 >Open Chain Of Thoughts</Button>
                             </div>
                         </div>
