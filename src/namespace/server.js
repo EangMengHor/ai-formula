@@ -23,7 +23,7 @@ export const pollInteractionLogsUrl = `${url}/get-interaction-logs`;
 
 // knowledge base
 export const getUserSuperiorPersonaUrl = `${url}/get-user-superior-persona`;
-export const createPersonasUrl = `${test}/create-persona-sup`;
+export const createPersonasUrl = `${url}/create-persona-sup`;
 export const createPersonaTemplate = `${url}/create-persona-template`;
 export const pollCurrLoadingPersonaUrl = `${url}/poll-curr-loading-persona`;
 export const getSuperPersonaUrl = `${url}/get-superior-persona`;
