@@ -65,7 +65,10 @@ export default function App() {
             <Route path="/agenticAutomation/automationJobsDetails/:automationId" element={<AgenticJobs />} />
             <Route path="/agenticAutomation/jobDetails/:jobId" element={<JobDetails />} />
           </Route>
-          <Route path="*" element={<div>404 Page not found</div>} />
+          <Route path="*" element={  <div className="bg-slate-950 h-screen w-screen flex flex-col text-white font-semibold gap-2 justify-center items-center ">
+              This Feature Is Coming Soon Or You Are in Wrong Page
+              <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
+            </div>} />
         </Route>
       </Routes>
     </>

@@ -164,7 +164,7 @@ export function AppSidebar({ ...props }) {
     <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem className="flex items-center justify-center">
+          <SidebarMenuItem className="mx-3 items-center justify-center">
             <JamesLogo />
           </SidebarMenuItem>
           <SidebarMenuItem>

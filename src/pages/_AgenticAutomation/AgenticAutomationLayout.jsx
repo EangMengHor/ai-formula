@@ -18,7 +18,7 @@ export default function AgenticAutomationLayout() {
 
     return (
         <div>
-            <div className=" bg-slate-900 h-screen flex-1 flex flex-col  w-screen ">
+            <div className=" bg-slate-950 h-screen flex-1 flex flex-col  w-screen ">
                 <div className=" mx-auto max-w-[90%] w-full h-full flex flex-1 flex-col overflow-auto">
                     <ExtendedFeaturesNavBar
                         href="/agenticAutomation"
