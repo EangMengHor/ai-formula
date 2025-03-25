@@ -1,0 +1,29 @@
+<svg width="100%" height="500px" viewBox="0 0 1000 300" xmlns="http://www.w3.org/2000/svg" >
+    <!-- Agent Boxes -->
+    <rect x="50" y="50" width="150" height="100" fill="#8B0000" stroke="white" stroke-width="2" rx="10"/>
+    <text x="125" y="110" fill="white" font-size="14" font-family="Arial" text-anchor="middle">Agent 1</text>
+    
+    <rect x="250" y="50" width="150" height="100" fill="#003366" stroke="white" stroke-width="2" rx="10"/>
+    <text x="325" y="110" fill="white" font-size="14" font-family="Arial" text-anchor="middle">Agent 2</text>
+    
+    <rect x="450" y="50" width="150" height="100" fill="#4B3A00" stroke="white" stroke-width="2" rx="10"/>
+    <text x="525" y="110" fill="white" font-size="14" font-family="Arial" text-anchor="middle">Agent 3</text>
+    
+    <rect x="650" y="50" width="150" height="100" fill="#003366" stroke="white" stroke-width="2" rx="10"/>
+    <text x="725" y="110" fill="white" font-size="14" font-family="Arial" text-anchor="middle">Agent 4</text>
+    
+    <!-- Arrows -->
+    <line x1="200" y1="100" x2="250" y2="100" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="400" y1="100" x2="450" y2="100" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <line x1="600" y1="100" x2="650" y2="100" stroke="white" stroke-width="2" marker-end="url(#arrowhead)"/>
+    
+    <!-- Loopback Arrow -->
+    <path d="M 50 100 Q 20 150 50 250 T 850 250 Q 880 150 850 100 L 800 100" stroke="white" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+    
+    <!-- Arrowhead Definition -->
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="white"/>
+        </marker>
+    </defs>
+</svg>
