@@ -10,24 +10,27 @@ import { FilesUploadMetadataProvider } from './context/FilesUploadMetadata'
 import { AudioProvider } from './context/AudioContext'
 import StackSidebarProvider from './context/StackSidebarContext'
 import { ReactFlowProvider } from '@xyflow/react'
+import { DomainProvider } from './context/WhichDomainContext'
 
 createRoot(document.getElementById('root')).render(
 
   <BrowserRouter>
-    <UserProvider>
-      <SidebarProvider>
-        <FilesUploadMetadataProvider>
-          <StackSidebarProvider>
-            <AudioProvider>
-              <ReactFlowProvider>
-                <App />
-              </ReactFlowProvider>
-            </AudioProvider>
-          </StackSidebarProvider>
-        </FilesUploadMetadataProvider>
-      </SidebarProvider>
-    </UserProvider>
-    <Toaster />
+    <DomainProvider>
+      <UserProvider>
+        <SidebarProvider>
+          <FilesUploadMetadataProvider>
+            <StackSidebarProvider>
+              <AudioProvider>
+                <ReactFlowProvider>
+                  <App />
+                </ReactFlowProvider>
+              </AudioProvider>
+            </StackSidebarProvider>
+          </FilesUploadMetadataProvider>
+        </SidebarProvider>
+      </UserProvider>
+      <Toaster />
+    </DomainProvider>
   </BrowserRouter>
 
 )

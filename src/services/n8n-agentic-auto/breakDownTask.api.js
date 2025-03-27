@@ -16,7 +16,10 @@ export async function breakDownTask(type, text, data) {
         if (res.status !== 200) {
             return response(false, res.data.message || "Failed to create break down of the task");
         }
-        return response(true, res.data.message || "Task break down successfully created", res.data.data || []);
+        return response(true, res.data.message || "Task break down successfully created", {
+            data:res.data.data,
+            parsed:res.data.parsed
+        } || []);
     } catch (error) {
         return response(false, error.message);
 

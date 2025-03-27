@@ -311,6 +311,7 @@ export default function CreateAutomationForm() {
     const [onFetchSuperiorPersona, setOnFetchSuperiorPersona] = useState(null)
     const [showChangesSection, setShowChangesSection] = useState(false)
     const [isFinalDialogOpen, setIsFinalDialogOpen] = useState(false)
+    const [parsedWorkflow, setParsedWorkflow] = useState("")
     const fileInputRef = useRef(null)
     const navigate = useNavigate();
     const {
@@ -360,11 +361,12 @@ export default function CreateAutomationForm() {
         try {
 
             const data = await breakDownTask(activeTab, textInput, selectedFile);
-
+            console.log(data, "is here", data.data.parsed)
             if (data.success) {
                 setIsProcessing(false)
                 setIsProcessed(true)
-                setWorkflowSteps([...data.data])
+                setWorkflowSteps([...data.data.data])
+                setParsedWorkflow(data.data.parsed)
                 return;
             }
             toast({
@@ -481,14 +483,14 @@ export default function CreateAutomationForm() {
     }
     // Mock API function for creating automation
     const createAutomationAPI = async (data) => {
-
-
         try {
 
             const newApiData = {
                 ...data,
-                userId: user.id
+                userId: user.id,
+                parsed: parsedWorkflow || "not available"
             }
+            console.log(newApiData, "is jdlfkjsdlafkjdlfakjsdl;fkjasldf")
             const isValid = polishedApiData.parse(newApiData)
             if (isValid) {
                 const res = await createJob(newApiData);
