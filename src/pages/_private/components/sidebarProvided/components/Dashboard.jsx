@@ -85,8 +85,8 @@ function Dashboard() {
                     </AnimatedBadge>
 
                 </div>
-                <p className="text-center font-semibold capitalize text-4xl font-mono mb-2">
-                    Let's create & Analyze some <span>amazing formulas</span> together.
+                <p className="text-center font-semibold capitalize text-2xl  mb-2">
+                    ARX is here to assist you!
                 </p>
 
                 <ChatInput

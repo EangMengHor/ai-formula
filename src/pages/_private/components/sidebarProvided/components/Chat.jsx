@@ -377,7 +377,7 @@ export default function Chat() {
                 )}
             </div>
             <div ref={bottomRef} />
-            <div className="w-full p-4 sticky bottom-0 bg-gray-950 mb-2 flex items-center justify-center">
+            <div className="w-full p-2 sticky bottom-0 bg-gray-950 mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
                     <ChatInput
                         input={prompt}

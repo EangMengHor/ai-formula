@@ -83,7 +83,7 @@ const GroupSuperiorPersonaSection = ({ onFetchSuperiorPersona, isShowInteraction
                 isShowInteractionOptions &&
                 <div>
                     <div className="font-semibold text-xl text-white">Select Interactions</div>
-                    <div className="grid grid-rows-1 grid-cols-2 gap-2 my-2">
+                    <div className="flex flex-col md:grid grid-rows-1 grid-cols-2 gap-2 my-2">
                         {aiIntractions.map((item, index) => {
                             const isActive = currActiveIntraction === item.value;
                             return (

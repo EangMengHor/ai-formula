@@ -26,28 +26,31 @@ export default function StackSidebarContainer() {
 
     if (isMobile) {
         return (
-            <Drawer open={sidebarStack.length > 0} onOpenChange={() => setSidebarStack([])}>
-                <DrawerTrigger asChild>
-                    <Button variant="outline">Open Sidebar</Button>
-                </DrawerTrigger>
-                <DrawerContent>
-                    {sidebarStack.map((item, index) => (
-                        <div key={index} className="px-4">
-                            <StackSidebarBox
-                                header={item.header}
-                                component={item.component}
-                                onClose={() => closeSidebar(index)}
-                                index={index}
-                            />
-                        </div>
-                    ))}
-                    <DrawerFooter className="pt-2">
-                        <DrawerClose asChild>
-                            <Button variant="outline">Close</Button>
-                        </DrawerClose>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
+            <>
+                {sidebarStack.map((item, index) => (
+                    <Drawer
+                        key={index}
+                        open={true}
+                        onOpenChange={() => closeSidebar(index)}
+                    >
+                        <DrawerContent>
+                            <div className="px-4">
+                                <StackSidebarBox
+                                    header={item.header}
+                                    component={item.component}
+                                    onClose={() => closeSidebar(index)}
+                                    index={index}
+                                />
+                            </div>
+                            <DrawerFooter className="pt-2">
+                                <DrawerClose asChild>
+                                    <Button variant="outline">Close</Button>
+                                </DrawerClose>
+                            </DrawerFooter>
+                        </DrawerContent>
+                    </Drawer>
+                ))}
+            </>
         );
     }
 

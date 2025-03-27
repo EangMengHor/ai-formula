@@ -311,6 +311,7 @@ export default function CreateAutomationForm() {
     const [onFetchSuperiorPersona, setOnFetchSuperiorPersona] = useState(null)
     const [showChangesSection, setShowChangesSection] = useState(false)
     const [isFinalDialogOpen, setIsFinalDialogOpen] = useState(false)
+    const [parsedWorkflow, setParsedWorkflow] = useState("")
     const fileInputRef = useRef(null)
     const navigate = useNavigate();
     const {
@@ -365,6 +366,8 @@ export default function CreateAutomationForm() {
                 setIsProcessing(false)
                 setIsProcessed(true)
                 setWorkflowSteps([...data.data])
+                setWorkflowSteps([...data.data.data])
+                setParsedWorkflow(data.data.parsed)
                 return;
             }
             toast({
@@ -487,7 +490,8 @@ export default function CreateAutomationForm() {
 
             const newApiData = {
                 ...data,
-                userId: user.id
+                userId: user.id,
+                parsed: parsedWorkflow || "not available"
             }
             const isValid = polishedApiData.parse(newApiData)
             if (isValid) {
