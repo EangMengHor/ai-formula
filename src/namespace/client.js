@@ -7,7 +7,10 @@ const addToPermenentKnowledgeBase = '/addToPermenentKnowledgeBase'
 export const userAgenticAutomationJobs = '/agenticAutomation/automationJobsDetails'
 export const jobDetailsPage = '/agenticAutomation/jobDetails'
 
-    
+// oasis
+export const oasisDashboardClientUrl = '/oasis'
+export const createNewUserTemplateClientUrl = '/oasis/createNewUserTemplate'
+
 
 export {
     login,

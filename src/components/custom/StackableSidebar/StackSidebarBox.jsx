@@ -72,7 +72,7 @@ export default function StackSidebarBox({ header, component, onClose, index }) {
                 className={`relative `}
                 style={{ marginRight: `${index * 10}px`, marginTop: `${index * 10}px` }}
             >
-                <div onClick={handleClose} className="absolute top-3 right-3 text-white cursor-pointer">
+                <div onClick={handleClose} className="absolute top-3 right-3 text-white cursor-pointer z-50">
                     <X />
                 </div>
             </div>

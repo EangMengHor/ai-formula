@@ -77,17 +77,21 @@ function Dashboard() {
     ];
 
     return (
-        <div className="flex w-full h-full items-center justify-center">
-            <div className="w-full max-w-[900px] md:w-[54%] mt-[20%]">
-                <div className="-mt-11 mb-8 w-full flex items-center justify-center">
+        <div className="flex w-full h-full md:mt-0 mt-[30%] relative md:items-center justify-center"
+            style={{
+                backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5)), url('./Frame1.webp')",
+                backgroundSize: "cover",
+                backgroundPosition: "center"
+            }}
+        >
+              <div className="absolute top-5 w-full flex items-center justify-center">
                     <AnimatedBadge onClick={() => window.open('https://ai-formula-user-manual.notion.site/Chat-Interface-User-Manual-1b805ab349a7806a8263f5556c809970', '_blank')}>
                         Work Along With Interactive User Manual
                     </AnimatedBadge>
 
                 </div>
-                <p className="text-center font-semibold capitalize text-2xl  mb-2">
-                    ARX is here to assist you!
-                </p>
+            <div className="w-full max-w-[900px] md:w-full relative">
+              
 
                 <ChatInput
                     input={value}
@@ -96,8 +100,7 @@ function Dashboard() {
                     isLoading={isChatLoading}
                     setLoading={setIsChatLoading}
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     {navCards.map((card) => (
                         <Link
                             key={card.id}
@@ -114,7 +117,7 @@ function Dashboard() {
                             </p>
                         </Link>
                     ))}
-                </div>
+                </div> */}
             </div>
         </div>
     )

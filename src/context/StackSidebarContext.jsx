@@ -6,9 +6,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export default function StackSidebarProvider({ children }) {
     const [sidebarStack, setsidebarStackData] = useState([]);
     const isAnimatingRef = useRef(false);
-    useEffect(()=>{
+    useEffect(() => {
         console.log(sidebarStack, "sidebarStack")
-    },[sidebarStack])
+    }, [sidebarStack])
     /**
      * Animates the sidebar stack update.
      * Uses the oldStack captured at the time of the update to animate removal,

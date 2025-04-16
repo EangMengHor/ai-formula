@@ -3,7 +3,7 @@ import { Route, Router, Routes, useNavigate, useLocation } from "react-router-do
 import PublicLayout from "./pages/_public/PublicLayout"
 import Login from "./pages/_public/components/Login"
 import Signup from "./pages/_public/components/Signup"
-import { login, signup } from "./namespace/client"
+import { createNewUserTemplateClientUrl, login, oasisDashboardClientUrl, signup } from "./namespace/client"
 import PrivateRoute from "./pages/_private/PrivateRoute"
 import Dashboard from "./pages/_private/components/sidebarProvided/components/Dashboard"
 import SidebarProvided from "./pages/_private/components/sidebarProvided/SidebarProvided"
@@ -21,6 +21,12 @@ import AgenticAutomation from "./pages/_AgenticAutomation/pages/AgenticAutomatio
 import CreateAutomationForm from "./pages/_AgenticAutomation/pages/CreateNewAgenticAutomation.jsx"
 import AgenticJobs from "./pages/_AgenticAutomation/pages/AgenticJobs"
 import JobDetails from "./pages/_AgenticAutomation/pages/JobDetails"
+import ComingSoonPage from "./components/custom/ComingSoonPage"
+import OasisLayout from "./pages/_oasis/OasisLayout"
+import OasisDashboard from "./pages/_oasis/components/OasisDashboard"
+import UserFormProgress from "./pages/_oasis/components/createNewUserTemplate/UserFormProgress"
+import AIExecutionFlow from "./pages/_private/components/sidebarProvided/components/AIExecutionFlow"
+import Workshop from "./pages/_private/components/sidebarProvided/components/Workshop"
 
 export default function App() {
   const location = useLocation();
@@ -45,14 +51,16 @@ export default function App() {
         <Route element={<PrivateRoute />}>
           {/* code chat interface */}
           <Route element={<SidebarProvided />} >
+            <Route path="/workshop" element={<Workshop />} />
             <Route index path="/dashboard" element={<Dashboard />} />
+            {/* <Route path="/chat/:id" element={<Chat />} /> */}
             <Route path="/chat/:id" element={<Chat />} />
           </Route>
+            <Route path="/a" element={<AIExecutionFlow/>} />
           {/* knowledge base and persona generation */}
           <Route element={<KnowledgeLayout />} >
             <Route path="/knowledge" element={<Knowledge />} />
             <Route path="/create-knowledge-base" element={<CreateKnowledgeBase />} />
-            <Route path="/chat/:idx" element={<CreateKnowledgeBase />} />
             <Route path="/editSuperPersona/:idx" element={<EditSuperPersona />} />
             <Route path="/uploadDocumentKnowledgeBase/:idx" element={<UploadDocumentKnowledge />} />
             <Route path="/generatingKnowledge/:idx" element={<GenerateKnowledgeBase />} />
@@ -65,10 +73,13 @@ export default function App() {
             <Route path="/agenticAutomation/automationJobsDetails/:automationId" element={<AgenticJobs />} />
             <Route path="/agenticAutomation/jobDetails/:jobId" element={<JobDetails />} />
           </Route>
-          <Route path="*" element={  <div className="bg-slate-950 h-screen w-screen flex flex-col text-white font-semibold gap-2 justify-center items-center ">
-              This Feature Is Coming Soon Or You Are in Wrong Page
-              <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
-            </div>} />
+          {/* Oasis : Open Agent Social Interaction Simulation */}
+          <Route element={<OasisLayout />} >
+            <Route path={oasisDashboardClientUrl} element={<OasisDashboard />} />
+            <Route path={createNewUserTemplateClientUrl} element={<UserFormProgress />} />
+          </Route>
+
+          <Route path="*" element={<ComingSoonPage />} />
         </Route>
       </Routes>
     </>

@@ -103,7 +103,7 @@ export const Mermaid = ({ chart }) => {
         img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
     };
 
-
+    console.log("chart", chart);
     return (
         <div className='w-full h-full my-5 border border-gray-500 rounded-lg'>
             <div className='flex items-center justify-between'>
@@ -128,7 +128,7 @@ export const Mermaid = ({ chart }) => {
                                     <div className='text-white font-semibold'>
                                         Scroll & Zoom (via PanZoom)
                                     </div>
-                                    <div className='flex gap-2 w-fit w-fit'>
+                                    <div className='flex gap-2 w-fit'>
                                         <button
                                             onClick={downloadPNG}
                                             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-2"
@@ -146,20 +146,12 @@ export const Mermaid = ({ chart }) => {
 
                                     </div>
                                 </div>
+                                <div>
 
-                                <div
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        overflow: 'auto',
-                                        position: 'relative',
-                                    }}
-                                    className='border-2 border-slate-500 rounded-md'
-                                >
                                     <div
                                         ref={mermaidRef}
                                         className="mermaid"
-                                        dangerouslySetInnerHTML={{ __html: chart }}
+                                        dangerouslySetInnerHTML={{ __html: chart.replaceAll('`', '').replaceAll('mermaid', '').replaceAll('chart ', '') }}
                                     ></div>
                                 </div>
                             </div>
@@ -171,7 +163,7 @@ export const Mermaid = ({ chart }) => {
                 <div
                     ref={mermaidRef}
                     className="mermaid"
-                    dangerouslySetInnerHTML={{ __html: chart }}
+                    dangerouslySetInnerHTML={{ __html: chart.replaceAll('`', '').replaceAll('mermaid', '').replaceAll('chart ', '') }}
                 ></div>
             </div>
         </div>

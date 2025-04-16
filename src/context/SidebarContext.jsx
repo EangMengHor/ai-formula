@@ -34,7 +34,7 @@ export const SidebarProvider = ({ children }) => {
                 setIsSidebarChatHistoryLoading(false);
             }
         };
-        if ((pathname.includes('dashboard') || pathname.includes('chat')) && Object.keys(chatHistory).length === 0) {
+        if ((pathname.includes('dashboard') || pathname.includes('chat') || pathname.includes('workshop')) && Object.keys(chatHistory).length === 0) {
             fetchChatHistory();
             console.log(chatHistory, 'chatHistory')
         }

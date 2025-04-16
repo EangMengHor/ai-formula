@@ -22,6 +22,7 @@ import StackSidebarContainer from "../../../../components/custom/StackableSideba
 import { motion } from "framer-motion"
 import { useEffect } from "react"
 import { variants } from "../../../../lib/config"
+import Workshop from "./components/Workshop"
 export default function Page() {
     const { pathname } = useLocation()
     console.log(pathname, "dfsd")
@@ -35,15 +36,15 @@ export default function Page() {
         }
     }, [pathname])
 
-    useEffect(() => {
-
-    }, [sidebarStack])
 
     return (
         <SidebarProvider>
+            <div className="bg-slate-950">
             <AppSidebar />
+
+            </div>
             <SidebarInset>
-                <header className="flex fixed justify-between w-full z-50 bg-black  h-12 shrink-0 items-center gap-2 border-b px-4">
+                <header className="flex fixed justify-between bg-black w-full z-50 h-12 shrink-0 items-center gap-2 border-b px-4">
                     <div className="flex gap-2 items-center">
                         <SidebarTrigger className="-ml-1 text-white" />
                         <Separator orientation="vertical" className="mr-2 h-4" />
@@ -51,7 +52,7 @@ export default function Page() {
                     <p className="text-white font-medium">{currentActiveChat}</p>
                     <div className="w-1/4"></div>
                 </header>
-                <div className="flex gap-2 flex-1 w-full">
+                <div className="flex gap-2 flex-1 w-full bg-black">
 
                     <div className="flex text-white flex-1 mt-12 flex-col gap-2 p-2 pt-0">
                         {
@@ -62,6 +63,11 @@ export default function Page() {
                         {
                             pathname.startsWith("/chat/") && (
                                 <Chat />
+                            )
+                        }
+                        {
+                            pathname.startsWith("/workshop") && (
+                                <Workshop />
                             )
                         }
                     </div>

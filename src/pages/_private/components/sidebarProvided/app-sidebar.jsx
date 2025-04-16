@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Compass, Ellipsis, GalleryVerticalEnd } from "lucide-react"
+import { Compass, Ellipsis, GalleryVerticalEnd, Layers, Plus } from "lucide-react"
 
 import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main"
 import {
@@ -161,36 +161,43 @@ export function AppSidebar({ ...props }) {
   const { clearAllStates } = _useSidebar();
   const navigate = useNavigate();
   return (
-    <Sidebar {...props}>
+    <Sidebar {...props} className="">
       <SidebarHeader>
         <SidebarMenu>
-          <SidebarMenuItem className="mx-3 items-center justify-center">
+          <SidebarMenuItem className="mx-3 items-center justify-center ">
             <JamesLogo />
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
+            <div
               onClick={() => {
                 navigate('/dashboard')
               }}
-              className="cursor-pointer" size="lg" asChild>
-              <div>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <GalleryVerticalEnd className="size-4" />
+              className="cursor-pointer px-2 py-1 hover:bg-slate-700 bg-gray-800 mt-2 mx-2 rounded-md" size="lg" asChild>
+              <div className="flex gap-2 items-center">
+                <div className="w-7 h-7 flex gap-1 items-center p-1">
+                  <Plus className=" rounded-md  " />
                 </div>
                 <p className="font-bold">New Chat</p>
               </div>
-            </SidebarMenuButton>
+            </div>
+            <div
+              onClick={() => {
+                navigate('/workshop')
+              }}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md" size="lg" asChild>
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <Layers className="w-5 rounded-md  " />
+                </div>
+                <p className="font-bold">Workshop</p>
+              </div>
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-
-
       <SidebarContent>
         <NavMain items={data.navMain} />
       </SidebarContent>
-
-
-
       <SidebarFooter>
         <div className="flex gap-2 items-center">
           <Avatar>
