@@ -17,7 +17,8 @@ const GroupSuperiorPersonaSection = ({ onFetchSuperiorPersona, isShowInteraction
         currActiveIntraction,
         setCurrActiveIntraction,
         setSupPerItems,
-        user
+        user,
+        
     } = useUser();
     const { toast } = useToast();
     const [isSupPerItemLoading, setSupPerItemLoading] = useState(false);

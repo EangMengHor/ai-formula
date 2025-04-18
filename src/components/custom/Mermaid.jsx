@@ -7,8 +7,8 @@ import {
     DialogContent,
     DialogTrigger,
 } from "@/components/ui/dialog";
-
-export const Mermaid = ({ chart }) => {
+import { memo } from "react";
+export const Mermaid = memo(({ chart }) => {
     const mermaidRef = useRef(null);
     const [isOpen, setIsOpen] = useState(false);
     const panZoomInstanceRef = useRef(null);
@@ -103,7 +103,7 @@ export const Mermaid = ({ chart }) => {
         img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
     };
 
-    console.log("chart", chart);
+    console.log("6787867867876876876876876876868768768768", chart.replaceAll('`', '').replaceAll('chart ', '').replace('flow', 'flowchart ', ''));
     return (
         <div className='w-full h-full my-5 border border-gray-500 rounded-lg'>
             <div className='flex items-center justify-between'>
@@ -151,7 +151,7 @@ export const Mermaid = ({ chart }) => {
                                     <div
                                         ref={mermaidRef}
                                         className="mermaid"
-                                        dangerouslySetInnerHTML={{ __html: chart.replaceAll('`', '').replaceAll('mermaid', '').replaceAll('chart ', '') }}
+                                        dangerouslySetInnerHTML={{ __html: chart.replaceAll('`', '').replaceAll('chart ', '').replace('flow', 'flowchart ', '') }}
                                     ></div>
                                 </div>
                             </div>
@@ -163,9 +163,9 @@ export const Mermaid = ({ chart }) => {
                 <div
                     ref={mermaidRef}
                     className="mermaid"
-                    dangerouslySetInnerHTML={{ __html: chart.replaceAll('`', '').replaceAll('mermaid', '').replaceAll('chart ', '') }}
+                    dangerouslySetInnerHTML={{ __html: chart.replaceAll('`', '').replaceAll('chart ', '').replace('flow', 'flowchart ', '') }}
                 ></div>
             </div>
         </div>
     );
-};
+})

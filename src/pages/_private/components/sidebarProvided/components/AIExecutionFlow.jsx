@@ -36,7 +36,7 @@ export default function AIExecutionFlow() {
     useEffect(() => {
         console.log("socket.current", socket.current)
         // Initialize socket connection
-        socket.current = io("ws://localhost:5000")
+        socket.current = io(import.meta.env.VITE_SOCKET_URL)
 
         // Handle socket connection events
         socket.current.on("connect", () => {

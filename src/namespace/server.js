@@ -15,12 +15,12 @@ export const chat = `${url}/chats-1-1-dev`;
 // poll output 
 export const pollChatOutputUrl = `${url}/poll-chat-output`;
 export const conversationHistory = `${url}/get-conversation-data`;
-export const vectorizeDocument = `${test}/vectorize-documents`;
+export const vectorizeDocument = `${url}/vectorize-documents`;
 export const voiceToText = `${url}/voice-to-text`;
 export const getUploadedDocumentHistoryUrl = `${url}/get-uploaded-document`;
 export const pollStatusUrl = `${url}/get-realtime-poll`;
 export const pollInteractionLogsUrl = `${url}/get-interaction-logs`;
-
+export const getPersonaByIdUrl = `${url}/get-persona-response`;
 // knowledge base
 export const getUserSuperiorPersonaUrl = `${url}/get-user-superior-persona`;
 export const createPersonasUrl = `${url}/create-persona-sup`;

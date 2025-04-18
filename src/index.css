@@ -181,8 +181,6 @@ th {
   /* Light text color for better readability */
 }
 
-
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -191,3 +189,152 @@ th {
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes glowBlue {
+  0% {
+    box-shadow: 0 0 10px 3px rgba(28, 100, 235, 0.3);
+  }
+  25% {
+    box-shadow: 0 0 14px 4px rgba(48, 128, 255, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 20px 6px rgba(92, 163, 246, 0.4);
+  }
+  75% {
+    box-shadow: 0 0 14px 4px rgba(48, 128, 255, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 10px 3px rgba(28, 100, 235, 0.3);
+  }
+}
+
+.animate-glowBlue {
+  animation: glowBlue 6s cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
+  transition: box-shadow 1s ease-in-out;
+}
+
+@keyframes glowGray {
+  0% {
+    box-shadow: 0 0 8px 2px rgba(156, 163, 175, 0.3);
+  }
+  25% {
+    box-shadow: 0 0 12px 3px rgba(180, 185, 195, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 16px 5px rgba(209, 213, 219, 0.4);
+  }
+  75% {
+    box-shadow: 0 0 12px 3px rgba(180, 185, 195, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 8px 2px rgba(156, 163, 175, 0.3);
+  }
+}
+
+.animate-glowGray {
+  animation: glowGray 6s cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
+  transition: box-shadow 1s ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 
+      inset 0 0 6px rgba(213, 233, 255, 0.2),  /* subtle inner blue */
+      0 0 10px 2px rgba(180, 216, 254, 0.25); /* outer soft light blue */
+  }
+  50% {
+    box-shadow: 
+      inset 0 0 10px rgba(213, 233, 255, 0.3), 
+      0 0 18px 4px rgba(180, 216, 254, 0.35);
+  }
+}
+
+.animate-pulseGlow {
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+@keyframes blendedGlowPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 4px 1px rgba(255, 255, 255, 0.6),
+      0 0 18px 6px rgba(85, 168, 247, 0.25),
+      0 0 40px 15px rgba(85, 168, 247, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 6px 2px rgba(255, 255, 255, 0.7),
+      0 0 24px 10px rgba(85, 168, 247, 0.35),
+      0 0 50px 20px rgba(85, 168, 247, 0.25);
+  }
+}
+@keyframes dashSlide {
+  0%, 100% {
+    transform: translateX(0%);
+  }
+  50% {
+    transform: translateX(25%);
+  }
+}
+
+@keyframes movingGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+@keyframes dashEnter {
+  from {
+    transform: translateX(-50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0%);
+    opacity: 1;
+  }
+}
+
+.animate-dash {
+  animation: dashEnter 0.5s ease-out;
+}
+
+.glow-button {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(180, 216, 254, 0.15),
+    rgba(255, 255, 255, 0.1),
+    rgba(85, 168, 247, 0.2)
+  );
+  background-size: 400% 400%;
+  animation: movingGradient 12s ease infinite, blendedGlowPulse 5s ease-in-out infinite;
+  border-radius: 0.75rem;
+  box-shadow:
+    0 0 4px 1px rgba(255, 255, 255, 0.6),
+    0 0 18px 6px rgba(85, 168, 247, 0.25),
+    0 0 40px 15px rgba(85, 168, 247, 0.2);
+}
+@keyframes outlineGlowSoft {
+  0%, 100% {
+    box-shadow:
+      0 0 4px rgba(255, 255, 255, 0.2),
+      0 0 12px rgba(85, 168, 247, 0.25),
+      0 0 32px rgba(85, 168, 247, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 6px rgba(255, 255, 255, 0.3),
+      0 0 18px rgba(85, 168, 247, 0.35),
+      0 0 48px rgba(85, 168, 247, 0.25);
+  }
+}
+
+.glow-outline-soft {
+  animation: outlineGlowSoft 6s ease-in-out infinite;
+}
+
+

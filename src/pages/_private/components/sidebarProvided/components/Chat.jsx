@@ -43,6 +43,8 @@ import { downloadDocument } from "@/lib/downloadModule";
 // Import the components needed for deep thinking mode
 import ExecutionTimeline from "./ExecutionTimeline";
 import { StreamingResponse } from "./StreamingRendered";
+import Conversation from "./Conversation";
+import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
 
 const fileType = [
     'pdf', 'docx', 'csv'
@@ -56,13 +58,31 @@ export default function Chat() {
     const { id } = useParams();
     const { toast } = useToast();
     const { setFileCount, setMemorizedFiles, isMemorizationLoading, setIsMemorizationLoading, fileName, setFileName, files, setFiles, resetAllStates } = useFilesUploadMetadata();
-    const { isDocumentOn, setIsDocumentOn, isSearchOn, setIsSearchOn, isVectorBaseOn, setIsVectorBaseOn, isSuperiorPersonaAttached, setIsSuperiorPersonaAttached, selectedSuperiorPersona, setSelectedSuperiorPersona, currActiveIntraction, setCurrActiveIntraction, isDeepThinkMode } = useUser();
+    const {
+        isDocumentOn,
+        setIsDocumentOn,
+        isSearchOn,
+        setIsSearchOn,
+        isVectorBaseOn,
+        setIsVectorBaseOn,
+        isSuperiorPersonaAttached,
+        isSwarmMode,
+        setIsSwarmMode,
+        isAutoSwarmContextState,
+        setIsAutoSwarmContextState,
+        setIsSuperiorPersonaAttached,
+        selectedSuperiorPersona,
+        setSelectedSuperiorPersona,
+        currActiveIntraction,
+        setCurrActiveIntraction,
+        isDeepThinkMode } = useUser();
     const { sidebarStack, setSidebarStack } = useStackSidebar();
 
     // Local state
     const [isChatLoading, setIsChatLoading] = useState(false);
     const [fallBackPrompt, setFallBackPrompt] = useState("");
     const [conversation, setConversation] = useState([]);
+
     const [isNextChatLoading, setIsNextChatLoading] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [isChanged, setIsChanged] = useState(false);
@@ -71,12 +91,14 @@ export default function Chat() {
     const [interactionLogs, setInteractionLogs] = useState([]);
     const [isShowInteractionLogs, setIsShowInteractionLogs] = useState(false);
     const [streamingResponse, setStreamingResponse] = useState("");
+    const [isShowAgenticBlock, setIsShowAgenticBlock] = useState(false);
     const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
     // Dialog states
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogContent, setDialogContent] = useState("");
     const [dialogType, setDialogType] = useState("visual");
     const [dialogTitle, setDialogTitle] = useState("");
+    const [isUserScrolling, setIsUserScrolling] = useState(false); // Add state for user scroll tracking
 
     // Refs
     const bottomRef = useRef(null);
@@ -88,7 +110,150 @@ export default function Chat() {
     const pollInteractionLogsRef = useRef(null);
     const scrollTimeoutRef = useRef(null);
     const streamTimeoutRef = useRef(null); // For deep thinking streaming timeout
+    const isAutoScrolling = useRef(false); // Add ref to track programmatic scrolling
+    const userScrollTimeoutRef = useRef(null); // Ref for user scroll detection timeout
+
+
     const currentStepRef = useRef(null); // For tracking current step in deep thinking
+
+    // Memoize functions to prevent Conversation from re-rendering on every text input change
+    const memoizedHandleBlockSidebar = useCallback((block, type, header = "") => {
+        setSidebarStack(() => [
+            {
+                header,
+                component: (
+                    <div >
+                        <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
+                            <p
+                                className="text-slate-200 font-bold text-lg truncate overflow-hidden whitespace-nowrap"
+                                style={{ maxWidth: '80%' }}
+                                title={header ? header : "ARX Blocks"}
+                            >
+                                {header ? (header.length > 55 ? header.slice(0, 55) + '...' : header) : " ARX Blocks"}
+                            </p>
+                            {/* download */}
+                            <div className="sticky right-0 top-0 z-50">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger>
+                                        <Button className="md:mr-16">
+                                            Download
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        className="bg-slate-700 text-white"
+                                    >
+                                        {
+                                            fileType.map(item => {
+                                                return <div
+                                                    onClick={() => downloadDocument({
+                                                        content: block,
+                                                        type: item,
+                                                        elementId: type === 'pdf' ? 'markdown-preview' : null
+                                                    })}
+                                                    className="hover:bg-slate-800 p-1 rounded-md cursor-pointer focus:outline-none"
+                                                    type={item} >
+                                                    {item.toUpperCase()}
+                                                </div>
+                                            })
+                                        }
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                        <div className="p-4">
+                            {
+                                type == "document" && <div className="overflow-scroll h-[calc(100vh-10rem)]">
+                                    <p>
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkMath, remarkGfm]}
+                                            rehypePlugins={[rehypeKatex]}
+                                            className="module text-wrap overflow-scroll"
+                                            components={{
+                                                p: ({ children }) => <p>{children}</p>,
+                                                table: ({ children }) => (
+                                                    <table
+                                                        style={{
+                                                            borderCollapse: "collapse",
+                                                            width: "100%",
+                                                            color: "#e0e0e0",
+                                                        }}
+                                                    >
+                                                        {children}
+                                                    </table>
+                                                ),
+                                                th: ({ children }) => (
+                                                    <th
+                                                        style={{
+                                                            border: "1px solid #444",
+                                                            padding: "8px",
+                                                            backgroundColor: "#333",
+                                                            color: "#e0e0e0",
+                                                        }}
+                                                    >
+                                                        {children}
+                                                    </th>
+                                                ),
+                                                td: ({ children }) => (
+                                                    <td
+                                                        style={{
+                                                            border: "1px solid #444",
+                                                            padding: "8px",
+                                                            backgroundColor: "#222",
+                                                            color: "#e0e0e0",
+                                                        }}
+                                                    >
+                                                        {children}
+                                                    </td>
+                                                ),
+                                            }}
+                                        >
+                                            {block}
+                                        </ReactMarkdown>
+                                    </p>
+                                </div>
+                            }
+
+                            {
+                                type == "visual" &&
+                                <Mermaid
+                                    className="module overflow-scroll"
+                                    chart={memoizedRenderMermaidChart(block)}
+                                    theme="dark"
+                                    style={{ width: "100%", height: "100%" }}
+                                />
+                            }
+                        </div>
+                    </div>
+                ),
+            },
+        ]);
+    }, [setSidebarStack]);
+
+    const memoizedRenderMermaidChart = useCallback((content) => {
+        if (!content || typeof content !== 'string') {
+            console.error("Invalid mermaid content:", content);
+            return "graph TD\nA[Error] --> B[Invalid diagram content]";
+        }
+        try {
+            let sanitizedContent = content.trim();
+            sanitizedContent = sanitizedContent.replace(/<\/?[^>]+(>|$)/g, "");
+            const validTypes = [
+                'graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
+                'stateDiagram', 'erDiagram', 'gantt', 'pie'
+            ];
+            const hasValidStart = validTypes.some(type => sanitizedContent.startsWith(type));
+            if (!hasValidStart) {
+                sanitizedContent = `graph TD\n${sanitizedContent}`;
+            }
+            sanitizedContent = sanitizedContent.replace(/\[([^\]]+)\]/g, (match, p1) => {
+                return `[${p1.replace(/[^a-zA-Z0-9 _-]/g, ' ')}]`;
+            });
+            return sanitizedContent;
+        } catch (error) {
+            console.error("Error sanitizing Mermaid content:", error);
+            return "graph TD\nA[Error] --> B[Diagram processing failed]";
+        }
+    }, []);
 
     // Effect: Load fallback prompt from localStorage
     useEffect(() => {
@@ -120,148 +285,39 @@ export default function Chat() {
         }
     }, [fallBackPrompt]);
 
-    // fn : this function takes the document content and add that into the stack sidebar
-    function handleBlockSidebar(block, type, header = "") {
-        setSidebarStack(() => {
-            return [
-
-                {
-                    header: header,
-                    component: (
-                        <div className="">
-                            <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
-                                <p
-                                    className="text-slate-200 font-bold text-lg truncate overflow-hidden whitespace-nowrap"
-                                    style={{ maxWidth: '80%' }}
-                                    title={header ? header : "ARX Blocks"}
-                                >
-                                    {header ? (header.length > 55 ? header.slice(0, 55) + '...' : header) : " ARX Blocks"}
-                                </p>
-                                {/* download */}
-                                {
-                                    type == "document" &&
-
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger>
-
-                                            <Button className="md:mr-16">
-                                                Download
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                            className="bg-slate-700 text-white"
-
-                                        >
-                                            {
-                                                fileType.map(item => {
-                                                    return <div
-                                                        onClick={() => downloadDocument({
-                                                            content: block,
-                                                            type: item,
-                                                            elementId: type === 'pdf' ? 'markdown-preview' : null
-                                                        })}
-                                                        className="hover:bg-slate-800 p-1 rounded-md cursor-pointer focus:outline-none"
-                                                        type={item} >
-                                                        {item.toUpperCase()}
-                                                    </div>
-                                                })
-                                            }
-
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-
-                                }
-                            </div>
-                            <div className="p-4">
-                                {
-                                    type == "document" && <ReactMarkdown
-                                        remarkPlugins={[remarkMath, remarkGfm]}
-                                        rehypePlugins={[rehypeKatex]}
-                                        className="module overflow-scroll"
-                                        components={{
-                                            p: ({ children }) => <p>{children}</p>,
-                                            table: ({ children }) => (
-                                                <table
-                                                    style={{
-                                                        borderCollapse: "collapse",
-                                                        width: "100%",
-                                                        color: "#e0e0e0",
-                                                    }}
-                                                >
-                                                    {children}
-                                                </table>
-                                            ),
-                                            th: ({ children }) => (
-                                                <th
-                                                    style={{
-                                                        border: "1px solid #444",
-                                                        padding: "8px",
-                                                        backgroundColor: "#333",
-                                                        color: "#e0e0e0",
-                                                    }}
-                                                >
-                                                    {children}
-                                                </th>
-                                            ),
-                                            td: ({ children }) => (
-                                                <td
-                                                    style={{
-                                                        border: "1px solid #444",
-                                                        padding: "8px",
-                                                        backgroundColor: "#222",
-                                                        color: "#e0e0e0",
-                                                    }}
-                                                >
-                                                    {children}
-                                                </td>
-                                            ),
-                                        }}
-                                    >
-                                        {block}
-                                    </ReactMarkdown>
-                                }
-
-                                {
-                                    type == "visual" &&
-                                    <Mermaid
-                                        className="module overflow-scroll"
-                                        chart={renderMermaidChart(block)}
-                                        theme="dark"
-                                        style={{ width: "100%", height: "100%" }}
-                                    />
-
-                                }
-
-                            </div>
-                        </div>
-                    ),
-                },
-            ];
-        })
-
-
-    }
-
-
     // Effect: Fetch conversation and document history
     useEffect(() => {
         async function fetchConversations() {
             try {
                 const res = await getConversationHistory(id);
+                console.log(res, 'conversation history')
                 if (res.success) {
                     const processedData = res.data.map((item) => {
                         if (item.role === "human") {
                             return item;
                         } else {
                             const parsedResponse = parseHistoryAIContent(item.message);
+                            console.log(parsedResponse, "98089098")
+                            if (item?.steps) {
+                                return {
+                                    role: "ai",
+                                    type: "deepThink",
+                                    steps: item.steps,
+                                    isLoading: false,
+                                    isComplete: true,
+                                    message: parsedResponse,
+                                }
+                            }
                             return {
                                 role: "ai",
-                                message: parsedResponse
+                                message: parsedResponse,
+
                             };
                         }
                     });
                     setConversation(processedData);
-                    setIsNextChatLoading(false);
+
+
 
                 }
             } catch (error) {
@@ -273,7 +329,6 @@ export default function Chat() {
             } finally {
                 // Make sure loading is turned off regardless of outcome
                 setIsChatLoading(false);
-                setIsNextChatLoading(false);
             }
         }
 
@@ -304,7 +359,6 @@ export default function Chat() {
                 getUploadedDocumentHis(),
                 fetchConversations()
             ]);
-            setIsNextChatLoading(false);
 
         }
 
@@ -320,12 +374,12 @@ export default function Chat() {
 
     // Effect: Start polling interaction logs
     useEffect(() => {
-        if (chatIdentifer && isSuperiorPersonaAttached) {
+        if (isShowAgenticBlock && isSuperiorPersonaAttached) {
             console.log("interaction polling started lsdfs9820923");
             setIsShowInteractionLogs(true);
-            startPollingInteractionLogs();
+            // startPollingInteractionLogs();
         }
-    }, [chatIdentifer, isSuperiorPersonaAttached]);
+    }, [isShowAgenticBlock, isSuperiorPersonaAttached]);
 
     // Effect: Clear polling on component unmount
     useEffect(() => {
@@ -401,220 +455,293 @@ export default function Chat() {
         };
     }, []);
 
-    // Updated smoothScrollToBottom
     const smoothScrollToBottom = useCallback(() => {
-        // Get the scrollable container (parent of bottomRef)
+        // Prevent auto-scroll if the user is manually scrolling up or if an auto-scroll is already happening
+        if (isUserScrolling || isAutoScrolling.current) {
+            console.log(`Auto-scroll skipped: isUserScrolling=${isUserScrolling}, isAutoScrolling=${isAutoScrolling.current}`);
+            return;
+        }
+
         const container = bottomRef.current?.parentElement;
         if (container) {
             const { scrollTop, scrollHeight, clientHeight } = container;
-            // Only auto scroll if the user is within 100px of the bottom
-            if (scrollHeight - scrollTop - clientHeight < 100) {
+            // Check if already near the bottom before initiating scroll
+            // This prevents unnecessary scrolls if already at the end.
+            if (scrollHeight - scrollTop - clientHeight < 150) { // Only scroll if already close to the bottom
+                console.log("Auto-scrolling initiated...");
+                isAutoScrolling.current = true; // Set flag before starting scroll
+
                 bottomRef.current?.scrollIntoView({
                     behavior: 'smooth',
                     block: 'end'
                 });
+
+                // Reset the flag after a delay.
+                // This timeout helps prevent the scroll listener from immediately
+                // thinking the programmatic scroll is a user scroll.
+                // Adjust duration based on observed scroll behavior.
+                setTimeout(() => {
+                    isAutoScrolling.current = false;
+                    console.log("Auto-scrolling flag reset.");
+                    // Optional: Check if still at bottom after scroll finished
+                    const { scrollTop: newScrollTop, scrollHeight: newScrollHeight, clientHeight: newClientHeight } = container;
+                    if (newScrollHeight - newScrollTop - newClientHeight > 10) {
+                        // If not at the bottom anymore (e.g., more content arrived during scroll),
+                        // you might want to trigger another scroll, but be cautious of loops.
+                        // smoothScrollToBottom(); // Example: Re-trigger if needed
+                    } else {
+                        // If we ended up at the bottom, ensure the user scrolling flag is false
+                        if (isUserScrolling) {
+                            setIsUserScrolling(false);
+                        }
+                    }
+                }, 800); // Increased timeout to better cover smooth scroll duration
+            } else {
+                console.log("Auto-scroll skipped: Not near bottom.");
             }
         } else {
+            // Fallback if container isn't found
             bottomRef.current?.scrollIntoView({
                 behavior: 'smooth',
                 block: 'end'
             });
         }
-    }, []);
+    }, [isUserScrolling]); // Dependency: only re-create if isUserScrolling changes
+
+
+
+   
+    //
+    // Updated smoothScrollToBottom
+    useEffect(() => {
+        const container = bottomRef.current?.parentElement; // Assuming the parent is the scrollable container
+        if (!container) return;
+
+        const handleScroll = () => {
+            if (isAutoScrolling.current) {
+                // Ignore scroll events triggered by our own smoothScrollToBottom
+                return;
+            }
+
+            if (userScrollTimeoutRef.current) {
+                clearTimeout(userScrollTimeoutRef.current);
+            }
+
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 150; // Threshold to consider "at bottom"
+
+            if (!isNearBottom) {
+                // User scrolled up away from the bottom
+                if (!isUserScrolling) {
+                    console.log("User scrolling detected.");
+                    setIsUserScrolling(true);
+                }
+                // Set a timeout to potentially reset if user stops scrolling up,
+                // but it's generally safer to only reset when they scroll back down.
+                userScrollTimeoutRef.current = setTimeout(() => {
+                    // Optional: Reset isUserScrolling if paused for a while?
+                    // setIsUserScrolling(false);
+                }, 300); // Adjust timeout as needed
+            } else {
+                // User is near the bottom (scrolled down or was already there)
+                if (isUserScrolling) {
+                    console.log("User scrolled back to bottom.");
+                    setIsUserScrolling(false);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            container.removeEventListener('scroll', handleScroll);
+            if (userScrollTimeoutRef.current) {
+                clearTimeout(userScrollTimeoutRef.current);
+            }
+        };
+        // Rerun if isUserScrolling changes to ensure the correct state is captured
+    }, [isUserScrolling]);
+
+    useEffect(() => {
+        async function a() {
+            if (conversation.length > 0) {
+
+
+            }
+        }
+        a()
+    }, [conversation])
     // Handle socket events (streaming messages) - improved with consistent finalResponse handling
-    // Handle socket events (streaming messages) - unified parsing approach
-    const handleSocketEvent = (event) => {
-        console.log("Received event:", event);
+  /********************************************************************
+ * Helpers (plain‑JS, no external deps)
+ ********************************************************************/
 
-        // Find the last message in the conversation to update it
-        setConversation(prevConversation => {
-            // Clone the conversation array
-            const newConversation = [...prevConversation];
+/* 1️⃣  Make a fresh AI message shell */
+const newAiMessage = (kind = "quick") => ({
+    role       : "ai",
+    type       : kind,                 // "simulation" | "quick" | "deepThink"
+    isStreaming: kind !== "simulation",
+    isComplete : kind === "simulation",
+    message    : kind === "simulation"
+                ? [{ type: "simulation", items: [] }]
+                : [],
+    tempContent: "",                   // streaming buffer
+    steps      : [],                   // deep‑think only
+  });
+  
+  /* 2️⃣  Append a text chunk to an existing streaming message */
+  const appendChunk = (msg, chunk) => {
+    msg.tempContent += chunk;
+    msg.isStreaming  = true;
+  
+    msg.message = msg.type === "quick"
+      ? processStreamingContent(msg.tempContent)
+      : parseHistoryAIContent(msg.tempContent);
+  };
+  
+  /* 3️⃣  Mark a streaming message finished */
+  const completeStreaming = (msg) => {
+    msg.isStreaming = false;
+    msg.isComplete  = true;
+    delete msg.tempContent;
+  };
+  
+  /********************************************************************
+   * Main socket handler   –  paste this as one block
+   ********************************************************************/
+  const handleSocketEvent = async (event) => {
+    /* ─────────────────────────────────────────────────────── */
+    /* 1. “swarmId” → update or create the simulation message  */
+    /* ─────────────────────────────────────────────────────── */
+    if (event.type === "swarmId") {
+      const { output } = await getPersonaById(event.swarmId);
+      const simItems   = parseContent(output).flatMap((d) => d.items);
+  
+      setConversation((prev) => {
+        const conv = [...prev];
+        let last   = conv[conv.length - 1];
+  
+        if (!last || last.type !== "simulation") {
+          last = newAiMessage("simulation");
+          conv.push(last);
+        }
+        last.message[0].items.push(...simItems);
+        return conv;
+      });
+      return;
+    }
+  
+    /* ─────────────────────────────────────────────────────── */
+    /* 2. “finalResponse” chunks                               */
+    /* ─────────────────────────────────────────────────────── */
+    if (event.type === "finalResponse" && event.content) {
+      setConversation((prev) => {
+        const conv = [...prev];
+        let last   = conv[conv.length - 1];
+  
+        // ensure a streaming container exists
+        if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
+          // If you know the real mode, replace "quick" with it
+          last = newAiMessage("quick");
+          conv.push(last);
+        }
+        appendChunk(last, event.content);
+        return conv;
+      });
+  
+      setIsNextChatLoading(true);
+      return;
+    }
+  
+    /* ─────────────────────────────────────────────────────── */
+    /* 3. “finish” → close the streaming message               */
+    /* ─────────────────────────────────────────────────────── */
+    if (event.type === "finish") {
+      setConversation((prev) => {
+        const conv = [...prev];
+        const last = conv[conv.length - 1];
+  
+        if (last && (last.type === "quick" || last.type === "deepThink")) {
+          completeStreaming(last);
+          if (last.type === "deepThink") {
+            last.steps.push({ type: "finish" });
+          }
+        }
+        return conv;
+      });
+  
+      setIsNextChatLoading(false);
+      setIsShowAgenticBlock(false);
+      return;
+    }
+  
+    /* ─────────────────────────────────────────────────────── */
+    /* 4. Deep‑think sub‑events (only if last message is deep) */
+    /* ─────────────────────────────────────────────────────── */
+    setConversation((prev) => {
+      const conv = [...prev];
+      const last = conv[conv.length - 1];
+      if (!last || last.type !== "deepThink") return prev;
+  
+      const steps = last.steps || (last.steps = []);
+  
+      switch (event.type) {
 
-            // Get the index of the last AI message in the conversation
-            const lastAIMessageIndex = newConversation.length - 1;
-
-            // If no AI message found, return unchanged conversation
-            if (lastAIMessageIndex === -1) {
-                console.log(prevConversation, "47824923849823749")
-                return prevConversation;
-            }
-
-            const aiMessage = newConversation[lastAIMessageIndex];
-
-            // Handle finalResponse event consistently for all message types
-            if (event.type === "finalResponse" && event.content) {
-                // Common processing for both quick and deepThink modes
-                const contentToAdd = event.content || "";
-
-                // Track raw accumulated content in a temporary buffer
-                const accumulatedContent = (aiMessage.tempContent || "") + contentToAdd;
-                aiMessage.tempContent = accumulatedContent;
-
-                // Update the streaming status
-                aiMessage.isStreaming = true;
-
-                // Parse content using the same parser
-                const parsedContent = processStreamingContent(accumulatedContent);
-
-                // For quick responses: update message directly
-                if (aiMessage.type === "quick") {
-                    aiMessage.message = parsedContent;
-                }
-
-                // For deepThink: parse for markdown display
-                else if (aiMessage.type === "deepThink") {
-                    aiMessage.message = parseHistoryAIContent(accumulatedContent);
-                }
-
-                // Make sure loading state is active
-                setIsNextChatLoading(true);
-            }
-            // Handle finish event consistently
-            else if (event.type === "finish") {
-                console.log("Received finish event - completing response");
-
-                // Final parsing of content
-                const finalContent = aiMessage.tempContent || "";
-                const parsedFinalContent = processStreamingContent(finalContent, true);
-
-                // Update both quick and deepThink messages with common approach
-                if (aiMessage.type === "quick") {
-                    aiMessage.message = parsedFinalContent;
-                } else if (aiMessage.type === "deepThink") {
-                    // Add a finish step if needed
-                    if (aiMessage.steps) {
-                        const finishStep = { type: "finish" };
-                        aiMessage.steps = [...aiMessage.steps, finishStep];
-                    }
-
-                    // Use the same parsing approach for the final markdown
-                    aiMessage.message = parseHistoryAIContent(finalContent);
-                }
-
-                // Mark as complete for all message types
-                aiMessage.isComplete = true;
-                aiMessage.isStreaming = false;
-
-                // Turn off loading state
-                setIsNextChatLoading(false);
-
-                // Remove temporary content buffer
-                delete aiMessage.tempContent;
-            }
-            // Type-specific event handlers for deepThink mode
-            else if (aiMessage.type === "deepThink") {
-                // Handle different deep think event types
-                if (event.type === "defineGoal") {
-                    // Create a new goal step
-                    const newStep = { type: "defineGoal", text: "" };
-                    aiMessage.steps = [...(aiMessage.steps || []), newStep];
-                    currentStepRef.current = newStep;
-                }
-                else if (event.type === "thinking") {
-                    // Create a new thinking step
-                    const newStep = { type: "thinking", text: "" };
-                    aiMessage.steps = [...(aiMessage.steps || []), newStep];
-                    currentStepRef.current = newStep;
-                }
-                else if (event.type === "stepAgent") {
-                    // Create a new step agent execution step
-                    const newStep = {
-                        type: "stepAgent",
-                        goal: "",
-                        isLoadingKnowledge: false,
-                        isLoadingSearch: false
-                    };
-                    aiMessage.steps = [...(aiMessage.steps || []), newStep];
-                    currentStepRef.current = newStep;
-                }
-                else if (event.type === "stepAgentGoal") {
-                    // Update the current stepAgent's goal
-                    if (aiMessage.steps && aiMessage.steps.length > 0) {
-                        const lastStep = aiMessage.steps[aiMessage.steps.length - 1];
-                        if (lastStep.type === "stepAgent") {
-                            lastStep.goal = (lastStep.goal && lastStep.goal !== undefined)
-                                ? (lastStep.goal + event.content || "")
-                                : (event.content || "");
-                            currentStepRef.current = lastStep;
-                        }
-                    }
-                }
-                else if (event.type === "knowledge") {
-                    // This is a sub-event of stepAgent, mark it as loading knowledge
-                    if (aiMessage.steps && aiMessage.steps.length > 0) {
-                        const lastStep = aiMessage.steps[aiMessage.steps.length - 1];
-                        if (lastStep && lastStep.type === "stepAgent") {
-                            lastStep.isLoadingKnowledge = true;
-                            currentStepRef.current = lastStep;
-                        }
-                    }
-                }
-                else if (event.type === "search") {
-                    // This is a sub-event of stepAgent, mark it as loading search results
-                    if (aiMessage.steps && aiMessage.steps.length > 0) {
-                        const lastStep = aiMessage.steps[aiMessage.steps.length - 1];
-                        if (lastStep && lastStep.type === "stepAgent") {
-                            lastStep.isLoadingSearch = true;
-                            currentStepRef.current = lastStep;
-                        }
-                    }
-                }
-                else if (event.type === "reEvaluating") {
-                    // Create a new re-evaluating step
-                    const newStep = { type: "reEvaluating", text: "" };
-                    aiMessage.steps = [...(aiMessage.steps || []), newStep];
-                    currentStepRef.current = newStep;
-                }
-                else if (event.content && aiMessage.steps && aiMessage.steps.length > 0) {
-                    // Add content to the appropriate step
-                    const lastStep = aiMessage.steps[aiMessage.steps.length - 1];
-
-                    if (lastStep) {
-                        if (event.type === "stepAgentGoal" && lastStep.type === "stepAgent") {
-                            // Append to the goal if it's a stepAgentGoal event
-                            lastStep.goal = (lastStep.goal || "") + event.content;
-                        } else {
-                            // Otherwise append to text as before
-                            lastStep.text = (lastStep.text || "") + event.content;
-                        }
-                    }
-                }
-                else if (event.estimatedSteps && event.estimatedTime && aiMessage.steps && aiMessage.steps.length > 0) {
-                    // Add estimated steps and time to the goal step
-                    const lastStep = aiMessage.steps[aiMessage.steps.length - 1];
-                    if (lastStep && lastStep.type === "defineGoal") {
-                        lastStep.estimatedSteps = event.estimatedSteps;
-                        lastStep.estimatedTime = event.estimatedTime;
-                    }
-                }
-                else if (event.items && aiMessage.steps && aiMessage.steps.length > 0) {
-                    // Handle knowledge base items
-                    const lastStep = aiMessage.steps[aiMessage.steps.length - 1];
-                    if (lastStep && lastStep.type === "stepAgent") {
-                        lastStep.knowledgeBase = lastStep.knowledgeBase
-                            ? [...lastStep.knowledgeBase, ...event.items]
-                            : event.items;
-                        lastStep.isLoadingKnowledge = false;
-                    }
-                }
-                else if (event.urls && aiMessage.steps && aiMessage.steps.length > 0) {
-                    // Handle search URLs
-                    const lastStep = aiMessage.steps[aiMessage.steps.length - 1];
-                    if (lastStep && lastStep.type === "stepAgent") {
-                        lastStep.search = event.urls;
-                        lastStep.isLoadingSearch = false;
-                    }
-                }
-            }
-
-            // Return the updated conversation
-            return newConversation;
-        });
-
-        // Scroll to see new content
-        smoothScrollToBottom();
-    };
+        case "searchUrls":
+            console.log(event, 'searchUrls')
+            break;
+        case "defineGoal":
+          steps.push({ type: "defineGoal", text: "" });
+          break;
+  
+        case "thinking":
+          steps.push({ type: "thinking", text: "" });
+          break;
+  
+        case "stepAgent":
+          steps.push({
+            type: "stepAgent",
+            goal: "",
+            isLoadingKnowledge: false,
+            isLoadingSearch   : false,
+          });
+          break;
+  
+        case "stepAgentGoal":
+          if (steps.length) {
+            const s = steps[steps.length - 1];
+            if (s.type === "stepAgent") s.goal += event.content || "";
+          }
+          break;
+  
+        case "knowledge":
+          if (steps.length) {
+            const s = steps[steps.length - 1];
+            if (s.type === "stepAgent") s.isLoadingKnowledge = true;
+          }
+          break;
+  
+        case "search":
+          if (steps.length) {
+            const s = steps[steps.length - 1];
+            if (s.type === "stepAgent") s.isLoadingSearch = true;
+          }
+          break;
+  
+        case "reEvaluating":
+          steps.push({ type: "reEvaluating", text: "" });
+          break;
+  
+        default: // generic text append
+          if (event.content && steps.length) {
+            const s = steps[steps.length - 1];
+            if (s) s.text = (s.text || "") + event.content;
+          }
+      }
+      return conv;
+    });
+  };
+  
     // Process streaming content into blocks - completely rewritten for robustness
     const processStreamingContent = (content, forceComplete = false) => {
         if (!content) return [];
@@ -802,47 +929,6 @@ export default function Chat() {
         }
     };
 
-    // Improved Mermaid chart renderer with proper error handling and sanitization
-    const renderMermaidChart = (content) => {
-        if (!content || typeof content !== 'string') {
-            console.error("Invalid mermaid content:", content);
-            return "graph TD\nA[Error] --> B[Invalid diagram content]";
-        }
-
-        try {
-            // Basic sanitization for common issues
-            let sanitizedContent = content.trim();
-
-            // Make sure content doesn't have HTML tags that might interfere
-            sanitizedContent = sanitizedContent.replace(/<\/?[^>]+(>|$)/g, "");
-
-            // Check if content starts with a valid diagram type
-            const validTypes = [
-                'graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
-                'stateDiagram', 'erDiagram', 'gantt', 'pie'
-            ];
-
-            const hasValidStart = validTypes.some(type =>
-                sanitizedContent.startsWith(type)
-            );
-
-            if (!hasValidStart) {
-                console.log("Adding graph TD prefix to mermaid content");
-                sanitizedContent = `graph TD\n${sanitizedContent}`;
-            }
-
-            // Fix brackets issue - replace special characters in labels
-            sanitizedContent = sanitizedContent.replace(/\[([^\]]+)\]/g, (match, p1) => {
-                return `[${p1.replace(/[^a-zA-Z0-9 _-]/g, ' ')}]`;
-            });
-
-            return sanitizedContent;
-        } catch (error) {
-            console.error("Error sanitizing Mermaid content:", error);
-            return "graph TD\nA[Error] --> B[Diagram processing failed]";
-        }
-    };
-
     // Function: Handle prompt submission
     const handleSubmit = useCallback(async (prompt) => {
         if (prompt.length === 0) {
@@ -888,15 +974,25 @@ export default function Chat() {
                     isLoading: true
                 }]);
             }
-
+            // ---> Add this log <---
+            console.log('handleSubmit - isSwarmMode:', isSwarmMode, 'isAutoSwarm:', isAutoSwarmContextState);
+            console.log({
+                prompt,
+                sessionId: id,
+                mode: isDeepThinkMode ? "deep" : "quick",
+                isSwarm: isSwarmMode,
+                swarmIds: selectedSuperiorPersona ? selectedSuperiorPersona.map(item => item.id) : [],
+                isAutoSwarm: isAutoSwarmContextState ? true : (selectedSuperiorPersona.length <= 0 ? true : false),
+            }, 'sending message')
             // Send message to the server with appropriate mode
+            setIsShowAgenticBlock(true)
             socket.current.emit("chat", {
                 prompt,
                 sessionId: id,
                 mode: isDeepThinkMode ? "deep" : "quick",
-                isSwarm: false,
-                swarmIds: [],
-                isAutoSwarm: false,
+                isSwarm: isSwarmMode, // Ensure this value is correct when emitted
+                swarmIds: selectedSuperiorPersona ? selectedSuperiorPersona.map(item => item.id) : [],
+                isAutoSwarm: isAutoSwarmContextState,
             });
 
             // Scroll to bottom
@@ -911,9 +1007,8 @@ export default function Chat() {
                 variant: "destructive"
             });
             setPrompt(prevPrompt);
-            setIsNextChatLoading(false);
         }
-    }, [id, toast, isDeepThinkMode]);
+    }, [id, toast, isDeepThinkMode, isSwarmMode, selectedSuperiorPersona, isAutoSwarmContextState, smoothScrollToBottom]); // Added dependencies
 
     // Function: Poll chat output (keeping for compatibility)
     async function _pollChatOutput(id) {
@@ -998,363 +1093,21 @@ export default function Chat() {
 
     return (
         <div className="flex flex-col h-full w-full">
-            <div className={`flex-1 overflow-y-auto p-4 space-y-2 w-full ${sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"} mx-auto`}>
-                {conversation.map((item, index) => {
-                    if (item.role === "human") {
-                        return (
-                            <div className="w-full flex justify-end">
-                                <div
-                                    ref={index === conversation.length - 1 ? chatContainerRef : null}
-                                    key={`human-${index}`}
-                                    className="bg-gradient-to-r from-slate-700 to-slate-800 max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow"
-                                >
-                                    {item.message ? item.message.replaceAll('Provided Document : No document provided', '') : "{Message Not found}"}
-                                </div>
-                            </div>
-                        );
-                    } else if (item.type === "deepThink") {
-                        // Render deep thinking response with ExecutionTimeline
-                        return (
-                            <div
-                                ref={index === conversation.length - 1 ? chatContainerRef : null}
-                                key={`ai-deep-${index}`}
-                                className="text-slate-300 rounded shadow space-y-4"
-                            >
-                                {/* Render the execution timeline */}
-                                <ExecutionTimeline
-                                    steps={item.steps || []}
-                                    isComplete={item.isComplete}
-                                    isLoading={item.isLoading}
-                                    newStepIndex={(item.steps?.length || 0) > 0 ? item.steps.length - 1 : null}
-                                />
-
-                                {/* Render the final response area if there's content */}
-                                {item.markdownBuffer && (
-                                    <div className="final-response p-4 border border-gray-800 rounded-lg bg-gray-900 shadow-lg w-full items-center">
-                                        <h2 className="text-xl font-bold mb-4 flex items-center">
-                                            Final Response
-                                            {item.isStreaming && (
-                                                <span className="ml-2 inline-flex">
-                                                    <span className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5"></span>
-                                                    <span className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5" style={{ animationDelay: '0.2s' }}></span>
-                                                    <span className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5" style={{ animationDelay: '0.4s' }}></span>
-                                                </span>
-                                            )}
-                                        </h2>
-
-                                        <div className="text-stream flex w-full items-center justify-center">
-                                            <div className="prose prose-invert max-w-3xl">
-                                                <StreamingResponse content={item.markdownBuffer} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {Array.isArray(item.message) ? item.message.map((block, blockIdx) => {
-                                    if (block.type === "text") {
-                                        return (
-                                            <div key={`text-${blockIdx}`} >
-
-                                                <ReactMarkdown
-                                                    className="module"
-                                                    // Provide the markdown content
-                                                    children={block.content}
-
-                                                    // Enable GitHub-flavored markdown
-                                                    remarkPlugins={[remarkGfm, remarkMath]}
-
-                                                    // Enable KaTeX for math expressions
-                                                    rehypePlugins={[rehypeKatex]}
-
-                                                    components={{
-                                                        // Customized paragraph styling for improved 
-                                                        // Table with a dark slate background, rounded corners, and professional borders
-                                                        table: ({ children }) => (
-                                                            <table
-                                                                style={{
-                                                                    borderCollapse: "collapse",
-                                                                    width: "100%",
-                                                                    borderRadius: "8px",
-                                                                    overflow: "hidden",
-                                                                    color: "#e0e0e0",
-                                                                    margin: "1rem 0"
-                                                                }}
-                                                            >
-                                                                {children}
-                                                            </table>
-                                                        ),
-                                                        // Table header cells with a slightly darker color for distinction
-                                                        th: ({ children }) => (
-                                                            <th
-                                                                style={{
-                                                                    border: "1px solid #444",
-                                                                    padding: "8px",
-                                                                    backgroundColor: "transparent",
-                                                                    textAlign: "left"
-                                                                }}
-                                                            >
-                                                                {children}
-                                                            </th>
-                                                        ),
-                                                        // Table data cells matching the dark theme while providing clear borders
-                                                        td: ({ children }) => (
-                                                            <td
-                                                                style={{
-                                                                    border: "1px solid #444",
-                                                                    padding: "8px",
-                                                                    backgroundColor: "#222",
-                                                                    color: "#e0e0e0"
-                                                                }}
-                                                            >
-                                                                {children}
-                                                            </td>
-                                                        ),
-
-                                                    }}
-                                                />
-                                            </div>
-                                        );
-                                    } else if (block.type === "mermaid") {
-                                        const sanitizedContent = renderMermaidChart(block.content);
-                                        console.log("Rendering mermaid:", sanitizedContent.substring(0, 50) + "...");
-
-                                        return (
-                                            <div key={`mermaid-${blockIdx}`} className="overflow-auto flex items-center justify-center">
-                                                <Mermaid chart={sanitizedContent} />
-                                            </div>
-                                        );
-                                    } else if (block.type === "simulation") {
-                                        return (
-                                            <ChatSimulation
-                                                key={`simulation-${blockIdx}`}
-                                                personas={block.items}
-                                                isLoading={conversation.length === (index + 1) && isNextChatLoading}
-                                            />
-                                        );
-                                    } else if (block.type === "document") {
-                                        console.log("Rendering document block:", block.name, block.isComplete);
-
-                                        return (
-                                            <div
-                                                onClick={() => {
-                                                    handleBlockSidebar(block.content, block.type, block.name)
-                                                }}
-                                                key={`doc-${blockIdx}`}
-                                                className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete ? "cursor-pointer hover:bg-slate-800 text-white flex " : ""}`}
-                                            >
-                                                <div
-                                                    className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col "
-                                                    style={{ maxWidth: "80%" }}
-                                                >
-                                                    {block.name || "Document"}
-                                                    <p className="text-slate-600 text-sm">Document (Click)</p>
-                                                </div>
-                                                <div className="flex-shrink-0 px-3 py-2">
-                                                    <img src="/docx.svg" className="opacity-70 w-h-14 h-14 -rotate-6" />
-                                                </div>
-                                            </div>
-                                        );
-                                    } else if (block.type === "visual") {
-                                        console.log("Rendering visual block:", block.name, block.isComplete);
-                                        const sanitizedMermaid = block.isComplete ? renderMermaidChart(block.content) : '';
-
-                                        return (
-                                            <div
-                                                onClick={() => {
-                                                    handleBlockSidebar(sanitizedMermaid, block.type, block.name)
-                                                }}
-                                                key={`doc-${blockIdx}`}
-                                                className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete ? "cursor-pointer hover:bg-slate-800 text-white flex " : ""}`}
-                                            >
-                                                <div
-                                                    className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col "
-                                                    style={{ maxWidth: "80%" }}
-                                                >
-                                                    {block.name || "Document"}
-                                                    <p className="text-slate-600 text-sm">Visualization (Click)</p>
-                                                </div>
-                                                <div className="flex-shrink-0 px-3 py-2">
-                                                    <img src="/h.svg" className="opacity-70 w-h-14 h-14 -rotate-6" />
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }) : (
-                                    <div className="text-gray-400 italic">No content available</div>
-                                )}
-                            </div>
-                        );
-                    } else {
-                        return (
-                            <div
-                                ref={index === conversation.length - 1 ? chatContainerRef : null}
-                                key={`ai-${index}`}
-                                className="text-slate-300 rounded shadow space-y-4"
-                            >
-                                {item.workflow && item.workflow.length > 0 ? (
-                                    <PollStatus
-                                        workflow={item.workflow}
-                                        updated={item.updated || []}
-                                        isActive={isChanged}
-                                        isOpen={true}
-                                        sessionId={id}
-                                        isCompleted={item?.message}
-                                    />
-                                ) : null}
-
-                                {Array.isArray(item.message) ? item.message.map((block, blockIdx) => {
-                                    if (block.type === "text") {
-                                        return (
-                                            <div key={`text-${blockIdx}`} >
-
-                                                <ReactMarkdown
-                                                    className="module"
-                                                    // Provide the markdown content
-                                                    children={block.content}
-
-                                                    // Enable GitHub-flavored markdown
-                                                    remarkPlugins={[remarkGfm, remarkMath]}
-
-                                                    // Enable KaTeX for math expressions
-                                                    rehypePlugins={[rehypeKatex]}
-
-                                                    components={{
-                                                        // Customized paragraph styling for improved 
-                                                        // Table with a dark slate background, rounded corners, and professional borders
-                                                        table: ({ children }) => (
-                                                            <table
-                                                                style={{
-                                                                    borderCollapse: "collapse",
-                                                                    width: "100%",
-                                                                    borderRadius: "8px",
-                                                                    overflow: "hidden",
-                                                                    color: "#e0e0e0",
-                                                                    margin: "1rem 0"
-                                                                }}
-                                                            >
-                                                                {children}
-                                                            </table>
-                                                        ),
-                                                        // Table header cells with a slightly darker color for distinction
-                                                        th: ({ children }) => (
-                                                            <th
-                                                                style={{
-                                                                    border: "1px solid #444",
-                                                                    padding: "8px",
-                                                                    backgroundColor: "transparent",
-                                                                    textAlign: "left"
-                                                                }}
-                                                            >
-                                                                {children}
-                                                            </th>
-                                                        ),
-                                                        // Table data cells matching the dark theme while providing clear borders
-                                                        td: ({ children }) => (
-                                                            <td
-                                                                style={{
-                                                                    border: "1px solid #444",
-                                                                    padding: "8px",
-                                                                    backgroundColor: "#222",
-                                                                    color: "#e0e0e0"
-                                                                }}
-                                                            >
-                                                                {children}
-                                                            </td>
-                                                        ),
-
-                                                    }}
-                                                />
-                                            </div>
-                                        );
-                                    } else if (block.type === "mermaid") {
-                                        const sanitizedContent = renderMermaidChart(block.content);
-                                        console.log("Rendering mermaid:", sanitizedContent.substring(0, 50) + "...");
-
-                                        return (
-                                            <div key={`mermaid-${blockIdx}`} className="overflow-auto flex items-center justify-center">
-                                                <Mermaid chart={sanitizedContent} />
-                                            </div>
-                                        );
-                                    } else if (block.type === "simulation") {
-                                        return (
-                                            <ChatSimulation
-                                                key={`simulation-${blockIdx}`}
-                                                personas={block.items}
-                                                isLoading={conversation.length === (index + 1) && isNextChatLoading}
-                                            />
-                                        );
-                                    } else if (block.type === "document") {
-                                        console.log("Rendering document block:", block.name, block.isComplete);
-
-                                        return (
-                                            <div
-                                                onClick={() => {
-                                                    handleBlockSidebar(block.content, block.type, block.name)
-                                                }}
-                                                key={`doc-${blockIdx}`}
-                                                className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete ? "cursor-pointer hover:bg-slate-800 text-white flex " : ""}`}
-                                            >
-                                                <div
-                                                    className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col "
-                                                    style={{ maxWidth: "80%" }}
-                                                >
-                                                    {block.name || "Document"}
-                                                    <p className="text-slate-600 text-sm">Document (Click)</p>
-                                                </div>
-                                                <div className="flex-shrink-0 px-3 py-2">
-                                                    <img src="/docx.svg" className="opacity-70 w-h-14 h-14 -rotate-6" />
-                                                </div>
-                                            </div>
-                                        );
-                                    } else if (block.type === "visual") {
-                                        console.log("Rendering visual block:", block.name, block.isComplete);
-                                        const sanitizedMermaid = block.isComplete ? renderMermaidChart(block.content) : '';
-
-                                        return (
-                                            <div
-                                                onClick={() => {
-                                                    handleBlockSidebar(sanitizedMermaid, block.type, block.name)
-                                                }}
-                                                key={`doc-${blockIdx}`}
-                                                className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete ? "cursor-pointer hover:bg-slate-800 text-white flex " : ""}`}
-                                            >
-                                                <div
-                                                    className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col "
-                                                    style={{ maxWidth: "80%" }}
-                                                >
-                                                    {block.name || "Document"}
-                                                    <p className="text-slate-600 text-sm">Visualization (Click)</p>
-                                                </div>
-                                                <div className="flex-shrink-0 px-3 py-2">
-                                                    <img src="/h.svg" className="opacity-70 w-h-14 h-14 -rotate-6" />
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                    return null;
-                                }) : (
-                                    <div className="text-gray-400 italic">No content available</div>
-                                )}
-
-                            </div>
-                        );
-                    }
-                })}
-
-                {(isNextChatLoading) && (
-                    <div className="flex mb-[60%] items-center space-x-2 text-blue-400">
-                        <LoadingAnimation currentQuote={currentLoadingMessage} />
-                    </div>
-                )}
-                {isShowInteractionLogs && (
-                    <ChatSimulation personas={interactionLogs} isLoading={isNextChatLoading} effect={true} />
-                )}
-
-                <div ref={scrollTimeoutRef} className="h-1 w-full" />
-                <div ref={bottomRef} className="h-1 w-full" />
-            </div>
-
+            <Conversation
+                conversation={conversation}
+                isNextChatLoading={isNextChatLoading}
+                isShowInteractionLogs={isShowInteractionLogs}
+                chatContainerRef={chatContainerRef}
+                bottomRef={bottomRef}
+                scrollTimeoutRef={scrollTimeoutRef}
+                sidebarStack={sidebarStack}
+                id={id}
+                handleBlockSidebar={memoizedHandleBlockSidebar}
+                renderMermaidChart={memoizedRenderMermaidChart}
+                currentLoadingMessage={currentLoadingMessage}
+                interactionLogs={interactionLogs}
+                isChanged={isChanged}
+            />
             <div className="w-full p-2 sticky bottom-0 bg-black mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
                     <ChatInput
@@ -1363,23 +1116,20 @@ export default function Chat() {
                         handleSubmit={() => handleSubmit(prompt)}
                         isLoading={isNextChatLoading}
                         setLoading={setIsNextChatLoading}
-                        isSearchOn={isSearchOn}
-                        setIsSearchOn={setIsSearchOn}
-                        isDocumentOn={isDocumentOn}
-                        setIsDocumentOn={setIsDocumentOn}
-                        isVectorBaseOn={isVectorBaseOn}
-                        setIsVectorBaseOn={setIsVectorBaseOn}
-                        handleScroll={smoothScrollToBottom}
+                    // isSearchOn={isSearchOn}
+                    // setIsSearchOn={setIsSearchOn}
+                    // isDocumentOn={isDocumentOn}
+                    // setIsDocumentOn={setIsDocumentOn}
+                    // isVectorBaseOn={isVectorBaseOn}
+                    // setIsVectorBaseOn={setIsVectorBaseOn}
                     />
                 </div>
             </div>
-
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="max-w-4xl w-full">
                     <DialogHeader>
                         <DialogTitle>{dialogTitle}</DialogTitle>
                     </DialogHeader>
-
                     {dialogType === "visual" ? (
                         <div className="p-4 overflow-auto max-h-[70vh]">
                             <Mermaid chart={dialogContent} />

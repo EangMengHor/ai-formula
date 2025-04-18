@@ -27,6 +27,7 @@ import OasisDashboard from "./pages/_oasis/components/OasisDashboard"
 import UserFormProgress from "./pages/_oasis/components/createNewUserTemplate/UserFormProgress"
 import AIExecutionFlow from "./pages/_private/components/sidebarProvided/components/AIExecutionFlow"
 import Workshop from "./pages/_private/components/sidebarProvided/components/Workshop"
+import Test from "./Test"
 
 export default function App() {
   const location = useLocation();
@@ -47,7 +48,7 @@ export default function App() {
           <Route path={login} element={<Login />} />
           <Route path={signup} element={<Signup />} />
         </Route>
-
+      <Route path="/test" element={<Test/>} />
         <Route element={<PrivateRoute />}>
           {/* code chat interface */}
           <Route element={<SidebarProvided />} >

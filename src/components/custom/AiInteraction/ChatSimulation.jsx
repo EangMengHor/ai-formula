@@ -55,7 +55,7 @@ export default function ChatSimulation({ personas, isLoading, effect = false }) 
                 {
                     isLoading && <div className="bg-slate-500 rounded-md flex gap-2 font-semibold px-2 py-1">
                         <LoaderCircle className="animate-spin p-1" />
-                        Agents Are interaction
+                        Agents Are Interacting
                     </div>
                 }
 

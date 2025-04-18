@@ -189,7 +189,7 @@ const TypeWriter = ({ text, isCoT = false }) => {
                                     {children}
                                 </td>
                             ),
-                            
+
                             b: ({ children }) => <b className="text-purple-500">{children}</b>,
                             strong: ({ children }) => <b className="text-purple-500">{children}</b>,
                         }}
@@ -503,19 +503,7 @@ const Step = ({ step, isLast, isLatest, isNew }) => {
     )
 }
 
-// Loading indicator component
-const LoadingIndicator = () => (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="bg-purple-900/70 backdrop-blur-sm rounded-full px-4 py-2 flex items-center space-x-2 shadow-lg border border-purple-700/30">
-            <div className="flex space-x-1">
-                <div className="h-2 w-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="h-2 w-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                <div className="h-2 w-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: "300ms" }}></div>
-            </div>
-            <span className="text-xs text-purple-200">Processing next step</span>
-        </div>
-    </div>
-)
+
 
 // Main ExecutionTimeline component that accepts steps and state as props
 export default function ExecutionTimeline({ steps = [], isComplete = false, isLoading = false, newStepIndex = null }) {
@@ -553,10 +541,10 @@ export default function ExecutionTimeline({ steps = [], isComplete = false, isLo
     }
 
     return (
-        <div className="flex justify-center items-center bg-black p-4">
-            <div className="w-full max-w-3xl bg-[#0a0c14] rounded-lg overflow-hidden">
+        <div className="flex justify-center items-center bg-black border border-slate-700 rounded-lg">
+            <div className="w-full bg-[#0a0c14] rounded-lg overflow-hidden">
                 <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold text-white">AI Execution Flow</h2>
+                    <h2 className="text-lg font-semibold text-white">AI Execution</h2>
                     <button
                         onClick={() => setCollapsed(!collapsed)}
                         className="text-slate-400 hover:text-white transition-colors"
@@ -599,8 +587,6 @@ export default function ExecutionTimeline({ steps = [], isComplete = false, isLo
                     )}
                 </AnimatePresence>
 
-                {/* Loading indicator */}
-                {isLoading && <LoadingIndicator />}
 
                 {collapsed && isComplete && (
                     <motion.div
