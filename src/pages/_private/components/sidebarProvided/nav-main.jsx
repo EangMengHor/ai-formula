@@ -46,36 +46,18 @@ export function NavMain({
                     }, [])
 
                     return <div key={label}>
-                        <div className="font-semibold capitalize text-lg px-2 py-1 w-full rounded-md bg-slate-700 my-2 ">{label}</div>
+                        <div className="font-semibold capitalize  px-2 py-1 w-full rounded-md text-sm mt-4 text-slate-400 my-2 ">{label}</div>
                         {uniqueItems && uniqueItems.map((item, index) => (
                             <div
                                 onClick={() => {
                                     setCurrentActiveChat(item.chatname)
                                     navigate(`/chat/${item.sessionid}`)
                                 }}
-                                key={index} className={`${String(id) == item.sessionid ? 'bg-slate-700' : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-700 rounded-md cursor-pointer px-2 items-center`}>
-                                <p className="truncate max-w-xs">
+                                key={index} className={`${String(id) == item.sessionid ? 'bg-slate-600' : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-800 rounded-md cursor-pointer px-2 items-center`}>
+                                <p className="truncate max-w-xs py-1">
                                     {item.chatname}
                                 </p>
-                                <DropdownMenu>
-                                    <SidebarMenuItem>
-                                        <DropdownMenuTrigger asChild>
-                                            <SidebarMenuButton >
-                                                <MoreHorizontal className="ml-auto" />
-                                            </SidebarMenuButton>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                            side={isMobile ? "bottom" : "right"}
-                                            align={isMobile ? "end" : "start"}
-                                            className="min-w-56 rounded-lg"
-                                        >
-                                            <div className="flex items-center gap-2 hover:bg-gray-300 rounded-md px-2 py-1">
-                                                <Trash width={20} height={20} />
-                                                <p>Delete</p>
-                                            </div>
-                                        </DropdownMenuContent>
-                                    </SidebarMenuItem>
-                                </DropdownMenu>
+                                
                             </div>
                         ))}
                     </div>

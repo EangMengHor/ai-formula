@@ -60,7 +60,7 @@ export default function StackSidebarBox({ header, component, onClose, index }) {
     return (
         <motion.div
             className="bg-slate-800 border border-slate-500 min-w-full mr-10 rounded-md h-auto mb-5"
-            style={{ marginLeft: `${index * 10}px`, marginTop: `${(index * 10) + 50}px` }}
+            style={{ marginLeft: `${index * 40}px`, marginTop: `${(index * 10) + 50}px` }}
             variants={variants}
             initial="closed" // Set initial state to closed
             animate={isClosing ? "closing" : hasOpened ? "open" : "closed"} // Prevent re-animation
@@ -70,9 +70,9 @@ export default function StackSidebarBox({ header, component, onClose, index }) {
         >
             <div
                 className={`relative `}
-                style={{ marginRight: `${index * 10}px`, marginTop: `${index * 10}px` }}
+                style={{ marginRight: `${index * 40}px`, marginTop: `${index * 10}px` }}
             >
-                <div onClick={handleClose} className="absolute top-3 right-3 text-white cursor-pointer">
+                <div onClick={handleClose} className="absolute top-3 right-3 text-white cursor-pointer z-50">
                     <X />
                 </div>
             </div>

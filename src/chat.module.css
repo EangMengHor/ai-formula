@@ -1,168 +1,104 @@
-/* Heading Tags */
-.module h1 {
-    font-size: 2rem; /* Slightly larger for better hierarchy */
-    font-weight: bold;
-    color: #f7fafc; /* Light gray */
-    margin-bottom: 1rem; /* Improved spacing */
-    border-bottom: 2px solid #cbd5e0; /* Underline style for visual hierarchy */
-    padding-bottom: 0.25rem;
-}
-
-.module h2 {
-    font-size: 1.75rem; 
-    font-weight: 600;
-    color: #edf2f7;
-    margin-bottom: 0.75rem;
-}
-
-.module h3 {
-    font-size: 1.5rem; 
-    font-weight: 600;
-    color: #e2e8f0;
-    margin: 1rem 0 0.75rem 0; /* Add margin top and bottom */
-}
-
-.module h4 {
-    font-size: 1.25rem; 
-    font-weight: 600;
-    color: #e2e8f0;
-    margin: 1rem 0 0.5rem 0;
-}
-
-.module h5 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #cbd5e0;
-    margin: 0.75rem 0 0.5rem 0;
-}
-
+.module h1,
+.module h2,
+.module h3,
+.module h4,
+.module h5,
 .module h6 {
-    font-size: 1rem; 
-    font-weight: 500;
-    color: #a0aec0;
-    margin: 0.5rem 0;
+  margin-top: 0.5rem; /* or 0, if you prefer */
+  margin-bottom: 0.5rem; /* or 0, if you prefer */
+  padding-bottom: 0; /* remove underlines or reduce as needed */
+  border-bottom: none; /* or remove this if you don't want the underline style */
 }
 
-/* Paragraph */
 .module .custom-p {
-    font-size: 1rem; 
-    line-height: 1.75; /* Increased readability */
-    color: #edf2f7; /* Light text color */
-    margin-bottom: 1rem; /* Consistent spacing */
+  margin-bottom: 0.5rem;
 }
 
-/* Links */
-.module a {
-    font-weight: 500;
-    color: #63b3ed; /* Light blue */
-    text-decoration: none;
-    transition: color 0.2s ease-in-out, text-shadow 0.2s ease-in-out;
+.module li{
+    margin:0px;
+    padding: 0;
 }
 
-.module a:hover {
-    color: #4299e1; /* Darker blue on hover */
-    text-shadow: 0 0 5px rgba(99, 179, 237, 0.6); /* Glow effect */
-}
-
-/* Lists */
-.module ul {
-    list-style-type: disc;
-    padding-left: 1.5rem; /* Better alignment */
-    margin-left: 0;
-    margin-bottom: 1rem;
-}
-
-.module ol {
-    list-style-type: decimal;
-    padding-left: 1.5rem; 
-    margin-left: 0;
-    margin-bottom: 1rem;
+.module ul{
+    margin:0px;
+    padding: 0;
 }
 
 .module li {
-    margin-bottom: 0.5rem; 
-    line-height: 1.5; /* Improved spacing */
+    white-space: normal !important;
+  }
+  
+
+  .module li,
+.module li * {
+  white-space: normal !important;
 }
 
-/* Tables */
-.module table {
+/* Overall Container - Dark Slate Background */
+.module {
+    background-color: #2F4F4F; /* A dark slate color */
+    padding: 1rem;
+    border-radius: 0.5rem;
+    /* Optional: subtle box shadow for the container */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Table Styling */
+  .module table {
     width: 100%;
     border-collapse: collapse;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+    overflow: hidden; /* Ensures corners remain rounded */
+    color: #ffffff;   /* Light text on dark background */
+    background-color: #2F4F4F; /* Matches container's background */
     font-size: 1rem;
-    margin: 1rem 0; /* Add spacing around tables */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-    border-radius: 0.5rem; /* Rounded corners */
-    overflow: hidden; /* Ensures proper border behavior */
-    background-color: #2d3748; /* Darker background color */
-}
-
-.module th,
-.module td {
-    border: 1px solid #cbd5e0; /* Light border color */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Table Headers */
+  .module th {
+    background-color: #3B5252; /* Slightly darker for header row */
+    color: #ffffff; 
+    font-weight: 600;
     padding: 0.75rem;
     text-align: left;
-}
-
-.module th {
-    background-color: #4a5568; /* Darker background for headers */
-    font-weight: 600;
-    color: #ffffff; /* Light text color */
-}
-
-.module td {
-    background-color: #2d3748; /* Consistent darker background */
-    color: #edf2f7; /* Light text color for better readability */
-}
-
-/* Forms */
-.module form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem; /* Increased spacing for better UX */
-}
-
-.module label {
-    font-weight: 600;
-    font-size: 0.875rem;
-    color: #e2e8f0;
-}
-
-.module textarea,
-.module select {
+    border: 1px solid #555; /* Subtle border color */
+  }
+  
+  /* Table Cells */
+  .module td {
+    border: 1px solid #555; /* Matches header border color */
     padding: 0.75rem;
-    border-radius: 0.5rem;
-    border: 1px solid #cbd5e0;
-    font-size: 1rem;
-    color: #edf2f7;
-    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.module textarea:focus,
-.module select:focus {
-    border-color: #63b3ed;
-    outline: none;
-    box-shadow: 0 0 5px rgba(99, 179, 237, 0.4); /* Focus glow */
-}
-
-/* Smooth Scrolling */
-.module html {
-    scroll-behavior: smooth;
-}
-
-/* Extra Touch for Buttons (Optional) */
-.module button {
-    padding: 0.75rem 1.5rem;
-    background-color: #63b3ed;
-    color: #fff;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
-}
-
-.module button:hover {
-    background-color: #4299e1;
-    transform: scale(1.05); /* Slight hover zoom */
-}
-
+    text-align: left;
+    background-color: #2F4F4F; /* Keep cells the same color as table BG */
+  }
+  
+  /* Hover effect for rows (optional) */
+  .module tr:hover td {
+    background-color: #394E4E; 
+  }
+  
+  /* Additional tweaks for typography within the module */
+  .module h1, 
+  .module h2, 
+  .module h3, 
+  .module h4, 
+  .module h5, 
+  .module h6, 
+  .module p {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: #ffffff; /* Ensure headings and paragraphs have enough contrast */
+  }
+  
+  /* Links within the module (optional) */
+  .module a {
+    color: #63b3ed;
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+  }
+  .module a:hover {
+    color: #4299e1;
+  }
+  

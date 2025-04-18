@@ -249,8 +249,8 @@ export default function FileUploadDialog() {
                     <div>
                         <div
                             onClick={() => setIsOpen(true)}
-                            className='w-fit p-4 border-2 border-slate-600 rounded-md text-white flex flex-col gap-3 bg-slate-800 hover:bg-slate-600 cursor-pointer items-center justify-center font-semibold my-4 '>
-                            <FileInput />
+                            className='w-fit rounded-md text-white flex flex-col p-4 gap-3 bg-slate-800 hover:bg-slate-600 cursor-pointer items-center justify-center font-semibold  '>
+                            <FileInput className='w-5 h-5' />
                             <p>Click To Open Document Upload Section</p>
                         </div>
                         <hr />
@@ -273,7 +273,7 @@ export default function FileUploadDialog() {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
                                                     <div className="bg-gray-200 p-3 rounded-lg">
-                                                        <FileText className="w-5 h-5 text-gray-700" />
+                                                        <FileText className="w-4 h-4 text-gray-700" />
                                                     </div>
                                                     <div className="overflow-hidden">
                                                         <h3 className="text-white font-medium truncate  w-full">{file.name.length > 25 ? file.name.slice(0, 25) + '...' : file.name}
@@ -336,9 +336,9 @@ export default function FileUploadDialog() {
                 ) : (
                     <div
                         onClick={() => setIsOpen(true)}
-                        className="flex items-center px-1 py-1 rounded-md border border-gray-600 hover:bg-slate-600 "
+                        className="flex items-center rounded-md m-1 p-2 hover:bg-slate-800 cursor-pointer "
                     >
-                        <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
+                        <Paperclip className="w-5 h-5  rounded-md" />
                     </div>
                 )
             }
@@ -446,7 +446,7 @@ export default function FileUploadDialog() {
                                     onChange={handleFileChange}
                                     className="hidden"
                                     id="file-upload"
-                                    accept=".pdf,.txt,.json"
+                                    accept=".pdf,.txt,.json,.docx"
                                     disabled={isMemorizing.current}
                                 />
                                 <label

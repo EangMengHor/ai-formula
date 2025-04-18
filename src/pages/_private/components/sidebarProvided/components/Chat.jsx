@@ -4,17 +4,10 @@ import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
 import { useParams } from "react-router-dom";
 import { parseContent } from "../../../../../lib/utils";
 import ChatInput from "../../../../../components/custom/ChatInput";
-import Markdown from "react-markdown";
 import 'katex/dist/katex.min.css';
-import remarkGfm from "remark-gfm";
 import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
 import { LoaderCircle } from "lucide-react";
-import { Mermaid } from "../../../../../components/custom/Mermaid";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import 'katex/dist/katex.min.css';
 import '../../../../_private/components/sidebarProvided/components/Chat.css';
 import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_core/getUploadedDocumentHis.api";
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
@@ -27,27 +20,85 @@ import ChatSimulation from "../../../../../components/custom/AiInteraction/ChatS
 import polling from "../../../../../lib/polling";
 import { pollInteractionLogs } from "../../../../../services/n8n-apis/_core/pollInteractionLogs.api";
 import { useStackSidebar } from "../../../../../context/StackSidebarContext";
+import { io } from "socket.io-client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
+import { Mermaid } from "../../../../../components/custom/Mermaid";
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import remarkGfm from 'remark-gfm';
+import rehypeKatex from 'rehype-katex';
+import LoadingAnimation from "@/components/custom/Loading";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { downloadDocument } from "@/lib/downloadModule";
+
+// Import the components needed for deep thinking mode
+import ExecutionTimeline from "./ExecutionTimeline";
+import { StreamingResponse } from "./StreamingRendered";
+import Conversation from "./Conversation";
+import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
+
+const fileType = [
+    'pdf', 'docx', 'csv'
+]
 
 export default function Chat() {
+    const socket = useRef(null); // Use useRef for socket
+    console.log(socket, 'socket')
+
     // Context
     const { id } = useParams();
     const { toast } = useToast();
     const { setFileCount, setMemorizedFiles, isMemorizationLoading, setIsMemorizationLoading, fileName, setFileName, files, setFiles, resetAllStates } = useFilesUploadMetadata();
-    const { isDocumentOn, setIsDocumentOn, isSearchOn, setIsSearchOn, isVectorBaseOn, setIsVectorBaseOn, isSuperiorPersonaAttached, setIsSuperiorPersonaAttached, selectedSuperiorPersona, setSelectedSuperiorPersona, currActiveIntraction, setCurrActiveIntraction } = useUser();
+    const {
+        isDocumentOn,
+        setIsDocumentOn,
+        isSearchOn,
+        setIsSearchOn,
+        isVectorBaseOn,
+        setIsVectorBaseOn,
+        isSuperiorPersonaAttached,
+        isSwarmMode,
+        setIsSwarmMode,
+        isAutoSwarmContextState,
+        setIsAutoSwarmContextState,
+        setIsSuperiorPersonaAttached,
+        selectedSuperiorPersona,
+        setSelectedSuperiorPersona,
+        currActiveIntraction,
+        setCurrActiveIntraction,
+        isDeepThinkMode } = useUser();
     const { sidebarStack, setSidebarStack } = useStackSidebar();
 
     // Local state
     const [isChatLoading, setIsChatLoading] = useState(false);
     const [fallBackPrompt, setFallBackPrompt] = useState("");
     const [conversation, setConversation] = useState([]);
+
     const [isNextChatLoading, setIsNextChatLoading] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [isChanged, setIsChanged] = useState(false);
-    const [hasInitialChatLoaded, setHasInitialChatLoaded] = useState(false);
     const [showScrollButton, setShowScrollButton] = useState(false);
     const [chatIdentifer, setChatIdentifer] = useState(null);
     const [interactionLogs, setInteractionLogs] = useState([]);
     const [isShowInteractionLogs, setIsShowInteractionLogs] = useState(false);
+    const [streamingResponse, setStreamingResponse] = useState("");
+    const [isShowAgenticBlock, setIsShowAgenticBlock] = useState(false);
+    const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
+    // Dialog states
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogContent, setDialogContent] = useState("");
+    const [dialogType, setDialogType] = useState("visual");
+    const [dialogTitle, setDialogTitle] = useState("");
+    const [isUserScrolling, setIsUserScrolling] = useState(false); // Add state for user scroll tracking
 
     // Refs
     const bottomRef = useRef(null);
@@ -57,6 +108,152 @@ export default function Chat() {
     const pollChatOutputRef = useRef(null);
     const pollChatStatusRef = useRef(null);
     const pollInteractionLogsRef = useRef(null);
+    const scrollTimeoutRef = useRef(null);
+    const streamTimeoutRef = useRef(null); // For deep thinking streaming timeout
+    const isAutoScrolling = useRef(false); // Add ref to track programmatic scrolling
+    const userScrollTimeoutRef = useRef(null); // Ref for user scroll detection timeout
+
+
+    const currentStepRef = useRef(null); // For tracking current step in deep thinking
+
+    // Memoize functions to prevent Conversation from re-rendering on every text input change
+    const memoizedHandleBlockSidebar = useCallback((block, type, header = "") => {
+        setSidebarStack(() => [
+            {
+                header,
+                component: (
+                    <div >
+                        <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
+                            <p
+                                className="text-slate-200 font-bold text-lg truncate overflow-hidden whitespace-nowrap"
+                                style={{ maxWidth: '80%' }}
+                                title={header ? header : "ARX Blocks"}
+                            >
+                                {header ? (header.length > 55 ? header.slice(0, 55) + '...' : header) : " ARX Blocks"}
+                            </p>
+                            {/* download */}
+                            <div className="sticky right-0 top-0 z-50">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger>
+                                        <Button className="md:mr-16">
+                                            Download
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        className="bg-slate-700 text-white"
+                                    >
+                                        {
+                                            fileType.map(item => {
+                                                return <div
+                                                    onClick={() => downloadDocument({
+                                                        content: block,
+                                                        type: item,
+                                                        elementId: type === 'pdf' ? 'markdown-preview' : null
+                                                    })}
+                                                    className="hover:bg-slate-800 p-1 rounded-md cursor-pointer focus:outline-none"
+                                                    type={item} >
+                                                    {item.toUpperCase()}
+                                                </div>
+                                            })
+                                        }
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                        <div className="p-4">
+                            {
+                                type == "document" && <div className="overflow-scroll h-[calc(100vh-10rem)]">
+                                    <p>
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkMath, remarkGfm]}
+                                            rehypePlugins={[rehypeKatex]}
+                                            className="module text-wrap overflow-scroll"
+                                            components={{
+                                                p: ({ children }) => <p>{children}</p>,
+                                                table: ({ children }) => (
+                                                    <table
+                                                        style={{
+                                                            borderCollapse: "collapse",
+                                                            width: "100%",
+                                                            color: "#e0e0e0",
+                                                        }}
+                                                    >
+                                                        {children}
+                                                    </table>
+                                                ),
+                                                th: ({ children }) => (
+                                                    <th
+                                                        style={{
+                                                            border: "1px solid #444",
+                                                            padding: "8px",
+                                                            backgroundColor: "#333",
+                                                            color: "#e0e0e0",
+                                                        }}
+                                                    >
+                                                        {children}
+                                                    </th>
+                                                ),
+                                                td: ({ children }) => (
+                                                    <td
+                                                        style={{
+                                                            border: "1px solid #444",
+                                                            padding: "8px",
+                                                            backgroundColor: "#222",
+                                                            color: "#e0e0e0",
+                                                        }}
+                                                    >
+                                                        {children}
+                                                    </td>
+                                                ),
+                                            }}
+                                        >
+                                            {block}
+                                        </ReactMarkdown>
+                                    </p>
+                                </div>
+                            }
+
+                            {
+                                type == "visual" &&
+                                <Mermaid
+                                    className="module overflow-scroll"
+                                    chart={memoizedRenderMermaidChart(block)}
+                                    theme="dark"
+                                    style={{ width: "100%", height: "100%" }}
+                                />
+                            }
+                        </div>
+                    </div>
+                ),
+            },
+        ]);
+    }, [setSidebarStack]);
+
+    const memoizedRenderMermaidChart = useCallback((content) => {
+        if (!content || typeof content !== 'string') {
+            console.error("Invalid mermaid content:", content);
+            return "graph TD\nA[Error] --> B[Invalid diagram content]";
+        }
+        try {
+            let sanitizedContent = content.trim();
+            sanitizedContent = sanitizedContent.replace(/<\/?[^>]+(>|$)/g, "");
+            const validTypes = [
+                'graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
+                'stateDiagram', 'erDiagram', 'gantt', 'pie'
+            ];
+            const hasValidStart = validTypes.some(type => sanitizedContent.startsWith(type));
+            if (!hasValidStart) {
+                sanitizedContent = `graph TD\n${sanitizedContent}`;
+            }
+            sanitizedContent = sanitizedContent.replace(/\[([^\]]+)\]/g, (match, p1) => {
+                return `[${p1.replace(/[^a-zA-Z0-9 _-]/g, ' ')}]`;
+            });
+            return sanitizedContent;
+        } catch (error) {
+            console.error("Error sanitizing Mermaid content:", error);
+            return "graph TD\nA[Error] --> B[Diagram processing failed]";
+        }
+    }, []);
 
     // Effect: Load fallback prompt from localStorage
     useEffect(() => {
@@ -93,19 +290,35 @@ export default function Chat() {
         async function fetchConversations() {
             try {
                 const res = await getConversationHistory(id);
+                console.log(res, 'conversation history')
                 if (res.success) {
                     const processedData = res.data.map((item) => {
                         if (item.role === "human") {
                             return item;
                         } else {
-                            const parsedResponse = parseContent(item.message);
+                            const parsedResponse = parseHistoryAIContent(item.message);
+                            console.log(parsedResponse, "98089098")
+                            if (item?.steps) {
+                                return {
+                                    role: "ai",
+                                    type: "deepThink",
+                                    steps: item.steps,
+                                    isLoading: false,
+                                    isComplete: true,
+                                    message: parsedResponse,
+                                }
+                            }
                             return {
                                 role: "ai",
-                                message: parsedResponse
+                                message: parsedResponse,
+
                             };
                         }
                     });
                     setConversation(processedData);
+
+
+
                 }
             } catch (error) {
                 toast({
@@ -114,8 +327,8 @@ export default function Chat() {
                     variant: "destructive"
                 });
             } finally {
+                // Make sure loading is turned off regardless of outcome
                 setIsChatLoading(false);
-                setHasInitialChatLoaded(true);
             }
         }
 
@@ -146,12 +359,13 @@ export default function Chat() {
                 getUploadedDocumentHis(),
                 fetchConversations()
             ]);
+
         }
 
         if (isChatLoading) {
             getData();
         }
-    }, [isChatLoading, id]);
+    }, [isChatLoading, id, toast]);
 
     // Effect: Log conversation and chat identifier
     useEffect(() => {
@@ -160,57 +374,632 @@ export default function Chat() {
 
     // Effect: Start polling interaction logs
     useEffect(() => {
-        if (chatIdentifer && isSuperiorPersonaAttached) {
+        if (isShowAgenticBlock && isSuperiorPersonaAttached) {
             console.log("interaction polling started lsdfs9820923");
             setIsShowInteractionLogs(true);
-            startPollingInteractionLogs();
+            // startPollingInteractionLogs();
         }
-    }, [chatIdentifer, isSuperiorPersonaAttached]);
+    }, [isShowAgenticBlock, isSuperiorPersonaAttached]);
 
     // Effect: Clear polling on component unmount
     useEffect(() => {
         return () => {
             clearPolling();
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+            }
+            if (streamTimeoutRef.current) {
+                clearTimeout(streamTimeoutRef.current);
+            }
         }
     }, []);
 
+    // Monitor streaming status for deep thinking and finalize after inactivity
+    useEffect(() => {
+        // Find the latest deep thinking conversation item that is streaming
+        const deepThinkingItem = conversation.find(item =>
+            item.role === "ai" &&
+            item.type === "deepThink" &&
+            item.isStreaming
+        );
+
+        if (deepThinkingItem) {
+            // Reset any existing timeout
+            if (streamTimeoutRef.current) {
+                clearTimeout(streamTimeoutRef.current);
+            }
+
+            // Set new timeout to detect end of streaming
+            streamTimeoutRef.current = setTimeout(() => {
+                setConversation(prevConversation => {
+                    return prevConversation.map(item => {
+                        if (item.role === "ai" && item.type === "deepThink" && item.isStreaming) {
+                            return { ...item, isStreaming: false };
+                        }
+                        return item;
+                    });
+                });
+                console.log("Stream completed due to inactivity");
+            }, 60000); // 60 seconds of inactivity means streaming is done
+        }
+
+        return () => {
+            if (streamTimeoutRef.current) {
+                clearTimeout(streamTimeoutRef.current);
+            }
+        }
+    }, [conversation]);
+
+    // Socket Connection and Event Handling
+    useEffect(() => {
+        socket.current = io(import.meta.env.VITE_SOCKET_URL);
+
+        socket.current.on("connect", () => {
+            console.log("Connected to socket server:", socket.current.id);
+        });
+
+        socket.current.on("disconnect", () => {
+            console.log("Disconnected from socket server");
+        });
+
+        socket.current.on("event", (event) => {
+            handleSocketEvent(event);
+        });
+
+        socket.current.on("error", (error) => {
+            console.error("Socket error:", error);
+        });
+
+        return () => {
+            socket.current?.disconnect();
+        };
+    }, []);
+
+    const smoothScrollToBottom = useCallback(() => {
+        // Prevent auto-scroll if the user is manually scrolling up or if an auto-scroll is already happening
+        if (isUserScrolling || isAutoScrolling.current) {
+            console.log(`Auto-scroll skipped: isUserScrolling=${isUserScrolling}, isAutoScrolling=${isAutoScrolling.current}`);
+            return;
+        }
+
+        const container = bottomRef.current?.parentElement;
+        if (container) {
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            // Check if already near the bottom before initiating scroll
+            // This prevents unnecessary scrolls if already at the end.
+            if (scrollHeight - scrollTop - clientHeight < 150) { // Only scroll if already close to the bottom
+                console.log("Auto-scrolling initiated...");
+                isAutoScrolling.current = true; // Set flag before starting scroll
+
+                bottomRef.current?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'end'
+                });
+
+                // Reset the flag after a delay.
+                // This timeout helps prevent the scroll listener from immediately
+                // thinking the programmatic scroll is a user scroll.
+                // Adjust duration based on observed scroll behavior.
+                setTimeout(() => {
+                    isAutoScrolling.current = false;
+                    console.log("Auto-scrolling flag reset.");
+                    // Optional: Check if still at bottom after scroll finished
+                    const { scrollTop: newScrollTop, scrollHeight: newScrollHeight, clientHeight: newClientHeight } = container;
+                    if (newScrollHeight - newScrollTop - newClientHeight > 10) {
+                        // If not at the bottom anymore (e.g., more content arrived during scroll),
+                        // you might want to trigger another scroll, but be cautious of loops.
+                        // smoothScrollToBottom(); // Example: Re-trigger if needed
+                    } else {
+                        // If we ended up at the bottom, ensure the user scrolling flag is false
+                        if (isUserScrolling) {
+                            setIsUserScrolling(false);
+                        }
+                    }
+                }, 800); // Increased timeout to better cover smooth scroll duration
+            } else {
+                console.log("Auto-scroll skipped: Not near bottom.");
+            }
+        } else {
+            // Fallback if container isn't found
+            bottomRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'end'
+            });
+        }
+    }, [isUserScrolling]); // Dependency: only re-create if isUserScrolling changes
+
+
+
+   
+    //
+    // Updated smoothScrollToBottom
+    useEffect(() => {
+        const container = bottomRef.current?.parentElement; // Assuming the parent is the scrollable container
+        if (!container) return;
+
+        const handleScroll = () => {
+            if (isAutoScrolling.current) {
+                // Ignore scroll events triggered by our own smoothScrollToBottom
+                return;
+            }
+
+            if (userScrollTimeoutRef.current) {
+                clearTimeout(userScrollTimeoutRef.current);
+            }
+
+            const { scrollTop, scrollHeight, clientHeight } = container;
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 150; // Threshold to consider "at bottom"
+
+            if (!isNearBottom) {
+                // User scrolled up away from the bottom
+                if (!isUserScrolling) {
+                    console.log("User scrolling detected.");
+                    setIsUserScrolling(true);
+                }
+                // Set a timeout to potentially reset if user stops scrolling up,
+                // but it's generally safer to only reset when they scroll back down.
+                userScrollTimeoutRef.current = setTimeout(() => {
+                    // Optional: Reset isUserScrolling if paused for a while?
+                    // setIsUserScrolling(false);
+                }, 300); // Adjust timeout as needed
+            } else {
+                // User is near the bottom (scrolled down or was already there)
+                if (isUserScrolling) {
+                    console.log("User scrolled back to bottom.");
+                    setIsUserScrolling(false);
+                }
+            }
+        };
+
+        container.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            container.removeEventListener('scroll', handleScroll);
+            if (userScrollTimeoutRef.current) {
+                clearTimeout(userScrollTimeoutRef.current);
+            }
+        };
+        // Rerun if isUserScrolling changes to ensure the correct state is captured
+    }, [isUserScrolling]);
+
+    useEffect(() => {
+        async function a() {
+            if (conversation.length > 0) {
+
+
+            }
+        }
+        a()
+    }, [conversation])
+    // Handle socket events (streaming messages) - improved with consistent finalResponse handling
+  /********************************************************************
+ * Helpers (plain‑JS, no external deps)
+ ********************************************************************/
+
+/* 1️⃣  Make a fresh AI message shell */
+const newAiMessage = (kind = "quick") => ({
+    role       : "ai",
+    type       : kind,                 // "simulation" | "quick" | "deepThink"
+    isStreaming: kind !== "simulation",
+    isComplete : kind === "simulation",
+    message    : kind === "simulation"
+                ? [{ type: "simulation", items: [] }]
+                : [],
+    tempContent: "",                   // streaming buffer
+    steps      : [],                   // deep‑think only
+  });
+  
+  /* 2️⃣  Append a text chunk to an existing streaming message */
+  const appendChunk = (msg, chunk) => {
+    msg.tempContent += chunk;
+    msg.isStreaming  = true;
+  
+    msg.message = msg.type === "quick"
+      ? processStreamingContent(msg.tempContent)
+      : parseHistoryAIContent(msg.tempContent);
+  };
+  
+  /* 3️⃣  Mark a streaming message finished */
+  const completeStreaming = (msg) => {
+    msg.isStreaming = false;
+    msg.isComplete  = true;
+    delete msg.tempContent;
+  };
+  
+  /********************************************************************
+   * Main socket handler   –  paste this as one block
+   ********************************************************************/
+  const handleSocketEvent = async (event) => {
+    /* ─────────────────────────────────────────────────────── */
+    /* 1. “swarmId” → update or create the simulation message  */
+    /* ─────────────────────────────────────────────────────── */
+    if (event.type === "swarmId") {
+      const { output } = await getPersonaById(event.swarmId);
+      const simItems   = parseContent(output).flatMap((d) => d.items);
+  
+      setConversation((prev) => {
+        const conv = [...prev];
+        let last   = conv[conv.length - 1];
+  
+        if (!last || last.type !== "simulation") {
+          last = newAiMessage("simulation");
+          conv.push(last);
+        }
+        last.message[0].items.push(...simItems);
+        return conv;
+      });
+      return;
+    }
+  
+    /* ─────────────────────────────────────────────────────── */
+    /* 2. “finalResponse” chunks                               */
+    /* ─────────────────────────────────────────────────────── */
+    if (event.type === "finalResponse" && event.content) {
+      setConversation((prev) => {
+        const conv = [...prev];
+        let last   = conv[conv.length - 1];
+  
+        // ensure a streaming container exists
+        if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
+          // If you know the real mode, replace "quick" with it
+          last = newAiMessage("quick");
+          conv.push(last);
+        }
+        appendChunk(last, event.content);
+        return conv;
+      });
+  
+      setIsNextChatLoading(true);
+      return;
+    }
+  
+    /* ─────────────────────────────────────────────────────── */
+    /* 3. “finish” → close the streaming message               */
+    /* ─────────────────────────────────────────────────────── */
+    if (event.type === "finish") {
+      setConversation((prev) => {
+        const conv = [...prev];
+        const last = conv[conv.length - 1];
+  
+        if (last && (last.type === "quick" || last.type === "deepThink")) {
+          completeStreaming(last);
+          if (last.type === "deepThink") {
+            last.steps.push({ type: "finish" });
+          }
+        }
+        return conv;
+      });
+  
+      setIsNextChatLoading(false);
+      setIsShowAgenticBlock(false);
+      return;
+    }
+  
+    /* ─────────────────────────────────────────────────────── */
+    /* 4. Deep‑think sub‑events (only if last message is deep) */
+    /* ─────────────────────────────────────────────────────── */
+    setConversation((prev) => {
+      const conv = [...prev];
+      const last = conv[conv.length - 1];
+      if (!last || last.type !== "deepThink") return prev;
+  
+      const steps = last.steps || (last.steps = []);
+  
+      switch (event.type) {
+
+        case "searchUrls":
+            console.log(event, 'searchUrls')
+            break;
+        case "defineGoal":
+          steps.push({ type: "defineGoal", text: "" });
+          break;
+  
+        case "thinking":
+          steps.push({ type: "thinking", text: "" });
+          break;
+  
+        case "stepAgent":
+          steps.push({
+            type: "stepAgent",
+            goal: "",
+            isLoadingKnowledge: false,
+            isLoadingSearch   : false,
+          });
+          break;
+  
+        case "stepAgentGoal":
+          if (steps.length) {
+            const s = steps[steps.length - 1];
+            if (s.type === "stepAgent") s.goal += event.content || "";
+          }
+          break;
+  
+        case "knowledge":
+          if (steps.length) {
+            const s = steps[steps.length - 1];
+            if (s.type === "stepAgent") s.isLoadingKnowledge = true;
+          }
+          break;
+  
+        case "search":
+          if (steps.length) {
+            const s = steps[steps.length - 1];
+            if (s.type === "stepAgent") s.isLoadingSearch = true;
+          }
+          break;
+  
+        case "reEvaluating":
+          steps.push({ type: "reEvaluating", text: "" });
+          break;
+  
+        default: // generic text append
+          if (event.content && steps.length) {
+            const s = steps[steps.length - 1];
+            if (s) s.text = (s.text || "") + event.content;
+          }
+      }
+      return conv;
+    });
+  };
+  
+    // Process streaming content into blocks - completely rewritten for robustness
+    const processStreamingContent = (content, forceComplete = false) => {
+        if (!content) return [];
+
+        console.log("Processing content:", content.substring(0, 100) + "...");
+
+        try {
+            // First try the standard parser from utils for complete blocks
+            if (forceComplete) {
+                try {
+                    const parsedContent = parseContent(content);
+                    console.log("Standard parser result:", parsedContent);
+                    if (Array.isArray(parsedContent) && parsedContent.length > 0) {
+                        return parsedContent.map(block => ({
+                            ...block,
+                            isComplete: true
+                        }));
+                    }
+                } catch (e) {
+                    console.warn("Standard parser failed:", e);
+                    // Continue with custom parsing
+                }
+            }
+
+            // Custom block extraction with more robust patterns
+            const result = [];
+            let remainingText = content;
+
+            // Match patterns for document and visual blocks with more flexible whitespace handling
+            const documentPattern = /<document>([\s\S]*?)<\/document>/g;
+            const visualPattern = /<visual>([\s\S]*?)<\/visual>/g;
+            const mermaidPattern = /```mermaid([\s\S]*?)```/g;
+
+            // Step 1: Extract all special blocks with their positions
+            const blocks = [];
+
+            // Find document blocks
+            let match;
+            while ((match = documentPattern.exec(content)) !== null) {
+                const fullBlock = match[0];
+                const blockContent = match[1];
+                const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(blockContent);
+
+                let name = nameMatch ? nameMatch[1].trim() : "Document";
+                let cleanContent = blockContent;
+
+                if (nameMatch) {
+                    cleanContent = blockContent.replace(nameMatch[0], '').trim();
+                }
+
+                blocks.push({
+                    type: 'document',
+                    name,
+                    content: cleanContent,
+                    isComplete: forceComplete || (cleanContent.length > 0),
+                    start: match.index,
+                    end: match.index + fullBlock.length
+                });
+            }
+
+            // Find visual blocks
+            while ((match = visualPattern.exec(content)) !== null) {
+                const fullBlock = match[0];
+                const blockContent = match[1];
+                const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(blockContent);
+
+                let name = nameMatch ? nameMatch[1].trim() : "Visualization";
+                let cleanContent = blockContent;
+
+                if (nameMatch) {
+                    cleanContent = blockContent.replace(nameMatch[0], '').trim();
+                }
+
+                blocks.push({
+                    type: 'visual',
+                    name,
+                    content: cleanContent,
+                    isComplete: forceComplete || (cleanContent.length > 0),
+                    start: match.index,
+                    end: match.index + fullBlock.length
+                });
+            }
+
+            // Find mermaid blocks
+            while ((match = mermaidPattern.exec(content)) !== null) {
+                blocks.push({
+                    type: 'mermaid',
+                    content: match[1].trim(),
+                    isComplete: true,
+                    start: match.index,
+                    end: match.index + match[0].length
+                });
+            }
+
+            // Sort blocks by their position
+            blocks.sort((a, b) => a.start - b.start);
+
+            // Step 2: Extract text between blocks
+            let lastIndex = 0;
+
+            for (const block of blocks) {
+                // Add text before the current block
+                if (block.start > lastIndex) {
+                    const textContent = content.substring(lastIndex, block.start).trim();
+                    if (textContent) {
+                        result.push({
+                            type: 'text',
+                            content: textContent,
+                            isComplete: true
+                        });
+                    }
+                }
+
+                // Add the block itself (without position info)
+                const { start, end, ...cleanBlock } = block;
+                result.push(cleanBlock);
+
+                lastIndex = block.end;
+            }
+
+            // Add any remaining text after the last block
+            if (lastIndex < content.length) {
+                const remainingContent = content.substring(lastIndex).trim();
+                if (remainingContent) {
+                    result.push({
+                        type: 'text',
+                        content: remainingContent,
+                        isComplete: true
+                    });
+                }
+            }
+
+            // If nothing was found, return the full content as text
+            if (result.length === 0 && content.trim()) {
+                result.push({
+                    type: 'text',
+                    content: content.trim(),
+                    isComplete: true
+                });
+            }
+
+            console.log("Final parsed blocks:", result);
+            return result;
+        } catch (error) {
+            console.error("Error in processStreamingContent:", error);
+            // Ultimate fallback - just return as plain text
+            return [{
+                type: 'text',
+                content: content || "",
+                isComplete: true
+            }];
+        }
+    };
+
+    // Function to ensure history content is properly parsed and all blocks are marked complete
+    const parseHistoryAIContent = (content) => {
+        if (!content) return [];
+
+        console.log("Parsing history content");
+
+        try {
+            // First try to parse with standard parser
+            try {
+                const parsedResult = parseContent(content);
+                if (Array.isArray(parsedResult) && parsedResult.length > 0) {
+                    // Force all blocks to be marked as complete
+                    return parsedResult.map(block => ({
+                        ...block,
+                        isComplete: true
+                    }));
+                }
+            } catch (e) {
+                console.warn("Standard parsing failed for history:", e);
+            }
+
+            // Fallback to our custom parser with forceComplete=true
+            return processStreamingContent(content, true);
+        } catch (error) {
+            console.error("All parsing methods failed for history:", error);
+            return [{
+                type: 'text',
+                content: content || "",
+                isComplete: true
+            }];
+        }
+    };
+
     // Function: Handle prompt submission
     const handleSubmit = useCallback(async (prompt) => {
-        dataFetchedRef.current = false;
         if (prompt.length === 0) {
             return;
         }
+
+        // Set loading state
         setIsNextChatLoading(true);
         const prevPrompt = prompt;
+
         try {
             setPrompt("");
-            setConversation((prev) => [...prev, { message: prompt, role: "human" }]);
-            console.log("hellow", selectedSuperiorPersona.map(item => item.id))
-            const res = await chat(
-                prompt,
-                id,
-                [],
-                isSearchOn,
-                isDocumentOn,
-                isVectorBaseOn,
-                "question",
-                isSuperiorPersonaAttached,
-                currActiveIntraction === "unstructured" ? "unstructured" : "sequential",
-                selectedSuperiorPersona ? selectedSuperiorPersona.map(item => item.id) : -1
-            );
 
-            setChatIdentifer(res.data.identity);
-            if (res.success) {
-                startPollingChatOutput(res.data.id);
+            // Add human message to conversation
+            setConversation(prev => [...prev, {
+                message: prompt,
+                role: "human"
+            }]);
+
+            // Reset streaming response
+            setStreamingResponse("");
+
+            // Add AI message placeholder based on mode
+            if (isDeepThinkMode) {
+                // Add a placeholder for deep thinking response
+                setConversation(prev => [...prev, {
+                    role: "ai",
+                    type: "deepThink",
+                    steps: [], // Will hold the execution steps
+                    markdownBuffer: "", // Will hold the final markdown response
+                    isComplete: false,
+                    isStreaming: false,
+                    isLoading: true
+                }]);
             } else {
-                toast({
-                    title: 'Error',
-                    description: res.error || 'Failed to initiate chat.',
-                    variant: "destructive"
-                });
-                setPrompt(prevPrompt);
-                setIsNextChatLoading(false);
+                // Add a placeholder for quick response
+                setConversation(prev => [...prev, {
+                    role: "ai",
+                    type: "quick",
+                    message: [],
+                    streamingContent: "",
+                    isComplete: false,
+                    isLoading: true
+                }]);
             }
+            // ---> Add this log <---
+            console.log('handleSubmit - isSwarmMode:', isSwarmMode, 'isAutoSwarm:', isAutoSwarmContextState);
+            console.log({
+                prompt,
+                sessionId: id,
+                mode: isDeepThinkMode ? "deep" : "quick",
+                isSwarm: isSwarmMode,
+                swarmIds: selectedSuperiorPersona ? selectedSuperiorPersona.map(item => item.id) : [],
+                isAutoSwarm: isAutoSwarmContextState ? true : (selectedSuperiorPersona.length <= 0 ? true : false),
+            }, 'sending message')
+            // Send message to the server with appropriate mode
+            setIsShowAgenticBlock(true)
+            socket.current.emit("chat", {
+                prompt,
+                sessionId: id,
+                mode: isDeepThinkMode ? "deep" : "quick",
+                isSwarm: isSwarmMode, // Ensure this value is correct when emitted
+                swarmIds: selectedSuperiorPersona ? selectedSuperiorPersona.map(item => item.id) : [],
+                isAutoSwarm: isAutoSwarmContextState,
+            });
+
+            // Scroll to bottom
+            setTimeout(() => {
+                smoothScrollToBottom();
+            }, 100);
+
         } catch (error) {
             toast({
                 title: 'Error',
@@ -218,11 +1007,10 @@ export default function Chat() {
                 variant: "destructive"
             });
             setPrompt(prevPrompt);
-            setIsNextChatLoading(false);
         }
-    }, [id, isSearchOn, isDocumentOn, isVectorBaseOn, toast, isSuperiorPersonaAttached, currActiveIntraction, selectedSuperiorPersona]);
+    }, [id, toast, isDeepThinkMode, isSwarmMode, selectedSuperiorPersona, isAutoSwarmContextState, smoothScrollToBottom]); // Added dependencies
 
-    // Function: Poll chat output
+    // Function: Poll chat output (keeping for compatibility)
     async function _pollChatOutput(id) {
         return await pollChatOutput(id);
     }
@@ -286,9 +1074,12 @@ export default function Chat() {
         setInteractionLogs([]);
     }
 
-    // Function: Scroll to bottom
-    const scrollToBottom = () => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Function: Open dialog for document/visual content
+    const openDialog = (type, content, title) => {
+        setDialogType(type);
+        setDialogContent(content);
+        setDialogTitle(title);
+        setDialogOpen(true);
     };
 
     if (isChatLoading) {
@@ -302,82 +1093,22 @@ export default function Chat() {
 
     return (
         <div className="flex flex-col h-full w-full">
-            <div className={`flex-1  overflow-y-auto p-4 space-y-2 w-full ${sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"} mx-auto`}>
-                {conversation.map((item, index) => {
-                    if (item.role === "human") {
-                        return (
-                            <div ref={index === conversation.length - 1 ? chatContainerRef : null} key={index} className="bg-gray-600 p-2 rounded shadow">
-                                {item.message ? item.message.replaceAll('Provided Document : No document provided', '') : "{Message Not found}"}
-                            </div>
-                        );
-                    } else {
-                        return (
-                            <div ref={index === conversation.length ? chatContainerRef : null} key={index} className="text-slate-300 rounded shadow">
-                                {item.workflow && item.workflow.length > 0 ? (
-                                    <PollStatus workflow={item.workflow} updated={item.updated || []} isActive={isChanged} isOpen={true} sessionId={id} isCompleted={item?.message} />
-                                ) : null}
-                                {item.message && item.message.map((itm, idx) => {
-                                    if (itm.type === "text") {
-                                        return (
-                                            <div key={idx}>
-                                                <ReactMarkdown
-                                                    remarkPlugins={[remarkMath, remarkGfm]}
-                                                    rehypePlugins={[rehypeKatex]}
-                                                    className="module"
-                                                    components={{
-                                                        p: ({ children }) => <p>{children}</p>,
-                                                        table: ({ children }) => (
-                                                            <table style={{ borderCollapse: "collapse", width: "100%", color: "#e0e0e0" }}>
-                                                                {children}
-                                                            </table>
-                                                        ),
-                                                        th: ({ children }) => (
-                                                            <th style={{ border: "1px solid #444", padding: "8px", backgroundColor: "#333", color: "#e0e0e0" }}>
-                                                                {children}
-                                                            </th>
-                                                        ),
-                                                        td: ({ children }) => (
-                                                            <td style={{ border: "1px solid #444", padding: "8px", backgroundColor: "#222", color: "#e0e0e0" }}>
-                                                                {children}
-                                                            </td>
-                                                        ),
-                                                    }}
-                                                >
-                                                    {itm.content}
-
-                                                </ReactMarkdown>
-                                            </div>
-                                        );
-                                    } else if (itm.type === "mermaid") {
-                                        const sanitizedContent = itm.content.replace(/\[([^\]]+)\]/g, (match, p1) => {
-                                            return `[${p1.replace(/[^a-zA-Z0-9 ]/g, '')}]`;
-                                        });
-                                        return (
-                                            <div key={idx} className="overflow-scroll flex items-center justify-center">
-                                                <Mermaid chart={sanitizedContent} />
-                                            </div>
-                                        );
-                                    } else if (itm.type === "simulation") {
-                                        return (
-                                            <ChatSimulation personas={itm.items} isLoading={conversation.length === (index + 1) && isNextChatLoading} />
-                                        );
-                                    }
-                                })}
-                            </div>
-                        );
-                    }
-                })}
-
-                {isNextChatLoading && (
-                    <PollStatus workflow={compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn, isSuperiorPersonaAttached)} updated={latestUpdatedStatus.current} isActive={isChanged} isOpen={true} sessionId={id} />
-                )}
-
-                {isShowInteractionLogs && (
-                    <ChatSimulation personas={interactionLogs} isLoading={isNextChatLoading} effect={true} />
-                )}
-            </div>
-            <div ref={bottomRef} />
-            <div className="w-full p-2 sticky bottom-0 bg-gray-950 mb-2 flex items-center justify-center">
+            <Conversation
+                conversation={conversation}
+                isNextChatLoading={isNextChatLoading}
+                isShowInteractionLogs={isShowInteractionLogs}
+                chatContainerRef={chatContainerRef}
+                bottomRef={bottomRef}
+                scrollTimeoutRef={scrollTimeoutRef}
+                sidebarStack={sidebarStack}
+                id={id}
+                handleBlockSidebar={memoizedHandleBlockSidebar}
+                renderMermaidChart={memoizedRenderMermaidChart}
+                currentLoadingMessage={currentLoadingMessage}
+                interactionLogs={interactionLogs}
+                isChanged={isChanged}
+            />
+            <div className="w-full p-2 sticky bottom-0 bg-black mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
                     <ChatInput
                         input={prompt}
@@ -385,20 +1116,41 @@ export default function Chat() {
                         handleSubmit={() => handleSubmit(prompt)}
                         isLoading={isNextChatLoading}
                         setLoading={setIsNextChatLoading}
-                        isSearchOn={isSearchOn}
-                        setIsSearchOn={setIsSearchOn}
-                        isDocumentOn={isDocumentOn}
-                        setIsDocumentOn={setIsDocumentOn}
-                        isVectorBaseOn={isVectorBaseOn}
-                        setIsVectorBaseOn={setIsVectorBaseOn}
-                        handleScroll={scrollToBottom}
+                    // isSearchOn={isSearchOn}
+                    // setIsSearchOn={setIsSearchOn}
+                    // isDocumentOn={isDocumentOn}
+                    // setIsDocumentOn={setIsDocumentOn}
+                    // isVectorBaseOn={isVectorBaseOn}
+                    // setIsVectorBaseOn={setIsVectorBaseOn}
                     />
                 </div>
             </div>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="max-w-4xl w-full">
+                    <DialogHeader>
+                        <DialogTitle>{dialogTitle}</DialogTitle>
+                    </DialogHeader>
+                    {dialogType === "visual" ? (
+                        <div className="p-4 overflow-auto max-h-[70vh]">
+                            <Mermaid chart={dialogContent} />
+                        </div>
+                    ) : (
+                        <div className="p-4 whitespace-pre-wrap overflow-auto max-h-[70vh]">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath, remarkGfm]}
+                                rehypePlugins={[rehypeKatex]}
+                            >
+                                {dialogContent}
+                            </ReactMarkdown>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
 
+// Helper function for workflow compilation
 function compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn, isInteraction) {
     const workflow = [];
     if (isDocumentOn) {

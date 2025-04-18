@@ -1,4 +1,4 @@
-import { ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, Camera, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, File, Files, FileText, Globe, LoaderCircle, MonitorUp, Paperclip, SquarePlus, X } from "lucide-react";
+import { ArrowRight, ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, BrainCog, Camera, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, DiamondPlus, File, Files, FileText, Flame, Globe, Layers2, LoaderCircle, MonitorUp, Paperclip, SquarePlus, Target, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { memo, useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
@@ -39,6 +39,7 @@ import {
     DrawerTitle,
     DrawerTrigger,
 } from "@/components/ui/drawer"
+import { Separator } from "@/components/ui/separator"
 
 import { useToast } from "../../hooks/use-toast";
 import { useStackSidebar } from "../../context/StackSidebarContext";
@@ -81,22 +82,35 @@ function ChatInput({
         setIsVectorBaseOn,
         isSuperiorPersonaAttached,
         setIsSuperiorPersonaAttached,
+
+        isSwarmMode,
+        setIsSwarmMode,
+        isAutoSwarmContextState,
+        setIsAutoSwarmContextState,
+
         selectedSuperiorPersona,
         setSelectedSuperiorPersona,
-
+        isDeepThinkMode, // Use context state
+        setIsDeepThinkMode, // Use context setter
     } = useUser();
     const { sidebarStack } = useStackSidebar();
     const isMobile = useIsMobile();
-
+    useEffect(() => {
+        console.log(selectedSuperiorPersona, "selectedSuipe", isSuperiorPersonaAttached, 'isSuperiorPersonaAttached', isAutoSwarmContextState, 'isAutoSwarmContextState', isSwarmMode, 'isSwarmMode')
+    }, [isSuperiorPersonaAttached, selectedSuperiorPersona, isAutoSwarmContextState, isSwarmMode])
     // component states
     const [fetchSuperiorPersona, setFetchSuperiorPersona] = useState(null);
-
     const [rows, setRows] = useState(1);
     const [isToolBoxOpen, setIsToolBoxOpen] = useState(false)
     const [isTransribed, setIsTransribed] = useState(false);
-
     const [isSupDialogOpen, setIsSupDialogOpen] = useState(false)
     const { toast } = useToast();
+    console.log(pathname.includes('dashboard'), "asdfsdf")
+    const [open, setOpen] = useState(false)
+
+    // ---> Add this log <---
+    console.log('ChatInput - isSwarmMode from context:', isSwarmMode);
+
     // superiro persona
 
     const handleChange = (event) => {
@@ -121,6 +135,7 @@ function ChatInput({
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             if (input.length > 0 && !isLoading) {
+                setRows(1); // Reset rows to 1 when submitting
                 handleSubmit();
             }
         } else if (event.key === 'Enter' && event.shiftKey) {
@@ -169,15 +184,14 @@ function ChatInput({
         console.log(isSuperiorPersonaAttached, 'isSuperiorPersonaAttached')
     }, [isSuperiorPersonaAttached])
     return (
-        <div className="flex w-full flex-col animate-fade-in">
-
-
+        <div className="flex w-full flex-col animate-fade-in ">
             <motion.div
                 className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: files.length > 0 ? 1 : 0, y: files.length > 0 ? 0 : -10 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
             >
+
                 {
                     files.length > 3 &&
                     <button
@@ -187,6 +201,7 @@ function ChatInput({
                         <ChevronLeft />
                     </button>
                 }
+
                 <div
                     ref={scrollContainerRef}
                     className="flex gap-2 items-center overflow-x-scroll scroll-smooth hide-scrollbar"
@@ -219,7 +234,6 @@ function ChatInput({
                     }
                 </div>
 
-
                 {
                     files.length > 3 &&
                     <button
@@ -231,8 +245,13 @@ function ChatInput({
                 }
             </motion.div>
 
-            {/* <p className="text-center font-bold text-4xl font-mono mb-5">Let's Start The Todays Science!</p> */}
-            <div className="border border-gray-800 bg-slate-800 hide-scrollbar rounded-lg p-2">
+            <div
+                className={`rounded-2xl p-2 hide-scrollbar
+                         ${isSwarmMode
+                        ? "border-2 bg-gray-900 border-blue-500 glow-outline-soft"
+                        :"border bg-gray-900 border-gray-400" 
+                    }`}
+            >
 
 
                 <Textarea
@@ -246,8 +265,8 @@ function ChatInput({
                     placeholder="Type a message"
                 />
                 <div className="flex justify-between">
-                    <div className="flex gap-2 items-center">
-                        <div className="flex gap-2 rounded-md ">
+                    <div className="flex gap-1 items-center justify-center  " >
+                        <div className="flex gap-2 rounded-md">
                             <AudioRecorder value={input} setValue={setInput} trigger={isTransribed} setTrigger={setIsTransribed} />
                         </div>
                         {
@@ -259,9 +278,9 @@ function ChatInput({
                                         <Tooltip delayDuration={0}>
                                             <TooltipTrigger>
                                                 <div
-                                                    className="flex items-center px-1 py-1 rounded-md border border-gray-600 "
+                                                    className="flex items-center rounded-lg p-2 hover:bg-gray-800"
                                                 >
-                                                    <Paperclip className="w-6 h-6 p-1 m-1  rounded-md" />
+                                                    <Paperclip className="w-5 h-5  " />
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent className="bg-slate-600 p-2 rounded-md">
@@ -272,61 +291,220 @@ function ChatInput({
                                 </div>
                             )
                         }
-                        <div className="flex gap-2 items-center">
-                            <div
-                                onClick={() => {
-                                    setIsToolBoxOpen(!isToolBoxOpen)
-                                }}
-                                className="px-2 py-2 rounded-md bg-slate-600 cursor-pointer flex gap-2">
-                                {
-                                    isSearchOn && <Globe />
-                                }
-                                {
-                                    isDocumentOn && <File />
-                                }
-                                {
-                                    isVectorBaseOn && <DatabaseZap />
-                                }
-                                {
-                                    isSuperiorPersonaAttached && <CircleUserRound />
-                                }
 
-                                {/* default */}
-                                {
-                                    !isSearchOn && !isDocumentOn && !isVectorBaseOn && !isSuperiorPersonaAttached && <div className="flex gap-2 font-semibold">
-                                        Tool Box
+
+                        {/* chat mode */}
+                        <div className={`${isSwarmMode ? "hidden" : "flex"} gap-2 rounded-md`}>
+                            <DropdownMenu open={open} onOpenChange={(val) => { setOpen(val) }}>
+                                <DropdownMenuTrigger className="p-2 text-slate-300 text-sm items-center border-0 ring-0 hover:bg-slate-800 rounded-md px-3 py-1 focus:ring-0 focus:ring-transparent focus:ring-offset-0 flex gap-2 ">
+                                    {
+                                        !isDeepThinkMode ? "Quick Response" : "Deep Thinking" // Use context state
+                                    }
+                                    {
+                                        open ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />
+                                    }
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="p-0">
+                                    {/* Quick Response Option */}
+                                    <div className="flex flex-col divide-y divide-[#2a3042]">
+                                        <div
+                                            className="flex items-start gap-3 py-3 px-4 cursor-pointer bg-slate-800 hover:bg-[#252b3b]"
+                                            onClick={() => {
+                                                setIsDeepThinkMode(false) // Set context state
+                                                setOpen((prev) => !prev)
+                                            }}
+                                        >
+                                            <div className="mt-1">
+                                                <Flame className="text-white w-4 h-4" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-[15px] text-[#e6e9f0]">Quick response</span>
+                                                    <span className="text-xs text-[#8b93a7]">2-3 sec</span>
+                                                </div>
+                                                <span className="text-xs text-[#8b93a7] mt-0.5">Best for everyday conversation</span>
+                                            </div>
+                                            <div className="ml-auto mt-1">
+                                                {!isDeepThinkMode ? ( // Check context state
+                                                    <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center"></div>
+                                                ) : (
+                                                    <div className="h-4 w-4 rounded-full border border-gray-600 flex items-center justify-center"></div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                }
+                                    {/* Deep Think Option */}
+                                    <div className="flex flex-col divide-y divide-[#2a3042]">
+                                        <div
+                                            className="flex items-start gap-3 py-3 px-4 cursor-pointer bg-slate-800 hover:bg-[#252b3b]"
+                                            onClick={() => {
+                                                setIsDeepThinkMode(true) // Set context state
+                                                setOpen((prev) => !prev)
+                                            }}
+                                        >
+                                            <div className="mt-1">
+                                                <BrainCog className="text-white w-4 h-4" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-[15px] text-[#e6e9f0]">Deep Think & Executor</span>
+                                                    <span className="text-xs text-[#8b93a7]">45s - 2m</span>
+                                                </div>
+                                                {/* TODO: Update description if needed */}
+                                                <span className="text-xs text-[#8b93a7] mt-0.5">Best for complex tasks & analysis</span>
+                                            </div>
+                                            <div className="ml-auto mt-1">
+                                                {isDeepThinkMode ? ( // Check context state
+                                                    <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center"></div>
+                                                ) : (
+                                                    <div className="h-4 w-4 rounded-full border border-gray-600 flex items-center justify-center"></div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
 
+                        <div className={` ${isSwarmMode ? "flex" : "hidden"} gap-2 rounded-md`}>
+
+                            <div className="relative flex items-center gap-2 ml-2">
+
+                                {/* Auto Button */}
+                                <TooltipProvider>
+                                    <Tooltip delayDuration={0}>
+                                        <TooltipTrigger>
+
+
+                                            <button
+                                                onClick={() => setIsAutoSwarmContextState(true)}
+                                                className="flex   items-center gap-1 px-1 py-1 text-white"
+                                            >
+                                                <Target className="w-4 h-4" />
+                                                <span className="text-sm font-medium">Auto</span>
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="border border-slate-400 max-w-sm text-center">
+                                            <p>
+                                                In Auto mode you don't have to manually select the superior persona for agentic simulation. ARXS will create the agents based on your query
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+
+
+                                {/* Manual Button */}
+                                <TooltipProvider>
+                                    <Tooltip delayDuration={0}>
+                                        <TooltipTrigger>
+
+                                            <button
+                                                onClick={() => setIsAutoSwarmContextState(false)}
+                                                className="flex items-center gap-1 px-1 py-1 text-white"
+                                            >
+                                                <Layers2 className="w-4 h-4" />
+                                                <span className="text-sm font-medium">Manual</span>
+                                            </button>
+
+                                        </TooltipTrigger>
+                                        <TooltipContent className="border border-slate-400 max-w-sm text-center">
+                                            <p>
+                                                In manual mode you have to manually select the superior persona for agentic simulation
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+
+                                {/* Animated Glowing Dash */}
+                                <motion.div
+                                    layout
+                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    className="absolute bottom-0 h-[3px] w-[60px] rounded-full 
+                                        bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 
+                                        shadow-[0_0_8px_#c084fc] mt-2"
+                                    style={{
+                                        left: isAutoSwarmContextState ? "0px" : "75px" // Adjust based on button width + spacing
+                                    }}
+                                />
                             </div>
 
-                            {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
-
+                            {/* 
                             {
+                                !                                        left: isAutoSwarmContextState ? "0px" : "75px" // Adjust based on button width + spacing
+ && (
+                                  
 
-                                selectedSuperiorPersona.length > 0 && !isMobile && (
-                                    <div className="p-2 bg-slate-600 hover:bg-slate-500 transition-all cursor-pointer rounded-md relative flex gap-2 mr-2 ">
-                                        <div className="absolute -top-3 -right-3 cursor-pointer" onClick={() => {
-                                            setIsSuperiorPersonaAttached(false)
-                                            setSelectedSuperiorPersona([])
-                                        }}>
-                                            <X className="w-5 h-5 rounded-md bg-slate-700 hover:bg-slate-400" />
-                                        </div>
-                                        <CircleUserRound />
-                                        <div className="flex gap-3 items-center  ">
-                                            <p>{sidebarStack.length > 0 ? `${selectedSuperiorPersona.length} Selected` : `${selectedSuperiorPersona.length} Superior Persona Selected`}</p>
-                                            {/* <p className="text-slate-400">Click</p> */}
-                                        </div>
-                                    </div>
-                                )
-                            }
-
-
+                               )
+                            }  */}
                         </div>
+
+
                     </div>
 
 
                     <div className="flex gap-1 items-center">
+
+                        <div className="flex gap-2 items-center">
+
+                            <div className="flex gap-2 items-center">
+                                <div
+                                    onClick={() => {
+                                        setIsSwarmMode((prev) => {
+                                            const newState = !prev;
+                                            console.log('ChatInput - Toggling isSwarmMode to:', newState);
+                                            return newState;
+                                        });
+                                        setIsToolBoxOpen((prev)=>!prev)
+                                    }}
+                                    className=" rounded-md px-2 cursor-pointer flex gap-2">
+                                    {/* {
+                                        isSearchOn && <Globe className="w-4 h-4" />
+                                    }
+                                    {
+                                        isDocumentOn && <File className="w-4 h-4" />
+                                    }
+                                    {
+                                        isVectorBaseOn && <DatabaseZap className="w-4 h-4" />
+                                    }
+                                    {
+                                        isSuperiorPersonaAttached && <CircleUserRound className="w-4 h-4" />
+                                    } */}
+
+                                    {/* default */}
+                                    {
+                                        <div className="flex gap-2 font-semibold">
+                                            <TooltipProvider>
+                                                <Tooltip delayDuration={0}>
+                                                    <TooltipTrigger>
+                                                        <div className={
+                                                            isSwarmMode
+                                                                ? "relative w-9 h-9 glow-button backdrop-blur-md border border-blue-400/30 flex items-center justify-center focus:outline-none"
+                                                                : " w-9 h-9 flex items-center justify-center"
+                                                        }>
+                                                            <DiamondPlus className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10" />
+                                                        </div>
+
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        {
+                                                            isSwarmMode ? "Go Back To Chat" : "Go To Agentic ARX"
+                                                        }
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+
+                                        </div>
+                                    }
+
+                                </div>
+
+                                {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
+
+
+
+
+                            </div>
+                        </div>
                         {/* right side */}
                         {
                             isMobile && (
@@ -335,9 +513,9 @@ function ChatInput({
                                         <DrawerTrigger>
                                             <TooltipProvider>
                                                 <Tooltip delayDuration={0}>
-                                                    <TooltipTrigger className="ml-2">
-                                                        <div className="cursor-pointer gap-2 mt-1 items-center bg-slate-600 px-2 py-2 rounded-md">
-                                                            <AudioLines />
+                                                    <TooltipTrigger >
+                                                        <div className="cursor-pointer gap-2 items-center bg-slate-800 p-2 rounded-md">
+                                                            <AudioLines className="w-5 h-5" />
                                                         </div>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
@@ -412,27 +590,15 @@ function ChatInput({
                                 </div>
                             )
                         }
-                        <TooltipProvider>
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger>
-                                    <div onClick={handleScroll} className="cursor-pointer md:flex hidden gap-2 items-center bg-slate-700 px-2 py-2 rounded-md">
-                                        <ChevronDown />
-                                    </div>
 
-                                </TooltipTrigger>
-                                <TooltipContent className="bg-slate-600 p-2 rounded-md">
-                                    <p>Scroll To Bottom</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
                         <div className="md:flex hidden">
                             <Dialog>
                                 <DialogTrigger>
                                     <TooltipProvider>
                                         <Tooltip delayDuration={0}>
                                             <TooltipTrigger >
-                                                <div className="cursor-pointer md:flex hidden gap-2 items-center bg-slate-700 px-2 py-2 rounded-md">
-                                                    <AudioLines />
+                                                <div className="cursor-pointer  md:flex hidden gap-2 items-center p-2 rounded-md hover:bg-gray-800  mr-2 ">
+                                                    <AudioLines className="w-5 h-5 " />
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent>
@@ -528,16 +694,16 @@ function ChatInput({
 
                         </div>
                         <button
-                            disabled={input.length === 0}
+                            disabled={input.length === 0 || isLoading} // Disable if loading
                             onClick={() => {
                                 isLoading ? null : handleSubmit()
                             }}
-                            className={` ${input.length == 0 ? "bg-gray-600 border-slate-600 hover:bg-gray-600" : ""} p-1 bg-white rounded-md hover:bg-slate-300`}>
+                            className={` ${input.length === 0 || isLoading ? "bg-gray-600 border-slate-600 hover:bg-gray-600 cursor-not-allowed" : "bg-white hover:bg-slate-300"} rounded-md `}>
                             {
                                 isLoading ? (
                                     <LoaderCircle className="animate-spin  w-5 h-5 m-2 text-black mx-3" />
                                 ) : (
-                                    <ArrowUp className="text-black font-thin w-5 h-5 m-2" />
+                                    <ArrowRight className="text-black font-thin w-5 h-5 m-2" />
                                 )
                             }
 
@@ -666,52 +832,16 @@ function ChatInput({
                     </Drawer>
 
 
-                    {isToolBoxOpen && (
+                    {!isAutoSwarmContextState && isSwarmMode && (
                         <motion.div
                             key="toolbox"
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }} // Moves up when disappearing
                             transition={{ duration: 0.25, ease: "easeInOut" }}
-                            className="md:flex hidden gap-2  mt-2 border-t border-slate-500  pt-2 w-full overflow-scroll"
+                            className="md:flex  gap-2  mt-2 border-t-2 border-blue-900 pt-2 w-full overflow-scroll"
                         >
-                            <div
-                                onClick={() => setIsSearchOn(!isSearchOn)}
-                                className={`px-4 py-2 flex gap-2 items-center ${isSearchOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
-                            >
-                                <Globe className={`${isSearchOn ? "text-white" : "text-slate-500"}`} />
-                                <p className={`font-semibold ${isSearchOn ? "text-white" : "text-slate-500"}`}>
-                                    {
-                                        sidebarStack.length > 0 ? ("Search") : (`Search Is ${isSearchOn ? "On" : "Off"}`)
-                                    }
-                                </p>
-                            </div>
 
-                            <div
-                                onClick={() => setIsVectorBaseOn(!isVectorBaseOn)}
-                                className={`px-4 py-2 flex gap-2 items-center ${isVectorBaseOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
-                            >
-                                <DatabaseZap className={`${isVectorBaseOn ? "text-white" : "text-slate-500"}`} />
-                                <p className={`font-semibold ${isVectorBaseOn ? "text-white" : "text-slate-500"}`}>
-                                    {
-                                        sidebarStack.length > 0 ? ("Knowledge") : (`Knowledge Base Is ${isVectorBaseOn ? "On" : "Off"}`)
-                                    }
-                                </p>
-                            </div>
-
-                            {files.length > 0 && (
-                                <div
-                                    onClick={() => setIsDocumentOn(!isDocumentOn)}
-                                    className={`px-4 py-2 flex gap-2 items-center ${isDocumentOn && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
-                                >
-                                    <File className={`${isDocumentOn ? "text-white" : "text-slate-500"}`} />
-                                    <p className={`font-semibold ${isDocumentOn ? "text-white" : "text-slate-500"}`}>
-                                        {
-                                            sidebarStack.length > 0 ? ("Files Data") : (`File Data Is ${isDocumentOn ? "On" : "Off"}`)
-                                        }
-                                    </p>
-                                </div>
-                            )}
                             <Dialog open={isSupDialogOpen} onOpenChange={setIsSupDialogOpen}>
                                 <DialogTrigger>
                                     <div
@@ -719,28 +849,42 @@ function ChatInput({
                                             console.log(fetchSuperiorPersona, 'fetchSuperiorPersona')
                                             if (fetchSuperiorPersona) fetchSuperiorPersona()
                                         }}
-                                        className={`px-4 py-2 flex gap-2 items-center ${selectedSuperiorPersona.length > 0 && "bg-gray-600 border-white border-2"} border-slate-600 border rounded-md w-fit cursor-pointer`}
                                     >
-                                        <BookHeart className={`${selectedSuperiorPersona.length > 0 ? "text-white" : "text-slate-500"}`} />
-                                        <p className={`font-semibold ${selectedSuperiorPersona.length > 0 ? "text-white" : "text-slate-500"}`}>
-                                            {
-                                                sidebarStack.length > 0 ? (
-                                                    selectedSuperiorPersona.length > 0 ? "Manage" : "Attach"
-                                                ) : (
-                                                    selectedSuperiorPersona.length > 0 ? "Manage Superior Personas" : "Attach Superior Persona"
-                                                )
-                                            }
-                                        </p>
+                                        <div className="text-sm w-full flex items-center font-semibold bg-slate-800  hover:bg-slate-700 px-3 py-1 rounded-md cursor-pointer">
+                                            Manage Superior Persona
+                                        </div>
                                     </div>
                                 </DialogTrigger>
                                 <DialogContent className="max-w-5xl h-[80%] bg-slate-700 p-0 border-2 border-slate-500 overflow-y-scroll">
-
                                     <GroupSuperiorPersonaSection onFetchSuperiorPersona={setFetchSuperiorPersona} />
-
-
                                 </DialogContent>
                             </Dialog>
 
+
+                            {/* count */}
+                            {
+
+                                selectedSuperiorPersona.length > 0 && !isMobile && (
+                                    <div className="bg-slate-800 hover:bg-slate-700 transition-all cursor-pointer rounded-md relative flex items-center px-3  gap-2 mr-2 ">
+                                        <div className="absolute -top-3 -right-3 cursor-pointer" onClick={() => {
+                                            setIsSuperiorPersonaAttached(false)
+                                            setSelectedSuperiorPersona([])
+                                        }}>
+                                            <X className="w-4 h-4 z-50 rounded-md bg-slate-700 hover:bg-slate-400" />
+                                        </div>
+                                        <CircleUserRound className="w-4 h-4" />
+                                        <div className="flex gap-3 items-center  ">
+                                            <p>{sidebarStack.length > 0 ? `${selectedSuperiorPersona.length} Selected` : `${selectedSuperiorPersona.length} Superior Persona Selected`}</p>
+                                            {/* <p className="text-slate-400">Click</p> */}
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+
+
+
+                            {/* bound */}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -752,13 +896,3 @@ function ChatInput({
 export default memo(ChatInput);
 
 
-function SelectedPersonaDetails({
-    selectedSuperiorPersona
-}) {
-
-    return (
-        <div>
-
-        </div>
-    )
-}

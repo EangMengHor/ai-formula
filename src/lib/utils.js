@@ -106,7 +106,7 @@ export function parseContent(input) {
   }
 
   const sections = [];
-  const combinedRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)/g;
+  const combinedRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<document>([\s\S]*?)<\/document>)|(<visual>([\s\S]*?)<\/visual>)/g;
   let lastIndex = 0;
   let match;
 
@@ -116,22 +116,63 @@ export function parseContent(input) {
       sections.push({
         type: 'text',
         content: input.substring(lastIndex, match.index).trim(),
+        isComplete: true, // Text blocks are always complete
       });
     }
 
-    // Check if it's a mermaid block or an agent block
+    // Check which type of block it is
     if (match[0].startsWith('```mermaid')) {
       sections.push({
         type: 'mermaid',
         content: match[2].trim(),
+        isComplete: true, // Mermaid blocks are always complete
       });
-    } else {
+    } else if (match[0].startsWith('<|agent|')) {
       // Parse the persona/agent block
       const agentContent = match[4];
       const parsedAgent = parseAgentBlock(agentContent);
       sections.push({
         type: 'persona',
+        isComplete: true, // Persona blocks are always complete
         ...parsedAgent,
+      });
+    } else if (match[0].startsWith('<document>')) {
+      // Parse document block
+      const docContent = match[6];
+      const nameMatch = /<name>([\s\S]*?)<\/name>/g.exec(docContent);
+      
+      let name = nameMatch ? nameMatch[1].trim() : "Document";
+      let content = docContent;
+      
+      // Remove name tag if present
+      if (nameMatch) {
+        content = docContent.replace(nameMatch[0], '').trim();
+      }
+      
+      sections.push({
+        type: 'document',
+        name: name,
+        content: content,
+        isComplete: true, // Mark document blocks as complete when parsing from history
+      });
+    } else if (match[0].startsWith('<visual>')) {
+      // Parse visual block
+      const visualContent = match[8];
+      const nameMatch = /<name>([\s\S]*?)<\/name>/g.exec(visualContent);
+      
+      let name = nameMatch ? nameMatch[1].trim() : "Visualization";
+      let content = visualContent;
+      
+      // Remove name tag if present
+      if (nameMatch) {
+        content = visualContent.replace(nameMatch[0], '').trim();
+      }
+      
+      sections.push({
+        type: 'visual',
+        name: name,
+        content: content,
+        isComplete: true, // Mark visual blocks as complete when parsing from history
       });
     }
 
@@ -143,6 +184,7 @@ export function parseContent(input) {
     sections.push({
       type: 'text',
       content: input.substring(lastIndex).trim(),
+      isComplete: true, // Text blocks are always complete
     });
   }
 
@@ -155,23 +197,30 @@ export function parseContent(input) {
   const finalSections = [];
   let simulationInserted = false;
   const personaSections = validSections.filter(item => item.type === 'persona');
-
-  for (const section of validSections) {
-    if (section.type === 'persona') {
-      if (!simulationInserted) {
-        finalSections.unshift({
-          type: "simulation",
-          items: personaSections
-        });
-        simulationInserted = true;
+  
+  // Only process personas if there are any
+  if (personaSections.length > 0) {
+    for (const section of validSections) {
+      if (section.type === 'persona') {
+        if (!simulationInserted) {
+          finalSections.push({
+            type: "simulation",
+            items: personaSections,
+            isComplete: true, // Simulation blocks are always complete
+          });
+          simulationInserted = true;
+        }
+        // Skip adding individual persona sections
+      } else {
+        finalSections.push(section);
       }
-      // Skip adding individual persona sections
-    } else {
-      finalSections.push(section);
     }
+  } else {
+    // No personas, just add all sections directly
+    finalSections.push(...validSections);
   }
-  console.log(finalSections, "sadjh392874")
-
+  
+  console.log("Parsed sections:", finalSections);
   return finalSections;
 }
 

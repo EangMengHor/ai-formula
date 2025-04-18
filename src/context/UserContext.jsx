@@ -15,15 +15,18 @@ export const UserProvider = ({ children }) => {
     const [isSearchOn, setIsSearchOn] = useState(false);
     const [isDocumentOn, setIsDocumentOn] = useState(false);
     const [isVectorBaseOn, setIsVectorBaseOn] = useState(false);
-    const [isSuperiorPersonaAttached, setIsSuperiorPersonaAttached] = useState(false)
-    const [selectedSuperiorPersona, setSelectedSuperiorPersona] = useState([])
     const [SupPerItems, setSupPerItems] = useState([])
     const [currActiveIntraction, setCurrActiveIntraction] = useState(aiIntractions[0].value || "sequential")
-
+    const [isDeepThinkMode, setIsDeepThinkMode] = useState(false); // Default to Quick Response
+    // swarm
+    const [isSwarmMode, setIsSwarmMode] = useState(false);
+    const [isAutoSwarmContextState, setIsAutoSwarmContextState] = useState(false);
+    const [selectedSuperiorPersona, setSelectedSuperiorPersona] = useState([])
+    const [isSuperiorPersonaAttached, setIsSuperiorPersonaAttached] = useState(false)
     console.log(user, 'user')
     useEffect(() => {
-        console.log("Changs", currActiveIntraction, isSuperiorPersonaAttached)
-    }, [currActiveIntraction, isSuperiorPersonaAttached,])
+        console.log("Changs", isDeepThinkMode)
+    }, [isDeepThinkMode])
     useEffect(() => {
         setIsDocumentOn(false)
     }, [pathname])
@@ -34,7 +37,7 @@ export const UserProvider = ({ children }) => {
         console.log(user, 'user')
     }, [user])
 
- 
+
 
     function logout() {
         localStorage.removeItem('id')
@@ -53,7 +56,31 @@ export const UserProvider = ({ children }) => {
     }
 
     return (
-        <UserContext.Provider value={{ user, setUser, logout, isSearchOn, setIsSearchOn, isDocumentOn, setIsDocumentOn, isVectorBaseOn, setIsVectorBaseOn, isSuperiorPersonaAttached, setIsSuperiorPersonaAttached, selectedSuperiorPersona, setSelectedSuperiorPersona, SupPerItems, setSupPerItems, currActiveIntraction, setCurrActiveIntraction }}>
+        <UserContext.Provider value={{
+            isSwarmMode,
+            setIsSwarmMode,
+            isAutoSwarmContextState,
+            setIsAutoSwarmContextState,
+            user,
+            setUser,
+            logout,
+            isSearchOn,
+            setIsSearchOn,
+            isDocumentOn,
+            setIsDocumentOn,
+            isVectorBaseOn,
+            setIsVectorBaseOn,
+            isSuperiorPersonaAttached,
+            setIsSuperiorPersonaAttached,
+            selectedSuperiorPersona,
+            setSelectedSuperiorPersona,
+            SupPerItems,
+            setSupPerItems,
+            currActiveIntraction,
+            setCurrActiveIntraction,
+            isDeepThinkMode,
+            setIsDeepThinkMode
+        }}>
             {children}
         </UserContext.Provider>
     );

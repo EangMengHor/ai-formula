@@ -5,109 +5,91 @@ import { AudioContext } from '../../../context/AudioContext';
 import { useToast } from '../../../hooks/use-toast';
 import { TTS } from '../../../services/n8n-apis/_core/voiceToText.api';
 
-const AudioRecorder = ({
-    value,
-    setValue,
-    trigger,
-    setTrigger
-}) => {
+const AudioRecorder = ({ value, setValue, trigger, setTrigger }) => {
+    // Recorder setup
+    const { startRecording, stopRecording, mediaBlobUrl } = useReactMediaRecorder({
+        audio: true,
+        mimeType: "audio/webm",
+        onStop: (blobUrl, blob) => {
+            console.log("✅ Recording stopped. Blob URL:", blobUrl);
+            if (blobUrl) {
+                const file = new File([blob], "recording.webm", { type: blob.type });
+                setAudioFile(file);
+            } else {
+                console.error("❌ No blob URL received.");
+            }
+        }
+    });
 
-    // global state
-    const {
-        startRecording,
-        stopRecording,
-        mediaBlobUrl,
-    } = useReactMediaRecorder({ audio: true, mimeType: "audio/webm" });
-
-    const {
-        setAudioUrl,
-    } = useContext(AudioContext);
-
+    const { setAudioUrl } = useContext(AudioContext);
     const { toast } = useToast();
-    // component state
-    const [isPlaying, setIsPlaying] = useState(false); // Track play state
-    const [isRecording, setIsRecording] = useState(false); // Track recording state
-    const [audioFile, setAudioFile] = useState(null); // Store the audio file in state
-    const [isTranscribing, setIsTranscribing] = useState(false); // Track transcription state
-    // FN
 
+    // Component state
+    const [isRecording, setIsRecording] = useState(false);
+    const [audioFile, setAudioFile] = useState(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+
+    // Handle transcription
     const onAudioRecorded = async () => {
+        if (!audioFile) return;
+
+        console.log("📤 Sending file for transcription:", audioFile);
+        setIsTranscribing(true);
+
         try {
             const response = await TTS(audioFile);
             if (response.success) {
+                console.log("✅ Transcription received:", response.data);
                 setValue(response.data);
                 setTrigger(!trigger);
-            }
-            else {
-                toast({
-                    title: 'Error',
-                    description: response.message,
-                    variant: "destructive"
-                })
+            } else {
+                console.error("❌ Transcription failed:", response.message);
+                toast({ title: 'Error', description: response.message, variant: "destructive" });
             }
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message,
-                variant: "destructive"
-            })
+            console.error("❌ API Error:", error);
+            toast({ title: 'Error', description: error.message, variant: "destructive" });
+        } finally {
+            setIsTranscribing(false);
         }
-    }
+    };
 
-
-
-
-    // Handle mediaBlobUrl changes
+    // Debugging mediaBlobUrl
     useEffect(() => {
+        console.log("🔄 Current mediaBlobUrl:", mediaBlobUrl);
         if (mediaBlobUrl) {
-            setAudioUrl(mediaBlobUrl); // Optional: Set URL for external use
-            fetch(mediaBlobUrl)
-                .then((response) => response.blob())
-                .then((blob) => {
-                    const file = new File([blob], "recording.webm", { type: blob.type });
-                    setAudioFile(file); // Save the file in state
-                })
-                .catch((error) => console.error("Error fetching audio file:", error));
+            setAudioUrl(mediaBlobUrl);
         }
-    }, [mediaBlobUrl, setAudioUrl]);
+    }, [mediaBlobUrl]);
 
+    // Trigger transcription when file is ready
     useEffect(() => {
         if (audioFile) {
+            console.log("🎤 Audio file ready:", audioFile);
             onAudioRecorded();
         }
     }, [audioFile]);
-
-
-
 
     return (
         <div className="text-center">
             <button
                 onClick={async () => {
                     if (isTranscribing) return;
+
                     if (isRecording) {
-                        setIsPlaying(false);
+                        console.log("⏹️ Stopping recording...");
                         setIsRecording(false);
                         stopRecording();
-
                     } else {
-                        setIsPlaying(true);
+                        console.log("🎙️ Starting recording...");
                         setIsRecording(true);
                         startRecording();
                     }
                 }}
-                className={`${!isRecording ? "bg-slate-700" : "bg-slate-800 animate-pulse"} p-2 rounded-md`}
+                className={`${!isRecording ? "bg-slate-900" : "bg-slate-800 animate-pulse"} hover:bg-slate-800 p-2 rounded-md`}
             >
-                {isTranscribing ? <LoaderCircle /> : (isRecording ? <Mic /> : <MicOff />)}
+                {isTranscribing ? <LoaderCircle className='w-5 h-5 animate-spin' /> : (isRecording ? <Mic className='w-5 h-5' /> : <MicOff className='w-5 h-5' />)}
             </button>
-            {/* Display audio file information */}
-            {/* {audioFile && (
-                <div className="mt-4">
-                    <p>File Name: {audioFile.name}</p>
-                    <p>File Size: {(audioFile.size / 1024).toFixed(2)} KB</p>
-                    <audio controls src={URL.createObjectURL(audioFile)} />
-                </div>
-            )} */}
         </div>
     );
 };
