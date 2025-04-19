@@ -432,7 +432,10 @@ export default function Chat() {
 
     // Socket Connection and Event Handling
     useEffect(() => {
-        socket.current = io(import.meta.env.VITE_SOCKET_URL);
+        socket.current = io(import.meta.env.VITE_SOCKET_URL,{
+            transports: ['websocket'],    // force WS
+            path: '/socket.io'
+          });
 
         socket.current.on("connect", () => {
             console.log("Connected to socket server:", socket.current.id);
