@@ -141,6 +141,13 @@ export default function PersonaDetails({ output, title, goal, team, cot = [] }) 
                                     {children}
                                 </td>
                             ),
+                            pre: ({ children }) => {
+                                return (
+                                    <pre className="bg-slate-800 p-2 rounded-md text-wrap">
+                                        {children}
+                                    </pre>
+                                )
+                            }
                         }}
                     >
                         {output}

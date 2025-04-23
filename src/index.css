@@ -336,5 +336,23 @@ th {
 .glow-outline-soft {
   animation: outlineGlowSoft 6s ease-in-out infinite;
 }
+@keyframes outlineGlowSoftBlue {
+  0%, 100% {
+    box-shadow:
+      0 0 8px rgba(100, 149, 237, 0.15),   /* Light Steel Blue */
+      0 0 13px rgba(135, 206, 250, 0.2),   /* Light Sky Blue */
+      0 0 29px rgba(173, 216, 230, 0.15);  /* Light Blue */
+  }
+  50% {
+    box-shadow:
+      0 0 7px rgba(68, 114, 200, 0.2),
+      0 0 19px rgba(32, 80, 110, 0.25),
+      0 0 42px rgba(173, 216, 230, 0.2);
+  }
+}
 
+
+.glow-outline-soft-blue {
+  animation: outlineGlowSoftBlue 10s ease-in-out infinite;
+}
 
