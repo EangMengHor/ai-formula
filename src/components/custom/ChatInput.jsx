@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, BrainCog, Camera, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, DiamondPlus, File, Files, FileText, Flame, Globe, Layers2, LoaderCircle, MonitorUp, Paperclip, SquarePlus, Target, X } from "lucide-react";
+import { ArrowRight, ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, BrainCog, Camera, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, DiamondPlus, File, Files, FileText, Flame, Globe, Layers2, LoaderCircle, MonitorUp, Paperclip, RotateCcw, SquarePlus, Target, TriangleAlert, Unplug, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { memo, useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
@@ -52,12 +52,16 @@ const maxRows = 30;
 
 
 function ChatInput({
+    isReconnectionNeeded = false,
+    setIsReconnectionNeeded = () => { },
     input,
     setInput,
     handleSubmit,
     isLoading,
-    setLoading,
-    handleScroll
+    isError = false,
+    setIsError,
+    errorMessage = "Something Went Wrong!!",
+    onRetry
 }) {
     // global states
     const { domainState } = useDomain();
@@ -150,13 +154,6 @@ function ChatInput({
 
     // trigger from voice command
 
-    useEffect(() => {
-        if (input.length > 0) {
-            handleSubmit();
-
-        }
-    }, [isTransribed])
-
     // file scroller
     const scrollContainerRef = useRef(null);
 
@@ -185,6 +182,76 @@ function ChatInput({
     }, [isSuperiorPersonaAttached])
     return (
         <div className="flex w-full flex-col animate-fade-in ">
+            {
+                isReconnectionNeeded && <div className="mb-2 font-semibold text-lg rounded-xl border-blue-900 border-2 bg-blue-300 flex items-center p-2 justify-between">
+                    <div className="flex gap-2 text-black max-w-lg">
+                        <Unplug />
+                        <div className="flex items-center justify-center flex-col text-[16px]">
+                            <p>Connection Timeout! Please Reconnect</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+
+                        <Button
+                            onClick={() => {
+                                setIsReconnectionNeeded(false)
+                            }}
+                            size="sm"
+                        >
+                            <div className="flex gap-2">
+                                <X />
+                                <p>Close</p>
+                            </div>
+                        </Button>
+                        <Button
+                            onClick={() => window.location.reload()}
+                            variant="destructive"
+                            size="sm"
+                            className="bg-blue-900 hover:bg-blue-500"
+                        >
+                            <div className="flex gap-2">
+                                <RotateCcw />
+                                <p>Reconnect</p>
+                            </div>
+                        </Button>
+                    </div>
+                </div>
+            }
+            {
+                isError && <div className="mb-2 font-semibold text-lg rounded-xl border-red-900 border-2 bg-red-300 flex items-center p-2 justify-between">
+                    <div className="flex gap-2 text-black max-w-lg">
+                        <TriangleAlert />
+                        <div className="flex items-center justify-center flex-col text-[16px]">
+                            <p>{errorMessage || "Something Went Wrong!!"}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+
+                        <Button
+                            onClick={() => {
+                                setIsError(false)
+                            }}
+                            size="sm"
+                        >
+                            <div className="flex gap-2">
+                                <X />
+                                <p>Close</p>
+                            </div>
+                        </Button>
+                        <Button
+                            onClick={onRetry}
+                            variant="destructive"
+                            size="sm"
+                        >
+                            <div className="flex gap-2">
+                                <RotateCcw />
+                                <p>Retry</p>
+                            </div>
+                        </Button>
+                    </div>
+
+                </div>
+            }
             <motion.div
                 className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
                 initial={{ opacity: 0, y: -10 }}
@@ -249,7 +316,7 @@ function ChatInput({
                 className={`rounded-2xl p-2 hide-scrollbar
                          ${isSwarmMode
                         ? "border-2 bg-gray-900 border-blue-500 glow-outline-soft"
-                        :"border bg-gray-900 border-gray-400" 
+                        : "border bg-gray-900 border-gray-400"
                     }`}
             >
 
@@ -263,6 +330,7 @@ function ChatInput({
                     className={`ring-0-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
                     type="text"
                     placeholder="Type a message"
+                    id="aiInputTextArea"
                 />
                 <div className="flex justify-between">
                     <div className="flex gap-1 items-center justify-center  " >
@@ -454,7 +522,7 @@ function ChatInput({
                                             console.log('ChatInput - Toggling isSwarmMode to:', newState);
                                             return newState;
                                         });
-                                        setIsToolBoxOpen((prev)=>!prev)
+                                        setIsToolBoxOpen((prev) => !prev)
                                     }}
                                     className=" rounded-md px-2 cursor-pointer flex gap-2">
                                     {/* {

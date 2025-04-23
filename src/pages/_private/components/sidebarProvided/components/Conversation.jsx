@@ -10,6 +10,7 @@ import { StreamingResponse } from "./StreamingRendered";
 import LoadingAnimation from "@/components/custom/Loading";
 // ...import other needed components (e.g. PollStatus)...
 import PollStatus from "../../../../../components/custom/PolledStatus";
+import { RotateCcw } from "lucide-react";
 
 function Conversation({
 	conversation,
@@ -28,11 +29,15 @@ function Conversation({
 }) {
 	console.log(conversation, "interactionLogs");
 	return (
-		<div className={`flex-1 overflow-y-auto p-4 space-y-2 w-full ${sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"} mx-auto`}>
+		<div style={{
+			backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('./Frame2.png')",
+			backgroundSize: "cover",
+			backgroundPosition: "center"
+		}} className={`flex-1 overflow-y-auto p-4 space-y-2 w-full ${sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"} mx-auto`}>
 			{conversation.map((item, index) => {
 				if (item.role === "human") {
 					return (
-						<div className="flex items-end w-full justify-end">
+						<div className="flex flex-col items-end w-full justify-end">
 							<div
 								ref={index === conversation.length - 1 ? chatContainerRef : null}
 								className="bg-gradient-to-r from-slate-700 to-slate-800 max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap"
@@ -40,8 +45,16 @@ function Conversation({
 								{item.message
 									? item.message.replaceAll("Provided Document : No document provided", "")
 									: "{Message Not found}"}
-							</div>
 
+							</div>
+							{
+								item.isRetry && (
+									<div className="flex gap-1 items-center text-slate-500">
+										<RotateCcw className="w-4 h-4  " />
+										<p>Retried</p>
+									</div>
+								)
+							}
 						</div>
 
 					);

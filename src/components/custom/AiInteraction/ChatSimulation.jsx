@@ -46,7 +46,7 @@ export default function ChatSimulation({ personas, isLoading, effect = false }) 
     }
 
     return (
-        <div className="border w-fit md:min-w-[560px] cursor-pointer mt-5 mb-2 border-slate-700 px-4 py-2 rounded-md max-w-4xl bg-slate-800">
+        <div className=" w-fit md:min-w-[560px] cursor-pointer mt-5 mb-2  border-2 bg-gray-900 border-[#141957] glow-outline-soft glow-outline-soft-blue px-4 py-4 rounded-xl max-w-4xl ">
             <div className="flex w-full justify-between items-center">
                 <div className="flex gap-2 font-semibold items-center text-slate-200">
                     <Building2 width={20} height={20} />
@@ -82,7 +82,7 @@ export default function ChatSimulation({ personas, isLoading, effect = false }) 
                     {personas.slice(0, showAll ? personas.length : 5).map((persona, index) => (
                         <div
                             onClick={() => handleDirectClick(index)}
-                            key={index} className="px-2 py-1 border border-slate-600 rounded-md bg-slate-700 text-slate-200">
+                            key={index} className="px-2 py-1 border border-slate-600 rounded-md bg-gray-800 font-serif text-slate-300">
                             {persona?.title || "No title"}
                         </div>
                     ))}
@@ -103,7 +103,7 @@ export default function ChatSimulation({ personas, isLoading, effect = false }) 
 
             <Button
                 onClick={handleDigDeeper}
-                variant="default" className="flex gap-2">
+                variant="default" className="flex gap-2 bg-slate-700 hover:bg-slate-800">
                 <Flame />
                 Dig Deeper
             </Button>

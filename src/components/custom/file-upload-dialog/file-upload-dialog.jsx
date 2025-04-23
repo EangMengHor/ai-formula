@@ -268,7 +268,7 @@ export default function FileUploadDialog() {
                                     {files.map((file, index) => (
                                         <div
                                             key={index}
-                                            className="bg-[#2a3444]/80 backdrop-blur-sm rounded-lg p-4 m-2"
+                                            className="bg-[#2a3444]/80 backdrop-blur-sm h-fit rounded-lg p-4 m-2"
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
@@ -354,76 +354,118 @@ export default function FileUploadDialog() {
                 <DialogContent className="w-[calc(100vw-10rem)] h-[calc(100vh-5rem)]  p-8 bg-[#1a2332] border-0 ">
                     <div className="flex flex-col md:flex-row">
 
-                        <div className="z-10 flex flex-col md:grid grid-cols-1 sm:grid-cols-2 h-fit w-full md:w-3/4 ">
-                            {files.map((file, index) => (
-                                <div
-                                    key={index}
-                                    className="bg-[#2a3444]/80 backdrop-blur-sm rounded-lg p-4 m-2"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="bg-gray-200 p-3 rounded-lg">
-                                                <FileText className="w-5 h-5 text-gray-700" />
-                                            </div>
-                                            <div className="overflow-hidden">
-                                                <h3 className="text-white font-medium truncate  w-full">{file.name.length > 25 ? file.name.slice(0, 25) + '...' : file.name}
-                                                </h3>
-                                                <p className="text-sm text-gray-400 truncate">
-                                                    <span className="uppercase">{file.type.replaceAll('application/', '')}</span> File
-                                                </p>
-                                            </div>
+                        <div className='md:w-3/4'>
+                            <div className='p-2 flex text-white gap-2 items-center'>
+                                <h3 className='font-semibold text-white text-2xl'>Files</h3>
+                                {/* total */}
+                                <p className='text-slate-400'>{files?.length || 0} Files Selected</p>
+                                <div className='border-l-2 border-slate-200 h-5' />
+
+                                {/* memorized */}
+                                {
+                                    (memorizedFiles?.length || 0) > 0 && (
+                                        <div className='flex items-center gap-2'>
+                                            <Check className='text-green-300' />
+                                            <p className='text-slate-400'>{memorizedFiles.length} Files Memorized</p>
 
                                         </div>
-                                        <div className="flex  md:flex-row flex-col items-center space-x-3">
-                                            {fileQueueError.some(item => item.index === index) ? (
-                                                <div className='bg-red-300 px-4 py-1 rounded-md'>
-                                                    {fileQueueError.find(item => item.index === index).message || "Error Occured"}
-                                                </div>
-                                            ) : memorizationStatuses[file.name] === "memorizing" ? (
-                                                <div className="flex items-center space-x-2  bg-white text-black px-4 py-1 rounded-md">
-                                                    <LoaderCircle className='animate-spin' />
-                                                    <span>Memorizing...</span>
-                                                </div>
-                                            ) : memorizationStatuses[file.name] === "memorized" ? (
-                                                <div className='bg-green-300 px-4 py-1 rounded-md flex gap-2'>
-                                                    <Check />
-                                                    <p>Memorized</p>
-                                                </div>
-                                            ) : memorizationStatuses[file.name] === "queued" ? (
-                                                <div className="flex items-center space-x-2 bg-gray-300 text-black px-4 py-1 rounded-md">
-                                                    <span>Queued</span>
-                                                </div>
-                                            ) : memorizationStatuses[file.name] === "error" ? (
-                                                <div className='bg-red-300 px-4 py-1 rounded-md'>
-                                                    Error
-                                                </div>
-                                            ) : (
-                                                <Button
-                                                    // onClick={() => handleMemorize(file, index)} // Removed this line
-                                                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded px-4 py-1 text-sm"
-                                                    disabled
-                                                >
-                                                    <span>Memorize Data</span>
-                                                </Button>
-                                            )}
+                                    )
+                                }
 
-                                            {!memorizedFiles.includes(file.name) && ( // Removed this line
-                                                <Button
-                                                    onClick={() => removeFile(file)}
-                                                    className="bg-red-200 hover:bg-red-300 text-red-700 rounded px-4 py-1 text-sm"
-                                                >
-                                                    <X />
-                                                </Button>
-                                            )}
+                                {/* being uploaded */}
+                                {
+                                    (memorizationQueue?.length || 0) > 0 && (
+                                        <div className='flex items-center gap-2'>
+                                            <div className='border-l-2 border-slate-200 h-5' />
+
+                                            <LoaderCircle className='animate-spin' />
+                                            <p className='text-slate-400'>{memorizationQueue.length} Files Being Uploaded</p>
+                                        </div>
+                                    )
+                                }
+                                {/* error */}
+                                {
+                                    (fileQueueError?.length || 0) > 0 && (
+                                        <div className='flex items-center gap-2'>
+                                            <div className='border-l-2 border-slate-200 h-5' />
+                                            <X className='text-red-300' />
+                                            <p className='text-slate-400'>{fileQueueError.length} Files Error</p>
+                                        </div>
+                                    )
+                                }
+
+                            </div>
+                            <div className="z-10 overflow-scroll   flex flex-col md:grid grid-cols-1 sm:grid-cols-2  w-full  ">
+                                {files.map((file, index) => (
+                                    <div
+                                        key={index}
+                                        className="bg-[#2a3444]/80 backdrop-blur-sm rounded-lg p-4 m-2"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="bg-gray-200 p-3 rounded-lg">
+                                                    <FileText className="w-5 h-5 text-gray-700" />
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <h3 className="text-white font-medium truncate  w-full">{file.name.length > 25 ? file.name.slice(0, 25) + '...' : file.name}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-400 truncate">
+                                                        <span className="uppercase">{file.type.replaceAll('application/', '')}</span> File
+                                                    </p>
+                                                </div>
+
+                                            </div>
+                                            <div className="flex  md:flex-row flex-col items-center space-x-3">
+                                                {fileQueueError.some(item => item.index === index) ? (
+                                                    <div className='bg-red-300 px-4 py-1 rounded-md'>
+                                                        {fileQueueError.find(item => item.index === index).message || "Error Occured"}
+                                                    </div>
+                                                ) : memorizationStatuses[file.name] === "memorizing" ? (
+                                                    <div className="flex items-center space-x-2  bg-white text-black px-4 py-1 rounded-md">
+                                                        <LoaderCircle className='animate-spin' />
+                                                        <span>Memorizing...</span>
+                                                    </div>
+                                                ) : memorizationStatuses[file.name] === "memorized" ? (
+                                                    <div className='bg-green-300 px-4 py-1 rounded-md flex gap-2'>
+                                                        <Check />
+                                                        <p>Memorized</p>
+                                                    </div>
+                                                ) : memorizationStatuses[file.name] === "queued" ? (
+                                                    <div className="flex items-center space-x-2 bg-gray-300 text-black px-4 py-1 rounded-md">
+                                                        <span>Queued</span>
+                                                    </div>
+                                                ) : memorizationStatuses[file.name] === "error" ? (
+                                                    <div className='bg-red-300 px-4 py-1 rounded-md'>
+                                                        Error
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        // onClick={() => handleMemorize(file, index)} // Removed this line
+                                                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded px-4 py-1 text-sm"
+                                                        disabled
+                                                    >
+                                                        <span>Memorize Data</span>
+                                                    </Button>
+                                                )}
+
+                                                {!memorizedFiles.includes(file.name) && ( // Removed this line
+                                                    <Button
+                                                        onClick={() => removeFile(file)}
+                                                        className="bg-red-200 hover:bg-red-300 text-red-700 rounded px-4 py-1 text-sm"
+                                                    >
+                                                        <X />
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
 
                         {/* Upload Area */}
                         <div
-                            className={`flex flex-col items-center justify-center min-h-[400px] rounded-lg border-2 border-dashed w-full md:w-1/4
+                            className={`flex flex-col items-center justify-center min-h-[400px]  rounded-lg border-2 border-dashed w-full md:w-1/4
                 ${isDragging ? 'border-white bg-[#2a3444]/50' : 'border-gray-600'}
                 transition-colors duration-200 ${isMemorizing.current ? 'opacity-50 cursor-not-allowed' : ''}`}
                             onDragOver={handleDragOver}

@@ -28,6 +28,8 @@ import UserFormProgress from "./pages/_oasis/components/createNewUserTemplate/Us
 import AIExecutionFlow from "./pages/_private/components/sidebarProvided/components/AIExecutionFlow"
 import Workshop from "./pages/_private/components/sidebarProvided/components/Workshop"
 import Test from "./Test"
+import UserManualLayout from "./pages/_userManual/UserManualLayout"
+import DetailPage from "./pages/_userManual/components/DetailPage"
 
 export default function App() {
   const location = useLocation();
@@ -50,6 +52,10 @@ export default function App() {
         </Route>
       <Route path="/test" element={<Test/>} />
         <Route element={<PrivateRoute />}>
+
+        {/* user manual */}
+        <Route path="/manual" element={<UserManualLayout />} />
+        <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />} >
             <Route path="/workshop" element={<Workshop />} />

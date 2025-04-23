@@ -45,6 +45,7 @@ import ExecutionTimeline from "./ExecutionTimeline";
 import { StreamingResponse } from "./StreamingRendered";
 import Conversation from "./Conversation";
 import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
+import { set } from "date-fns";
 
 const fileType = [
     'pdf', 'docx', 'csv'
@@ -100,6 +101,11 @@ export default function Chat() {
     const [dialogTitle, setDialogTitle] = useState("");
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Add state for user scroll tracking
 
+
+       // socket reconnection
+       const [socketId, setSocketId] = useState("");
+       const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
+   
     // Refs
     const bottomRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -112,9 +118,16 @@ export default function Chat() {
     const streamTimeoutRef = useRef(null); // For deep thinking streaming timeout
     const isAutoScrolling = useRef(false); // Add ref to track programmatic scrolling
     const userScrollTimeoutRef = useRef(null); // Ref for user scroll detection timeout
+    const previousSocketIdRef = useRef(socketId); // Store previous ID in a ref instead of using state
 
-
+    // error
+    const [isError, setIsError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const currentStepRef = useRef(null); // For tracking current step in deep thinking
+
+
+ 
+
 
     // Memoize functions to prevent Conversation from re-rendering on every text input change
     const memoizedHandleBlockSidebar = useCallback((block, type, header = "") => {
@@ -297,7 +310,6 @@ export default function Chat() {
                             return item;
                         } else {
                             const parsedResponse = parseHistoryAIContent(item.message);
-                            console.log(parsedResponse, "98089098")
                             if (item?.steps) {
                                 return {
                                     role: "ai",
@@ -316,9 +328,6 @@ export default function Chat() {
                         }
                     });
                     setConversation(processedData);
-
-
-
                 }
             } catch (error) {
                 toast({
@@ -432,16 +441,64 @@ export default function Chat() {
 
     // Socket Connection and Event Handling
     useEffect(() => {
-        socket.current = io(import.meta.env.VITE_SOCKET_URL,{
-            transports: ['websocket'],    // force WS
-            path: '/socket.io'
-          });
 
+        socket.current = io(import.meta.env.VITE_SOCKET_URL, {
+            transports: ['websocket'],    // force WS
+            path: '/socket.io',
+            reconnection: true,           // Enable reconnection
+            reconnectionAttempts: 20,      // Max attempts to reconnect
+            reconnectionDelay: 1000,      // Initial delay between attempts (ms)
+            reconnectionDelayMax: 5000,   // Max delay between attempts (ms)
+            timeout: 20000,               // Connection timeout (ms)
+
+        });
+        // Log when ping is sent to server
+        socket.current.io.engine.on('ping', () => {
+            console.log('[↔️ CLIENT] Ping received from server');
+        });
+
+        socket.current.io.engine.on('pong', (latency) => {
+            console.log(latency, 'latency')
+            console.log(`[↔️ CLIENT] Pong sent back to server (latency: ${latency} ms)`);
+        });
+
+        socket.current.on("reconnect_attempt", (attempt) => {
+            console.log(`Reconnection attempt #${attempt}`);
+        });
+
+        socket.current.on("reconnect", () => {
+            console.log("Successfully reconnected to socket server");
+        });
+
+        socket.current.on("reconnect_error", (error) => {
+            console.error("Reconnection error:", error);
+        });
+
+        socket.current.on("reconnect_failed", () => {
+            console.error("Reconnection failed after maximum attempts");
+        });
         socket.current.on("connect", () => {
-            console.log("Connected to socket server:", socket.current.id);
+            const currentSocketId = socket.current.id;
+            console.log(`Socket connected: ${currentSocketId}`);
+            
+            // Check if we have a previous socket ID (not the first connection)
+            if (previousSocketIdRef.current && previousSocketIdRef.current !== currentSocketId) {
+                console.log(`Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`);
+                setIsReconnectionNeeded(true);
+            }
+            
+            // Update the ref with current socket ID
+            previousSocketIdRef.current = currentSocketId;
+            
+            // Also update state (for UI display purposes)
+            setSocketId(currentSocketId);
+            
+            console.log("Connected to socket server:", currentSocketId);
         });
 
         socket.current.on("disconnect", () => {
+            
+
             console.log("Disconnected from socket server");
         });
 
@@ -449,9 +506,21 @@ export default function Chat() {
             handleSocketEvent(event);
         });
 
-        socket.current.on("error", (error) => {
-            console.error("Socket error:", error);
-        });
+        socket.current.on('error', (data) => {
+            console.log(data, 'error')
+            setIsNextChatLoading(false);
+            if (!data?.isBreakage) {
+                toast({
+                    title: 'Error',
+                    description: data.message,
+                    variant: "destructive"
+                })
+            }
+            else {
+                setIsError(true);
+                setErrorMessage(data.message);
+            }
+        })
 
         return () => {
             socket.current?.disconnect();
@@ -511,9 +580,10 @@ export default function Chat() {
         }
     }, [isUserScrolling]); // Dependency: only re-create if isUserScrolling changes
 
+useEffect(( )=>{
+    console.log(socketId, 'socketId')
+},[socketId])
 
-
-   
     //
     // Updated smoothScrollToBottom
     useEffect(() => {
@@ -575,176 +645,176 @@ export default function Chat() {
         a()
     }, [conversation])
     // Handle socket events (streaming messages) - improved with consistent finalResponse handling
-  /********************************************************************
- * Helpers (plain‑JS, no external deps)
- ********************************************************************/
-
-/* 1️⃣  Make a fresh AI message shell */
-const newAiMessage = (kind = "quick") => ({
-    role       : "ai",
-    type       : kind,                 // "simulation" | "quick" | "deepThink"
-    isStreaming: kind !== "simulation",
-    isComplete : kind === "simulation",
-    message    : kind === "simulation"
-                ? [{ type: "simulation", items: [] }]
-                : [],
-    tempContent: "",                   // streaming buffer
-    steps      : [],                   // deep‑think only
-  });
-  
-  /* 2️⃣  Append a text chunk to an existing streaming message */
-  const appendChunk = (msg, chunk) => {
-    msg.tempContent += chunk;
-    msg.isStreaming  = true;
-  
-    msg.message = msg.type === "quick"
-      ? processStreamingContent(msg.tempContent)
-      : parseHistoryAIContent(msg.tempContent);
-  };
-  
-  /* 3️⃣  Mark a streaming message finished */
-  const completeStreaming = (msg) => {
-    msg.isStreaming = false;
-    msg.isComplete  = true;
-    delete msg.tempContent;
-  };
-  
-  /********************************************************************
-   * Main socket handler   –  paste this as one block
+    /********************************************************************
+   * Helpers (plain‑JS, no external deps)
    ********************************************************************/
-  const handleSocketEvent = async (event) => {
-    /* ─────────────────────────────────────────────────────── */
-    /* 1. “swarmId” → update or create the simulation message  */
-    /* ─────────────────────────────────────────────────────── */
-    if (event.type === "swarmId") {
-      const { output } = await getPersonaById(event.swarmId);
-      const simItems   = parseContent(output).flatMap((d) => d.items);
-  
-      setConversation((prev) => {
-        const conv = [...prev];
-        let last   = conv[conv.length - 1];
-  
-        if (!last || last.type !== "simulation") {
-          last = newAiMessage("simulation");
-          conv.push(last);
-        }
-        last.message[0].items.push(...simItems);
-        return conv;
-      });
-      return;
-    }
-  
-    /* ─────────────────────────────────────────────────────── */
-    /* 2. “finalResponse” chunks                               */
-    /* ─────────────────────────────────────────────────────── */
-    if (event.type === "finalResponse" && event.content) {
-      setConversation((prev) => {
-        const conv = [...prev];
-        let last   = conv[conv.length - 1];
-  
-        // ensure a streaming container exists
-        if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
-          // If you know the real mode, replace "quick" with it
-          last = newAiMessage("quick");
-          conv.push(last);
-        }
-        appendChunk(last, event.content);
-        return conv;
-      });
-  
-      setIsNextChatLoading(true);
-      return;
-    }
-  
-    /* ─────────────────────────────────────────────────────── */
-    /* 3. “finish” → close the streaming message               */
-    /* ─────────────────────────────────────────────────────── */
-    if (event.type === "finish") {
-      setConversation((prev) => {
-        const conv = [...prev];
-        const last = conv[conv.length - 1];
-  
-        if (last && (last.type === "quick" || last.type === "deepThink")) {
-          completeStreaming(last);
-          if (last.type === "deepThink") {
-            last.steps.push({ type: "finish" });
-          }
-        }
-        return conv;
-      });
-  
-      setIsNextChatLoading(false);
-      setIsShowAgenticBlock(false);
-      return;
-    }
-  
-    /* ─────────────────────────────────────────────────────── */
-    /* 4. Deep‑think sub‑events (only if last message is deep) */
-    /* ─────────────────────────────────────────────────────── */
-    setConversation((prev) => {
-      const conv = [...prev];
-      const last = conv[conv.length - 1];
-      if (!last || last.type !== "deepThink") return prev;
-  
-      const steps = last.steps || (last.steps = []);
-  
-      switch (event.type) {
 
-        case "searchUrls":
-            console.log(event, 'searchUrls')
-            break;
-        case "defineGoal":
-          steps.push({ type: "defineGoal", text: "" });
-          break;
-  
-        case "thinking":
-          steps.push({ type: "thinking", text: "" });
-          break;
-  
-        case "stepAgent":
-          steps.push({
-            type: "stepAgent",
-            goal: "",
-            isLoadingKnowledge: false,
-            isLoadingSearch   : false,
-          });
-          break;
-  
-        case "stepAgentGoal":
-          if (steps.length) {
-            const s = steps[steps.length - 1];
-            if (s.type === "stepAgent") s.goal += event.content || "";
-          }
-          break;
-  
-        case "knowledge":
-          if (steps.length) {
-            const s = steps[steps.length - 1];
-            if (s.type === "stepAgent") s.isLoadingKnowledge = true;
-          }
-          break;
-  
-        case "search":
-          if (steps.length) {
-            const s = steps[steps.length - 1];
-            if (s.type === "stepAgent") s.isLoadingSearch = true;
-          }
-          break;
-  
-        case "reEvaluating":
-          steps.push({ type: "reEvaluating", text: "" });
-          break;
-  
-        default: // generic text append
-          if (event.content && steps.length) {
-            const s = steps[steps.length - 1];
-            if (s) s.text = (s.text || "") + event.content;
-          }
-      }
-      return conv;
+    /* 1️⃣  Make a fresh AI message shell */
+    const newAiMessage = (kind = "quick") => ({
+        role: "ai",
+        type: kind,                 // "simulation" | "quick" | "deepThink"
+        isStreaming: kind !== "simulation",
+        isComplete: kind === "simulation",
+        message: kind === "simulation"
+            ? [{ type: "simulation", items: [] }]
+            : [],
+        tempContent: "",                   // streaming buffer
+        steps: [],                   // deep‑think only
     });
-  };
-  
+
+    /* 2️⃣  Append a text chunk to an existing streaming message */
+    const appendChunk = (msg, chunk) => {
+        msg.tempContent += chunk;
+        msg.isStreaming = true;
+
+        msg.message = msg.type === "quick"
+            ? processStreamingContent(msg.tempContent)
+            : parseHistoryAIContent(msg.tempContent);
+    };
+
+    /* 3️⃣  Mark a streaming message finished */
+    const completeStreaming = (msg) => {
+        msg.isStreaming = false;
+        msg.isComplete = true;
+        delete msg.tempContent;
+    };
+
+    /********************************************************************
+     * Main socket handler   –  paste this as one block
+     ********************************************************************/
+    const handleSocketEvent = async (event) => {
+        /* ─────────────────────────────────────────────────────── */
+        /* 1. “swarmId” → update or create the simulation message  */
+        /* ─────────────────────────────────────────────────────── */
+        if (event.type === "swarmId") {
+            const { output } = await getPersonaById(event.swarmId);
+            const simItems = parseContent(output).flatMap((d) => d.items);
+
+            setConversation((prev) => {
+                const conv = [...prev];
+                let last = conv[conv.length - 1];
+
+                if (!last || last.type !== "simulation") {
+                    last = newAiMessage("simulation");
+                    conv.push(last);
+                }
+                last.message[0].items.push(...simItems);
+                return conv;
+            });
+            return;
+        }
+
+        /* ─────────────────────────────────────────────────────── */
+        /* 2. “finalResponse” chunks                               */
+        /* ─────────────────────────────────────────────────────── */
+        if (event.type === "finalResponse" && event.content) {
+            setConversation((prev) => {
+                const conv = [...prev];
+                let last = conv[conv.length - 1];
+
+                // ensure a streaming container exists
+                if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
+                    // If you know the real mode, replace "quick" with it
+                    last = newAiMessage("quick");
+                    conv.push(last);
+                }
+                appendChunk(last, event.content);
+                return conv;
+            });
+
+            setIsNextChatLoading(true);
+            return;
+        }
+
+        /* ─────────────────────────────────────────────────────── */
+        /* 3. “finish” → close the streaming message               */
+        /* ─────────────────────────────────────────────────────── */
+        if (event.type === "finish") {
+            setConversation((prev) => {
+                const conv = [...prev];
+                const last = conv[conv.length - 1];
+
+                if (last && (last.type === "quick" || last.type === "deepThink")) {
+                    completeStreaming(last);
+                    if (last.type === "deepThink") {
+                        last.steps.push({ type: "finish" });
+                    }
+                }
+                return conv;
+            });
+
+            setIsNextChatLoading(false);
+            setIsShowAgenticBlock(false);
+            return;
+        }
+
+        /* ─────────────────────────────────────────────────────── */
+        /* 4. Deep‑think sub‑events (only if last message is deep) */
+        /* ─────────────────────────────────────────────────────── */
+        setConversation((prev) => {
+            const conv = [...prev];
+            const last = conv[conv.length - 1];
+            if (!last || last.type !== "deepThink") return prev;
+
+            const steps = last.steps || (last.steps = []);
+
+            switch (event.type) {
+
+                case "searchUrls":
+                    console.log(event, 'searchUrls')
+                    break;
+                case "defineGoal":
+                    steps.push({ type: "defineGoal", text: "" });
+                    break;
+
+                case "thinking":
+                    steps.push({ type: "thinking", text: "" });
+                    break;
+
+                case "stepAgent":
+                    steps.push({
+                        type: "stepAgent",
+                        goal: "",
+                        isLoadingKnowledge: false,
+                        isLoadingSearch: false,
+                    });
+                    break;
+
+                case "stepAgentGoal":
+                    if (steps.length) {
+                        const s = steps[steps.length - 1];
+                        if (s.type === "stepAgent") s.goal += event.content || "";
+                    }
+                    break;
+
+                case "knowledge":
+                    if (steps.length) {
+                        const s = steps[steps.length - 1];
+                        if (s.type === "stepAgent") s.isLoadingKnowledge = true;
+                    }
+                    break;
+
+                case "search":
+                    if (steps.length) {
+                        const s = steps[steps.length - 1];
+                        if (s.type === "stepAgent") s.isLoadingSearch = true;
+                    }
+                    break;
+
+                case "reEvaluating":
+                    steps.push({ type: "reEvaluating", text: "" });
+                    break;
+
+                default: // generic text append
+                    if (event.content && steps.length) {
+                        const s = steps[steps.length - 1];
+                        if (s) s.text = (s.text || "") + event.content;
+                    }
+            }
+            return conv;
+        });
+    };
+
     // Process streaming content into blocks - completely rewritten for robustness
     const processStreamingContent = (content, forceComplete = false) => {
         if (!content) return [];
@@ -933,11 +1003,14 @@ const newAiMessage = (kind = "quick") => ({
     };
 
     // Function: Handle prompt submission
-    const handleSubmit = useCallback(async (prompt) => {
+    const handleSubmit = useCallback(async (prompt, isRetry = false) => {
         if (prompt.length === 0) {
             return;
         }
-
+        if (isError) {
+            setIsError(false);
+            setErrorMessage("");
+        }
         // Set loading state
         setIsNextChatLoading(true);
         const prevPrompt = prompt;
@@ -948,7 +1021,8 @@ const newAiMessage = (kind = "quick") => ({
             // Add human message to conversation
             setConversation(prev => [...prev, {
                 message: prompt,
-                role: "human"
+                role: "human",
+                isRetry: isRetry,
             }]);
 
             // Reset streaming response
@@ -1013,6 +1087,40 @@ const newAiMessage = (kind = "quick") => ({
         }
     }, [id, toast, isDeepThinkMode, isSwarmMode, selectedSuperiorPersona, isAutoSwarmContextState, smoothScrollToBottom]); // Added dependencies
 
+
+    // retry function
+    const lastContent = useRef(null);
+    const isRetryTrigger = useRef(false);
+    const onRetry = useCallback(() => {
+        const lastHumanMessage = conversation.filter(item => item.role === "human").slice(-1)[0];
+        if (lastHumanMessage) {
+            console.log(lastHumanMessage, 'last human message');
+            lastContent.current = lastHumanMessage.message;
+            // remove only last element of human message
+            setConversation(prev => {
+                const lastIndex = prev.lastIndexOf(lastHumanMessage);
+                return prev.filter((_, index) => index !== lastIndex);
+            });
+            isRetryTrigger.current = true;
+        }
+        console.log(lastHumanMessage, 'last human message');
+    }, [conversation])
+
+    // useEffect: this is depended to onRetry function: when react removes the last message from the conversation we need to add new item as retry
+    useEffect(() => {
+        if (isError && isRetryTrigger.current) {
+            isRetryTrigger.current = false;
+
+            const lastHumanMessageContent = lastContent.current;
+            console.log(lastHumanMessageContent, 'last human message content');
+            // setPrompt(lastHumanMessageContent);
+            handleSubmit(lastHumanMessageContent, true);
+            setIsNextChatLoading(true);
+            setIsError(false);
+            setErrorMessage("");
+        }
+    }, [conversation])
+
     // Function: Poll chat output (keeping for compatibility)
     async function _pollChatOutput(id) {
         return await pollChatOutput(id);
@@ -1047,6 +1155,10 @@ const newAiMessage = (kind = "quick") => ({
             setIsChanged(prev => !prev);
         }, 2000, 2)();
     };
+
+    useEffect(() => {
+        console.log(conversation)
+    }, [conversation])
 
     // Function: Start polling interaction logs
     const startPollingInteractionLogs = () => {
@@ -1114,11 +1226,17 @@ const newAiMessage = (kind = "quick") => ({
             <div className="w-full p-2 sticky bottom-0 bg-black mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
                     <ChatInput
+                        isReconnectionNeeded={isReconnectionNeeded}
                         input={prompt}
                         setInput={setPrompt}
                         handleSubmit={() => handleSubmit(prompt)}
                         isLoading={isNextChatLoading}
                         setLoading={setIsNextChatLoading}
+                        isError={isError}
+                        errorMessage={errorMessage}
+                        onRetry={onRetry}
+                        setIsError={setIsError}
+                        setIsReconnectionNeeded={setIsReconnectionNeeded}
                     // isSearchOn={isSearchOn}
                     // setIsSearchOn={setIsSearchOn}
                     // isDocumentOn={isDocumentOn}

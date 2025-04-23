@@ -10,7 +10,7 @@ export const jobDetailsPage = '/agenticAutomation/jobDetails'
 // oasis
 export const oasisDashboardClientUrl = '/oasis'
 export const createNewUserTemplateClientUrl = '/oasis/createNewUserTemplate'
-
+export const userManualUrl = '/manual'
 
 export {
     login,
