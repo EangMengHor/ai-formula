@@ -504,7 +504,7 @@ export default function CreateAutomationForm() {
             console.log(error.errors, "is the error")
             if (Array.isArray(error?.errors)) {
                 error.errors.map(item => (toast({
-                    title: "Error In Form Field",
+                    title: `Error In Form Field : ${item?.code?.replaceAll("_"," ") || ""} `,
                     message: (item?.path?.[0] || "") + " " + (item?.message || " "),
                     variant: "destructive"
                 })))
@@ -912,7 +912,7 @@ export default function CreateAutomationForm() {
                                     <FormItem className="space-y-4">
                                         <div className="flex items-center gap-2">
                                             <FileText className="h-5 w-5 text-gray-400" />
-                                            <FormLabel className="text-lg font-medium text-white">Assing Workflow To Each Agent</FormLabel>
+                                            <FormLabel className="text-lg font-medium text-white">Assign Workflow To Each Agent</FormLabel>
                                         </div>
                                         <FormDescription className="text-sm text-gray-400">
                                             Selected Workflow will be assigned to each agent for performing broken down service of your given task
