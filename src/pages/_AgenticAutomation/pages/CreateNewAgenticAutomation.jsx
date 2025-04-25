@@ -363,9 +363,9 @@ export default function CreateAutomationForm() {
             const data = await breakDownTask(activeTab, textInput, selectedFile);
 
             if (data.success) {
+                console.log("trying...", data.data)
                 setIsProcessing(false)
                 setIsProcessed(true)
-                setWorkflowSteps([...data.data])
                 setWorkflowSteps([...data.data.data])
                 setParsedWorkflow(data.data.parsed)
                 return;
