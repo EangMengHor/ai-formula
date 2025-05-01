@@ -445,7 +445,7 @@ export default function Chat() {
         socket.current = io(import.meta.env.VITE_SOCKET_URL, {
             // -------- transport -----------
             // allow polling for the first handshake, then auto-upgrade to WS
-            transports: ['polling', 'websocket'],
+            transports: ['polling'],
 
             // -------- reconnection -------
             reconnection: true,
