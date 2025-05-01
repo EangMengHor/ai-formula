@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, BrainCog, Camera, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, DiamondPlus, File, Files, FileText, Flame, Globe, Layers2, LoaderCircle, MonitorUp, Paperclip, RotateCcw, SquarePlus, Target, TriangleAlert, Unplug, X } from "lucide-react";
+import { ArrowRight, ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, BrainCog, Camera, Check, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, DiamondPlus, File, Files, FileText, Flame, Globe, Layers2, LoaderCircle, MonitorUp, Paperclip, RotateCcw, SquarePlus, Target, TriangleAlert, Unplug, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { memo, useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
@@ -61,7 +61,11 @@ function ChatInput({
     isError = false,
     setIsError,
     errorMessage = "Something Went Wrong!!",
-    onRetry
+    onRetry,
+    isReconnecting = false,
+    setIsReconnecting,
+    isReconnected = false,
+    setIsReconnected,
 }) {
     // global states
     const { domainState } = useDomain();
@@ -177,6 +181,22 @@ function ChatInput({
         }
     }, [pathname])
 
+    // toggler
+    useEffect(() => {
+        if (isReconnected) {
+            setTimeout(() => {
+                setIsReconnected(false)
+            }, 1500)
+        }
+
+        if (isReconnecting) {
+            setTimeout(() => {
+                setIsReconnecting(false)
+            }, 1500);
+        }
+    }, [isReconnected, isReconnecting])
+
+
     useEffect(() => {
         console.log(isSuperiorPersonaAttached, 'isSuperiorPersonaAttached')
     }, [isSuperiorPersonaAttached])
@@ -252,6 +272,8 @@ function ChatInput({
 
                 </div>
             }
+
+            
             <motion.div
                 className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
                 initial={{ opacity: 0, y: -10 }}
