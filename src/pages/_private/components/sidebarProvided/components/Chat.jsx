@@ -452,7 +452,7 @@ export default function Chat() {
             reconnectionAttempts: 20,       // try ~4 min total (20×12 s)
             reconnectionDelay: 12_000,      // first retry 12 s after drop
             reconnectionDelayMax: 15_000,   // later retries back off to 15 s max
-
+            path: '/socket.io',           // custom path for the socket server
             // -------- optional -----------
             timeout: 20_000,                // give the open() call up to 20 s
         });
