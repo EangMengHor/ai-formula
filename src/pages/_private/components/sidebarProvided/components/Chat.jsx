@@ -105,7 +105,8 @@ export default function Chat() {
     // socket reconnection
     const [socketId, setSocketId] = useState("");
     const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
-
+    const [isReconnecting, setIsReconnecting] = useState(false);
+    const [isReconnected, setIsReconnected] = useState(false);
     // Refs
     const bottomRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -445,7 +446,7 @@ export default function Chat() {
         socket.current = io(import.meta.env.VITE_SOCKET_URL, {
             // -------- transport -----------
             // allow polling for the first handshake, then auto-upgrade to WS
-            transports: ['websocket'],
+            transports: ['websocket','polling'],
 
             // -------- reconnection -------
             reconnection: true,
@@ -484,12 +485,14 @@ export default function Chat() {
         socket.current.on("connect", () => {
             const currentSocketId = socket.current.id;
             console.log(`Socket connected: ${currentSocketId}`);
+            console.log(previousSocketIdRef.current && socket.current.connected,socket.current.connected,previousSocketIdRef.current, 'isReconnecting')
+           
             // Check if we have a previous socket ID (not the first connection)
             if (previousSocketIdRef.current && previousSocketIdRef.current !== currentSocketId) {
                 console.log(`Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`);
                 setIsReconnectionNeeded(true);
             }
-
+            
             // Update the ref with current socket ID
             previousSocketIdRef.current = currentSocketId;
 
@@ -499,9 +502,17 @@ export default function Chat() {
             console.log('socket.recovered =', socket.current.recovered);
 
         });
+       
+        if (socket.current.recovered) {
+            setIsReconnecting(true);
+            setIsReconnected(true);
+        }
 
         socket.current.on("disconnect", () => {
 
+            if (socket.current.recovered) {
+                setIsReconnected(true);
+            }
 
             console.log("Disconnected from socket server");
         });
@@ -530,6 +541,11 @@ export default function Chat() {
             socket.current?.disconnect();
         };
     }, []);
+
+
+    useEffect(() => {
+        console.log(socket.current.connected, "isconnected")
+    }, [socket])
 
     const smoothScrollToBottom = useCallback(() => {
         // Prevent auto-scroll if the user is manually scrolling up or if an auto-scroll is already happening
@@ -1241,6 +1257,10 @@ export default function Chat() {
                         onRetry={onRetry}
                         setIsError={setIsError}
                         setIsReconnectionNeeded={setIsReconnectionNeeded}
+                        isReconnecting={isReconnecting}
+                        setIsReconnecting={setIsReconnecting}
+                        setIsReconnected={setIsReconnected}
+                        isReconnected={isReconnected}
                     // isSearchOn={isSearchOn}
                     // setIsSearchOn={setIsSearchOn}
                     // isDocumentOn={isDocumentOn}
