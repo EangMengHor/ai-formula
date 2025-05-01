@@ -446,8 +446,7 @@ export default function Chat() {
         socket.current = io(import.meta.env.VITE_SOCKET_URL, {
             // -------- transport -----------
             // allow polling for the first handshake, then auto-upgrade to WS
-            transports: ['websocket','polling'],
-
+            transports: ['polling', 'websocket'],
             // -------- reconnection -------
             reconnection: true,
             reconnectionAttempts: 20,       // try ~4 min total (20×12 s)
@@ -485,14 +484,14 @@ export default function Chat() {
         socket.current.on("connect", () => {
             const currentSocketId = socket.current.id;
             console.log(`Socket connected: ${currentSocketId}`);
-            console.log(previousSocketIdRef.current && socket.current.connected,socket.current.connected,previousSocketIdRef.current, 'isReconnecting')
-           
+            console.log(previousSocketIdRef.current && socket.current.connected, socket.current.connected, previousSocketIdRef.current, 'isReconnecting')
+
             // Check if we have a previous socket ID (not the first connection)
             if (previousSocketIdRef.current && previousSocketIdRef.current !== currentSocketId) {
                 console.log(`Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`);
                 setIsReconnectionNeeded(true);
             }
-            
+
             // Update the ref with current socket ID
             previousSocketIdRef.current = currentSocketId;
 
@@ -502,7 +501,7 @@ export default function Chat() {
             console.log('socket.recovered =', socket.current.recovered);
 
         });
-       
+
         if (socket.current.recovered) {
             setIsReconnecting(true);
             setIsReconnected(true);
