@@ -447,7 +447,7 @@ export default function Chat() {
             path: '/socket.io',
             reconnection: true,           // Enable reconnection
             reconnectionAttempts: 20,      // Max attempts to reconnect
-            reconnectionDelay: 1000,      // Initial delay between attempts (ms)
+            reconnectionDelay: 12000,      // Initial delay between attempts (ms)
             reconnectionDelayMax: 5000,   // Max delay between attempts (ms)
             timeout: 20000,               // Connection timeout (ms)
 
@@ -480,12 +480,11 @@ export default function Chat() {
         socket.current.on("connect", () => {
             const currentSocketId = socket.current.id;
             console.log(`Socket connected: ${currentSocketId}`);
-            
             // Check if we have a previous socket ID (not the first connection)
             if (previousSocketIdRef.current && previousSocketIdRef.current !== currentSocketId) {
                 console.log(`Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`);
                 setIsReconnectionNeeded(true);
-            }
+            } 
             
             // Update the ref with current socket ID
             previousSocketIdRef.current = currentSocketId;
@@ -493,7 +492,8 @@ export default function Chat() {
             // Also update state (for UI display purposes)
             setSocketId(currentSocketId);
             
-            console.log("Connected to socket server:", currentSocketId);
+            console.log('socket.recovered =', socket.current.recovered);
+
         });
 
         socket.current.on("disconnect", () => {
