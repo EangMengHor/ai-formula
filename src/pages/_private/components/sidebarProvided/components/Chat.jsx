@@ -102,10 +102,10 @@ export default function Chat() {
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Add state for user scroll tracking
 
 
-       // socket reconnection
-       const [socketId, setSocketId] = useState("");
-       const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
-   
+    // socket reconnection
+    const [socketId, setSocketId] = useState("");
+    const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
+
     // Refs
     const bottomRef = useRef(null);
     const chatContainerRef = useRef(null);
@@ -126,7 +126,7 @@ export default function Chat() {
     const currentStepRef = useRef(null); // For tracking current step in deep thinking
 
 
- 
+
 
 
     // Memoize functions to prevent Conversation from re-rendering on every text input change
@@ -443,14 +443,18 @@ export default function Chat() {
     useEffect(() => {
 
         socket.current = io(import.meta.env.VITE_SOCKET_URL, {
-            transports: ['websocket'],    // force WS
-            path: '/socket.io',
-            reconnection: true,           // Enable reconnection
-            reconnectionAttempts: 20,      // Max attempts to reconnect
-            reconnectionDelay: 12000,      // Initial delay between attempts (ms)
-            reconnectionDelayMax: 5000,   // Max delay between attempts (ms)
-            timeout: 20000,               // Connection timeout (ms)
+            // -------- transport -----------
+            // allow polling for the first handshake, then auto-upgrade to WS
+            transports: ['polling', 'websocket'],
 
+            // -------- reconnection -------
+            reconnection: true,
+            reconnectionAttempts: 20,       // try ~4 min total (20×12 s)
+            reconnectionDelay: 12_000,      // first retry 12 s after drop
+            reconnectionDelayMax: 15_000,   // later retries back off to 15 s max
+
+            // -------- optional -----------
+            timeout: 20_000,                // give the open() call up to 20 s
         });
         // Log when ping is sent to server
         socket.current.io.engine.on('ping', () => {
@@ -484,20 +488,20 @@ export default function Chat() {
             if (previousSocketIdRef.current && previousSocketIdRef.current !== currentSocketId) {
                 console.log(`Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`);
                 setIsReconnectionNeeded(true);
-            } 
-            
+            }
+
             // Update the ref with current socket ID
             previousSocketIdRef.current = currentSocketId;
-            
+
             // Also update state (for UI display purposes)
             setSocketId(currentSocketId);
-            
+
             console.log('socket.recovered =', socket.current.recovered);
 
         });
 
         socket.current.on("disconnect", () => {
-            
+
 
             console.log("Disconnected from socket server");
         });
@@ -580,9 +584,9 @@ export default function Chat() {
         }
     }, [isUserScrolling]); // Dependency: only re-create if isUserScrolling changes
 
-useEffect(( )=>{
-    console.log(socketId, 'socketId')
-},[socketId])
+    useEffect(() => {
+        console.log(socketId, 'socketId')
+    }, [socketId])
 
     //
     // Updated smoothScrollToBottom
