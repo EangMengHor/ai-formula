@@ -32,63 +32,63 @@ import UserManualLayout from "./pages/_userManual/UserManualLayout"
 import DetailPage from "./pages/_userManual/components/DetailPage"
 
 export default function App() {
-  const location = useLocation();
-  const navigate = useNavigate();
+    const location = useLocation();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    const edgePaths = ['/', ''];
-    if (edgePaths.includes(location.pathname) && !location.pathname.startsWith('/chat')) {
-      navigate('/dashboard');
-    }
+    useEffect(() => {
+        const edgePaths = ['/', ''];
+        if (edgePaths.includes(location.pathname) && !location.pathname.startsWith('/chat')) {
+            navigate('/dashboard');
+        }
 
-  }, [location.pathname, navigate]);
+    }, [location.pathname, navigate]);
 
-  return (
-    <>
-      <Routes>
-        <Route path="/" element={<PublicLayout />}>
-          <Route path={login} element={<Login />} />
-          <Route path={signup} element={<Signup />} />
-        </Route>
-      <Route path="/test" element={<Test/>} />
-        <Route element={<PrivateRoute />}>
+    return (
+        <>
+            <Routes>
+                <Route path="/" element={<PublicLayout />}>
+                    <Route path={login} element={<Login />} />
+                    <Route path={signup} element={<Signup />} />
+                </Route>
+                <Route path="/test" element={<Test />} />
+                <Route element={<PrivateRoute />}>
 
-        {/* user manual */}
-        <Route path="/manual" element={<UserManualLayout />} />
-        <Route path="/detail/:slug" element={<DetailPage />} />
-          {/* code chat interface */}
-          <Route element={<SidebarProvided />} >
-            <Route path="/workshop" element={<Workshop />} />
-            <Route index path="/dashboard" element={<Dashboard />} />
-            {/* <Route path="/chat/:id" element={<Chat />} /> */}
-            <Route path="/chat/:id" element={<Chat />} />
-          </Route>
-            <Route path="/a" element={<AIExecutionFlow/>} />
-          {/* knowledge base and persona generation */}
-          <Route element={<KnowledgeLayout />} >
-            <Route path="/knowledge" element={<Knowledge />} />
-            <Route path="/create-knowledge-base" element={<CreateKnowledgeBase />} />
-            <Route path="/editSuperPersona/:idx" element={<EditSuperPersona />} />
-            <Route path="/uploadDocumentKnowledgeBase/:idx" element={<UploadDocumentKnowledge />} />
-            <Route path="/generatingKnowledge/:idx" element={<GenerateKnowledgeBase />} />
-            <Route path="/addToPermenentKnowledgeBase" element={<AddToExistingKnowledge />} />
-          </Route>
-          {/* agentic automation interface */}
-          <Route element={<AgenticAutomationLayout />} >
-            <Route path="/agenticAutomation" element={<AgenticAutomation />} />
-            <Route path="/agenticAutomation/createNewAgenticAutomation" element={<CreateAutomationForm />} />
-            <Route path="/agenticAutomation/automationJobsDetails/:automationId" element={<AgenticJobs />} />
-            <Route path="/agenticAutomation/jobDetails/:jobId" element={<JobDetails />} />
-          </Route>
-          {/* Oasis : Open Agent Social Interaction Simulation */}
-          <Route element={<OasisLayout />} >
-            <Route path={oasisDashboardClientUrl} element={<OasisDashboard />} />
-            <Route path={createNewUserTemplateClientUrl} element={<UserFormProgress />} />
-          </Route>
+                    {/* user manual */}
+                    <Route path="/manual" element={<UserManualLayout />} />
+                    <Route path="/detail/:slug" element={<DetailPage />} />
+                    {/* code chat interface */}
+                    <Route element={<SidebarProvided />} >
+                        <Route path="/workshop" element={<Workshop />} />
+                        <Route index path="/dashboard" element={<Dashboard />} />
+                        {/* <Route path="/chat/:id" element={<Chat />} /> */}
+                        <Route path="/chat/:id" element={<Chat />} />
+                    </Route>
+                    <Route path="/a" element={<AIExecutionFlow />} />
+                    {/* knowledge base and persona generation */}
+                    <Route element={<KnowledgeLayout />} >
+                        <Route path="/knowledge" element={<Knowledge />} />
+                        <Route path="/create-knowledge-base" element={<CreateKnowledgeBase />} />
+                        <Route path="/editSuperPersona/:idx" element={<EditSuperPersona />} />
+                        <Route path="/uploadDocumentKnowledgeBase/:idx" element={<UploadDocumentKnowledge />} />
+                        <Route path="/generatingKnowledge/:idx" element={<GenerateKnowledgeBase />} />
+                        <Route path="/addToPermenentKnowledgeBase" element={<AddToExistingKnowledge />} />
+                    </Route>
+                    {/* agentic automation interface */}
+                    <Route element={<AgenticAutomationLayout />} >
+                        <Route path="/agenticAutomation" element={<AgenticAutomation />} />
+                        <Route path="/agenticAutomation/createNewAgenticAutomation" element={<CreateAutomationForm />} />
+                        <Route path="/agenticAutomation/automationJobsDetails/:automationId" element={<AgenticJobs />} />
+                        <Route path="/agenticAutomation/jobDetails/:jobId" element={<JobDetails />} />
+                    </Route>
+                    {/* Oasis : Open Agent Social Interaction Simulation */}
+                    <Route element={<OasisLayout />} >
+                        <Route path={oasisDashboardClientUrl} element={<OasisDashboard />} />
+                        <Route path={createNewUserTemplateClientUrl} element={<UserFormProgress />} />
+                    </Route>
 
-          <Route path="*" element={<ComingSoonPage />} />
-        </Route>
-      </Routes>
-    </>
-  )
+                    <Route path="*" element={<ComingSoonPage />} />
+                </Route>
+            </Routes>
+        </>
+    )
 }

@@ -454,7 +454,11 @@ export default function Chat() {
             reconnectionDelayMax: 15_000,   // later retries back off to 15 s max
             path: '/socket.io',           // custom path for the socket server
             // -------- optional -----------
-            timeout: 20_000,                // give the open() call up to 20 s
+            timeout: 20_000,               // give the open() call up to 20 s
+            connectionStateRecovery: {
+                maxDisconnectionDuration: 60 * 60 * 1000,
+                skipMiddlewares: true
+              },
         });
         // Log when ping is sent to server
         socket.current.io.engine.on('ping', () => {
