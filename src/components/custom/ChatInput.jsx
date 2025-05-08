@@ -127,7 +127,9 @@ function ChatInput({
         event.target.rows = 1; // reset number of rows in textarea 
 
         const currentRows = Math.floor(event.target.scrollHeight / textareaLineHeight);
-
+        if(input.length < 5){
+            setRows(1)
+        }
         if (currentRows === previousRows) {
             event.target.rows = currentRows;
         }
@@ -142,6 +144,14 @@ function ChatInput({
     const handleKeyDown = (event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
+            if(input.length > 4999) {
+                toast({
+                    title: 'Please Make Your Input Prompt Shorter.',
+                    description: `Input length exceeded 5000 Character! Current length: ${input.length}`,
+                    variant: "destructive"
+                })
+                return;
+            }
             if (input.length > 0 && !isLoading) {
                 setRows(1); // Reset rows to 1 when submitting
                 handleSubmit();

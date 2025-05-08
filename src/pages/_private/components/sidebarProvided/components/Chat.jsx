@@ -294,6 +294,15 @@ export default function Chat() {
 
     // Effect: Handle fallback prompt submission
     useEffect(() => {
+        console.log(fallBackPrompt)
+        if(fallBackPrompt.length >4999){
+            toast({
+                title: 'Error',
+                description: "Prompt length exceeds 5000 characters.",
+
+                variant: "destructive"
+            })
+        }
         if (fallBackPrompt.length > 0) {
             handleSubmit(fallBackPrompt);
         }
@@ -458,7 +467,7 @@ export default function Chat() {
             connectionStateRecovery: {
                 maxDisconnectionDuration: 60 * 60 * 1000,
                 skipMiddlewares: true
-              },
+            },
         });
         // Log when ping is sent to server
         socket.current.io.engine.on('ping', () => {
@@ -1027,7 +1036,16 @@ export default function Chat() {
 
     // Function: Handle prompt submission
     const handleSubmit = useCallback(async (prompt, isRetry = false) => {
+        console.log(prompt.length, 'prompt')
         if (prompt.length === 0) {
+            return;
+        }
+        if (prompt.length >4999) {
+            toast({
+                title: 'Error',
+                description: "Prompt is too long. Please shorten it.",
+                variant: "destructive"
+            })
             return;
         }
         if (isError) {
