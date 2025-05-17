@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, BrainCog, Camera, Check, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, DiamondPlus, File, Files, FileText, Flame, Globe, Layers2, LoaderCircle, MonitorUp, Paperclip, RotateCcw, SquarePlus, Target, TriangleAlert, Unplug, X } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ArrowUp, ArrowUpRight, AudioLines, AudioWaveform, BookHeart, BrainCog, Camera, Check, ChevronDown, ChevronUp, CircleCheck, CircleUserRound, DatabaseZap, DiamondPlus, File, Files, FileText, Flame, Globe, Layers2, LoaderCircle, MonitorUp, Paperclip, RotateCcw, Sparkles, SquarePlus, Target, TriangleAlert, Unplug, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea"
 import { memo, useEffect, useRef, useState } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
@@ -47,6 +47,7 @@ import GroupSuperiorPersonaSection from "./GroupSuperiorPersonaSection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "../ui/button";
 import { useDomain } from "@/context/WhichDomainContext";
+import { getPromptEnhancerApi } from "@/services/n8n-apis/_core/getPromptEnhancer.api";
 const maxRows = 30;
 
 
@@ -113,21 +114,79 @@ function ChatInput({
     const [isTransribed, setIsTransribed] = useState(false);
     const [isSupDialogOpen, setIsSupDialogOpen] = useState(false)
     const { toast } = useToast();
-    console.log(pathname.includes('dashboard'), "asdfsdf")
     const [open, setOpen] = useState(false)
+    const [isPromptEnhancerLoading, setIsPromptEnhancerLoading] = useState(false)
+    const [isPromptEnchanced, setIsPromptEnhanced] = useState(false)
+    const [prevUnenchancedPrompt, setPrevUnenchancedPrompt] = useState('')
+    // Add a ref to track if input is being set by enhancer API
+    const isEnhancerApiUpdateRef = useRef(false);
 
-    // ---> Add this log <---
-    console.log('ChatInput - isSwarmMode from context:', isSwarmMode);
+    // prompt enhancer 
+    async function enchancePrompt() {
 
-    // superiro persona
+        try {
+            setPrevUnenchancedPrompt(input);
+            setIsPromptEnhancerLoading(true);
+            console.log(isPromptEnchanced)
+            if (!input || input.length < 5) {
+                throw new Error("Please enter a valid prompt.");
+            }
+            else if (isPromptEnchanced) {
+                toast({
+                    title: "Prompt Already Enhanced",
+                    description: `Please enter a new prompt to enhance`,
+                    variant: "destructive",
+                })
 
+                return;
+            }
+            const getPromptEnhanced = await getPromptEnhancerApi(input);
+            // Mark that the next setInput is from enhancer API
+            isEnhancerApiUpdateRef.current = true;
+            setInput(getPromptEnhanced);
+            setIsPromptEnhanced(true);
+            setRows(13)
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: `Something went wrong while enhancing the prompt : ${error.message}`,
+                variant: "destructive",
+            })
+
+        } finally {
+            setIsPromptEnhancerLoading(false);
+        }
+    }
+    function onUndoPromptEnhance() {
+        // Mark that the next setInput is from undo (not user typing)
+        isEnhancerApiUpdateRef.current = true;
+        setInput(prevUnenchancedPrompt);
+        setIsPromptEnhanced(false);
+        setPrevUnenchancedPrompt('');
+        toast({
+            title: "Prompt Enhancement Reverted",
+            description: `The prompt has been reverted to its original state.`,
+            variant: "default",
+        })
+    }
+
+    // Only set isPromptEnchanced to false if user changes input (not API)
+    useEffect(() => {
+        if (isEnhancerApiUpdateRef.current) {
+            isEnhancerApiUpdateRef.current = false;
+            return;
+        }
+        if (isPromptEnchanced) {
+            setIsPromptEnhanced(false);
+        }
+    }, [input])
     const handleChange = (event) => {
         const textareaLineHeight = 24;
         const previousRows = event.target.rows;
         event.target.rows = 1; // reset number of rows in textarea 
 
         const currentRows = Math.floor(event.target.scrollHeight / textareaLineHeight);
-        if(input.length < 5){
+        if (input.length < 5) {
             setRows(1)
         }
         if (currentRows === previousRows) {
@@ -144,7 +203,7 @@ function ChatInput({
     const handleKeyDown = (event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            if(input.length > 4999) {
+            if (input.length > 4999) {
                 toast({
                     title: 'Please Make Your Input Prompt Shorter.',
                     description: `Input length exceeded 5000 Character! Current length: ${input.length}`,
@@ -207,9 +266,6 @@ function ChatInput({
     }, [isReconnected, isReconnecting])
 
 
-    useEffect(() => {
-        console.log(isSuperiorPersonaAttached, 'isSuperiorPersonaAttached')
-    }, [isSuperiorPersonaAttached])
     return (
         <div className="flex w-full flex-col animate-fade-in ">
             {
@@ -283,7 +339,7 @@ function ChatInput({
                 </div>
             }
 
-            
+
             <motion.div
                 className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
                 initial={{ opacity: 0, y: -10 }}
@@ -527,15 +583,6 @@ function ChatInput({
                                     }}
                                 />
                             </div>
-
-                            {/* 
-                            {
-                                !                                        left: isAutoSwarmContextState ? "0px" : "75px" // Adjust based on button width + spacing
- && (
-                                  
-
-                               )
-                            }  */}
                         </div>
 
 
@@ -543,7 +590,32 @@ function ChatInput({
 
 
                     <div className="flex gap-1 items-center">
+                        <div className=" p-2 rounded-md hover:bg-gray-800 cursor-pointer ">
 
+                            {
+                                isPromptEnchanced ? (
+                                    <div
+                                        onClick={onUndoPromptEnhance}
+                                        className="flex gap-2 items-center">
+                                        <ArrowLeftRight className="w-5 h-5 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
+                                        <p className="text-sm font-semibold text-white">Undo</p>
+                                    </div>
+                                ) : (
+                                    isPromptEnhancerLoading ? (
+                                        <LoaderCircle className="animate-spin w-5 h-5 text-white" />
+                                    ) : (
+                                        <div
+                                            onClick={enchancePrompt}
+                                          >
+
+                                            <Sparkles className="w-5 h-5 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
+                                        </div>
+
+                                    )
+                                )
+                            }
+
+                        </div>
                         <div className="flex gap-2 items-center">
 
                             <div className="flex gap-2 items-center">
@@ -557,18 +629,6 @@ function ChatInput({
                                         setIsToolBoxOpen((prev) => !prev)
                                     }}
                                     className=" rounded-md px-2 cursor-pointer flex gap-2">
-                                    {/* {
-                                        isSearchOn && <Globe className="w-4 h-4" />
-                                    }
-                                    {
-                                        isDocumentOn && <File className="w-4 h-4" />
-                                    }
-                                    {
-                                        isVectorBaseOn && <DatabaseZap className="w-4 h-4" />
-                                    }
-                                    {
-                                        isSuperiorPersonaAttached && <CircleUserRound className="w-4 h-4" />
-                                    } */}
 
                                     {/* default */}
                                     {

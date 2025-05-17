@@ -50,3 +50,7 @@ export const getAutomationSectionDataUrl = `${url}/get-automation-detail`
 export const getJobDetailsUrl = `${url}/get-job-details`;
 // gets data about all the agents and their workflow execution with interaction between agents
 export const getJobEachAgentResponseUrl = `${url}/get-job-each-agent-responses`
+
+// prompt enhancer
+
+export const getPromptEnhancerUrl = `${url}/prompt-enhancer`;
