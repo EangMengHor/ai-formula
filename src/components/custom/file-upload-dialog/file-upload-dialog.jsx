@@ -63,13 +63,23 @@ export default function FileUploadDialog() {
             .map(file => file.name)
             .filter(fileName => !memorizedFiles.includes(fileName));
 
-        // Only update the queue if not already memorizing
-        if (!isMemorizing.current) {
-            setMemorizationQueue(newQueue);
-        }
+        // Update the queue by appending new files regardless of memorization status
+        setMemorizationQueue(prev => {
+            // Get file names already in the queue
+            const existingQueueNames = new Set(prev);
+            // Add only new files that aren't already in the queue
+            const filesToAdd = newQueue.filter(name => !existingQueueNames.has(name));
+            return [...prev, ...filesToAdd];
+        });
 
         const initialStatuses = files.reduce((acc, file) => {
-            acc[file.name] = memorizedFiles.includes(file.name) ? "memorized" : "queued";
+            if (memorizedFiles.includes(file.name)) {
+                acc[file.name] = "memorized";
+            } else if (memorizationQueue.includes(file.name)) {
+                acc[file.name] = "queued";
+            } else {
+                acc[file.name] = "queued";
+            }
             return acc;
         }, {});
         setMemorizationStatuses(initialStatuses);
@@ -87,26 +97,16 @@ export default function FileUploadDialog() {
 
     const handleDrop = (e) => {
         e.preventDefault()
-        if (isMemorizationLoading) {
-            toast({
-                title: "Memorization in Progress",
-                description: "Please wait until the current files are memorized before adding more.",
-                variant: "destructive",
-            });
-            return;
-        };
         setIsDragging(false)
         const droppedFiles = Array.from(e.dataTransfer.files)
-        if (isMemorizing.current) {
-            toast({
-                title: "Memorization in Progress",
-                description: "Please wait until the current files are memorized before adding more.",
-                variant: "warning",
-            });
-            return;
-        }
-        setFiles((prev) => [...prev, ...droppedFiles]);
 
+        // Allow files to be added even during memorization
+        // Filter for unique files to avoid duplicates
+        const uniqueFiles = droppedFiles.filter((newFile) =>
+            !files.some((file) => file.name === newFile.name && file.size === newFile.size)
+        )
+
+        setFiles((prev) => [...prev, ...uniqueFiles]);
     }
 
     const removeFile = (fileToRemove) => {
@@ -124,25 +124,12 @@ export default function FileUploadDialog() {
     }
 
     const handleFileChange = (e) => {
-        if (isMemorizationLoading) {
-            toast({
-                title: "Memorization in Progress",
-                description: "Please wait until the current files are memorized before adding more.",
-                variant: "destructive",
-            });
-            return;
-        };
         if (e.target.files) {
-            if (isMemorizing.current) {
-                toast({
-                    title: "Memorization in Progress",
-                    description: "Please wait until the current files are memorized before adding more.",
-                    variant: "warning",
-                });
-                return;
-            }
+            // Allow files to be added even during memorization
             const newFiles = Array.from(e.target.files)
-            const uniqueFiles = newFiles.filter((newFile) => !files.some((file) => file.name === newFile.name && file.size === newFile.size))
+            const uniqueFiles = newFiles.filter((newFile) =>
+                !files.some((file) => file.name === newFile.name && file.size === newFile.size)
+            )
             setFiles((prev) => [...prev, ...uniqueFiles]);
         }
     }
@@ -465,9 +452,9 @@ export default function FileUploadDialog() {
 
                         {/* Upload Area */}
                         <div
-                            className={`flex flex-col items-center justify-center min-h-[400px]  rounded-lg border-2 border-dashed w-full md:w-1/4
+                            className={`flex flex-col items-center justify-center min-h-[400px] rounded-lg border-2 border-dashed w-full md:w-1/4
                 ${isDragging ? 'border-white bg-[#2a3444]/50' : 'border-gray-600'}
-                transition-colors duration-200 ${isMemorizing.current ? 'opacity-50 cursor-not-allowed' : ''}`}
+                transition-colors duration-200`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
@@ -489,11 +476,10 @@ export default function FileUploadDialog() {
                                     className="hidden"
                                     id="file-upload"
                                     accept=".pdf,.txt,.json,.docx"
-                                    disabled={isMemorizing.current}
                                 />
                                 <label
                                     htmlFor="file-upload"
-                                    className={`mt-4 cursor-pointer bg-[#2a3444] text-white px-6 py-2 rounded-md hover:bg-[#3a4454] transition-colors ${isMemorizing.current ? 'cursor-not-allowed' : ''}`}
+                                    className={`mt-4 cursor-pointer bg-[#2a3444] text-white px-6 py-2 rounded-md hover:bg-[#3a4454] transition-colors`}
                                 >
                                     Select Files
                                 </label>
