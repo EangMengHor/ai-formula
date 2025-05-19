@@ -68,12 +68,11 @@ export default function StackSidebarBox({ header, component, onClose, index }) {
                 if (isClosing) setIsClosing(false);
             }}
         >
-            <div
-                className={`relative `}
-                style={{ marginRight: `${index * 40}px`, marginTop: `${index * 10}px` }}
-            >
-                <div onClick={handleClose} className="absolute top-3 right-3 text-white cursor-pointer z-50">
+            <div className="px-4 py-2 border-b border-slate-600">
+
+                <div onClick={handleClose} className="flex gap-1 bg-slate-700 hover:bg-slate-600 cursor-pointer w-fit p-1 rounded-md" >
                     <X />
+                    Close
                 </div>
             </div>
 

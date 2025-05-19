@@ -223,71 +223,77 @@ export function parseContent(input) {
   console.log("Parsed sections:", finalSections);
   return finalSections;
 }
-
-function parseAgentBlock(agentContent) {
-  const result = {
-    content: agentContent
-  };
-
-  // Extract title
-  const titleMatch = /<\|title\|([\s\S]*?)<\|title\|>/g.exec(agentContent);
-  if (titleMatch) {
-    let title = titleMatch[1].trim();
-    if (title.startsWith('>')) {
-      title = title.substring(1).trim();
-    }
-    result.title = title;
-    result.content = result.content.replace(titleMatch[0], '');
-  }
-
-  // Extract goal
-  const goalMatch = /<\|goal\|([\s\S]*?)<\|goal\|>/g.exec(agentContent);
-  if (goalMatch) {
-    let goal = goalMatch[1].trim();
-    if (goal.startsWith('>')) {
-      goal = goal.substring(1).trim();
-    }
-    result.goal = goal;
-    result.content = result.content.replace(goalMatch[0], '');
-  }
-
-  // Extract all team entries
-  result.team = [];
-  const teamRegex = /<\|team\|([\s\S]*?)<\|team\|>/g;
-  let teamMatch;
-
-  while ((teamMatch = teamRegex.exec(agentContent)) !== null) {
-    const teamContent = teamMatch[1].trim();
-
-    if (teamContent.startsWith('"') && teamContent.endsWith('"')) {
-      let member = teamContent.slice(1, -1).trim();
-      if (member.startsWith('>')) {
-        member = member.substring(1).trim();
+// Process content that isn't nested inside document blocks
+function processNonNestedBlocks(text) {
+  const sections = [];
+  const blockRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<visual>([\s\S]*?)<\/visual>)/g;
+  let match;
+  let lastIndex = 0;
+  
+  while ((match = blockRegex.exec(text)) !== null) {
+    // Add text before this block
+    if (match.index > lastIndex) {
+      const textBefore = text.substring(lastIndex, match.index).trim();
+      if (textBefore) {
+        sections.push({
+          type: 'text',
+          content: textBefore,
+          isComplete: true
+        });
       }
-      result.team.push(member);
-    } else {
-      const members = teamContent.split(',').map(item => {
-        let trimmed = item.trim();
-        if (trimmed.startsWith('>')) {
-          trimmed = trimmed.substring(1).trim();
-        }
-        return trimmed.startsWith('"') && trimmed.endsWith('"')
-          ? trimmed.slice(1, -1).trim()
-          : trimmed;
-      });
-      result.team.push(...members);
     }
-
-    result.content = result.content.replace(teamMatch[0], '');
+    
+    // Process the block based on its type
+    if (match[0].startsWith('```mermaid')) {
+      sections.push({
+        type: 'mermaid',
+        content: match[2].trim(),
+        isComplete: true
+      });
+    } else if (match[0].startsWith('<|agent|')) {
+      const agentContent = match[4];
+      const parsedAgent = parseAgentBlock(agentContent);
+      sections.push({
+        type: 'persona',
+        isComplete: true,
+        ...parsedAgent
+      });
+    } else if (match[0].startsWith('<visual>')) {
+      const visualContent = match[6];
+      const nameMatch = /<name>([\s\S]*?)<\/name>/.exec(visualContent);
+      
+      let name = nameMatch ? nameMatch[1].trim() : "Visualization";
+      let content = visualContent;
+      
+      if (nameMatch) {
+        content = visualContent.replace(nameMatch[0], '').trim();
+      }
+      
+      sections.push({
+        type: 'visual',
+        name: name,
+        content: content,
+        isComplete: true
+      });
+    }
+    
+    lastIndex = match.index + match[0].length;
   }
-
-  result.content = result.content.trim();
-  if (result.content.startsWith('>')) {
-    result.content = result.content.substring(1).trim();
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    const remainingText = text.substring(lastIndex).trim();
+    if (remainingText) {
+      sections.push({
+        type: 'text',
+        content: remainingText,
+        isComplete: true
+      });
+    }
   }
-  return result;
+  
+  return sections;
 }
-
 
 export const getFavicon = (urls) => {
   if (!Array.isArray(urls)) {
@@ -487,4 +493,252 @@ export const formatDate = (dateString) => {
   } catch (e) {
     return dateString
   }
+}
+
+
+export function sanitizeFileName(input) {
+  return input
+    .normalize("NFKD") // Normalize accents/special unicode
+    .replace(/[\u2013\u2014]/g, "-") // Replace en dash and em dash with hyphen
+    .replace(/[\u2000-\u200B\u202F\u205F\u3000]/g, " ") // Replace weird spaces with normal space
+    .replace(/[^\w\s.-]/g, "") // Remove anything that's not a letter, number, space, . or -
+    .replace(/[\s_-]+/g, " ") // Collapse multiple underscores, hyphens, or spaces into one space
+    .trim() // Trim whitespace
+    .replace(/\s+/g, "-") // Convert spaces to hyphens
+    .replace(/^[-.]+|[-.]+$/g, "") // Remove leading/trailing hyphens/dots
+    .slice(0, 255); // Ensure it's not too long
+}
+
+// Special helper for parsing streaming content chunks
+export function parseStreamingContent(chunk, previousState = {}) {
+  // Initialize or use existing buffers from previous state
+  const buffer = previousState.buffer || '';
+  const completeBuffer = buffer + chunk;
+  const openDocTags = (previousState.openDocTags || 0) + countTags(chunk, '<document>');
+  const closeDocTags = (previousState.closeDocTags || 0) + countTags(chunk, '</document>');
+  
+  // Check if we're inside a document block (more open tags than close tags)
+  const insideDocument = openDocTags > closeDocTags;
+  
+  // If inside document block, just accumulate and wait for complete document
+  if (insideDocument) {
+    return {
+      sections: [], // No complete sections while inside a document
+      buffer: completeBuffer,
+      openDocTags,
+      closeDocTags,
+      insideDocument
+    };
+  }
+  
+  // If we have a balanced number of tags or a complete chunk, try to parse it
+  if (openDocTags === closeDocTags && openDocTags > 0) {
+    // We have at least one complete document, use standard parser
+    const parsedSections = parseContent(completeBuffer);
+    
+    // Reset buffer since we've processed everything
+    return {
+      sections: parsedSections,
+      buffer: '',
+      openDocTags: 0,
+      closeDocTags: 0,
+      insideDocument: false
+    };
+  }
+  
+  // If no document tags, check for complete visual blocks
+  if (openDocTags === 0 && closeDocTags === 0) {
+    // No document blocks, so parse for standalone visual, mermaid, and other blocks
+    const visualRegex = /<visual>([\s\S]*?)<\/visual>/g;
+    const mermaidRegex = /```mermaid([\s\S]*?)```/g;
+    const agentRegex = /<\|agent\|([\s\S]*?)<\|end\|>/g;
+    
+    let lastIndex = 0;
+    const sections = [];
+    let match;
+    
+    // Check for complete visual blocks
+    while ((match = visualRegex.exec(completeBuffer)) !== null) {
+      // Add text before if any
+      if (match.index > lastIndex) {
+        const textContent = completeBuffer.substring(lastIndex, match.index).trim();
+        if (textContent) {
+          sections.push({
+            type: 'text',
+            content: textContent,
+            isComplete: true
+          });
+        }
+      }
+      
+      // Process the visual block
+      const visualContent = match[1];
+      const nameMatch = /<name>([\s\S]*?)<\/name>/.exec(visualContent);
+      
+      let name = nameMatch ? nameMatch[1].trim() : "Visualization";
+      let content = visualContent;
+      
+      if (nameMatch) {
+        content = visualContent.replace(nameMatch[0], '').trim();
+      }
+      
+      sections.push({
+        type: 'visual',
+        name: name,
+        content: content,
+        isComplete: true
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Check for complete mermaid blocks
+    while ((match = mermaidRegex.exec(completeBuffer)) !== null) {
+      // Add text before if any
+      if (match.index > lastIndex) {
+        const textContent = completeBuffer.substring(lastIndex, match.index).trim();
+        if (textContent) {
+          sections.push({
+            type: 'text',
+            content: textContent,
+            isComplete: true
+          });
+        }
+      }
+      
+      sections.push({
+        type: 'mermaid',
+        content: match[1].trim(),
+        isComplete: true
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Check for complete agent blocks
+    while ((match = agentRegex.exec(completeBuffer)) !== null) {
+      // Add text before if any
+      if (match.index > lastIndex) {
+        const textContent = completeBuffer.substring(lastIndex, match.index).trim();
+        if (textContent) {
+          sections.push({
+            type: 'text',
+            content: textContent,
+            isComplete: true
+          });
+        }
+      }
+      
+      const agentContent = match[1];
+      const parsedAgent = parseAgentBlock(agentContent);
+      sections.push({
+        type: 'persona',
+        isComplete: true,
+        ...parsedAgent
+      });
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < completeBuffer.length) {
+      const remainingText = completeBuffer.substring(lastIndex).trim();
+      if (remainingText) {
+        sections.push({
+          type: 'text',
+          content: remainingText,
+          isComplete: true
+        });
+      }
+    }
+    
+    // Return what we've parsed and any remaining text as buffer
+    return {
+      sections,
+      buffer: '', // Reset buffer if we've processed everything
+      openDocTags: 0,
+      closeDocTags: 0,
+      insideDocument: false
+    };
+  }
+  
+  // If we have unbalanced tags, or couldn't parse anything properly
+  return {
+    sections: [],
+    buffer: completeBuffer, // Keep accumulating
+    openDocTags,
+    closeDocTags,
+    insideDocument
+  };
+}
+
+// Helper function to count tag occurrences in a string
+function countTags(str, tag) {
+  const regex = new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+  const matches = str.match(regex);
+  return matches ? matches.length : 0;
+}
+
+function parseAgentBlock(agentContent) {
+  const result = {
+    content: agentContent
+  };
+
+  // Extract title
+  const titleMatch = /<\|title\|([\s\S]*?)<\|title\|>/g.exec(agentContent);
+  if (titleMatch) {
+    let title = titleMatch[1].trim();
+    if (title.startsWith('>')) {
+      title = title.substring(1).trim();
+    }
+    result.title = title;
+    result.content = result.content.replace(titleMatch[0], '');
+  }
+
+  // Extract goal
+  const goalMatch = /<\|goal\|([\s\S]*?)<\|goal\|>/g.exec(agentContent);
+  if (goalMatch) {
+    let goal = goalMatch[1].trim();
+    if (goal.startsWith('>')) {
+      goal = goal.substring(1).trim();
+    }
+    result.goal = goal;
+    result.content = result.content.replace(goalMatch[0], '');
+  }
+
+  // Extract all team entries
+  result.team = [];
+  const teamRegex = /<\|team\|([\s\S]*?)<\|team\|>/g;
+  let teamMatch;
+
+  while ((teamMatch = teamRegex.exec(agentContent)) !== null) {
+    const teamContent = teamMatch[1].trim();
+
+    if (teamContent.startsWith('"') && teamContent.endsWith('"')) {
+      let member = teamContent.slice(1, -1).trim();
+      if (member.startsWith('>')) {
+        member = member.substring(1).trim();
+      }
+      result.team.push(member);
+    } else {
+      const members = teamContent.split(',').map(item => {
+        let trimmed = item.trim();
+        if (trimmed.startsWith('>')) {
+          trimmed = trimmed.substring(1).trim();
+        }
+        return trimmed.startsWith('"') && trimmed.endsWith('"')
+          ? trimmed.slice(1, -1).trim()
+          : trimmed;
+      });
+      result.team.push(...members);
+    }
+
+    result.content = result.content.replace(teamMatch[0], '');
+  }
+
+  result.content = result.content.trim();
+  if (result.content.startsWith('>')) {
+    result.content = result.content.substring(1).trim();
+  }
+  return result;
 }

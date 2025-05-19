@@ -2,12 +2,12 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useToast } from "../../../../../hooks/use-toast";
 import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
 import { useParams } from "react-router-dom";
-import { parseContent } from "../../../../../lib/utils";
+import { parseContent, sanitizeFileName } from "../../../../../lib/utils";
 import ChatInput from "../../../../../components/custom/ChatInput";
 import 'katex/dist/katex.min.css';
 import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
-import { LoaderCircle } from "lucide-react";
+import { FileDown, LoaderCircle } from "lucide-react";
 import '../../../../_private/components/sidebarProvided/components/Chat.css';
 import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_core/getUploadedDocumentHis.api";
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
@@ -21,7 +21,7 @@ import polling from "../../../../../lib/polling";
 import { pollInteractionLogs } from "../../../../../services/n8n-apis/_core/pollInteractionLogs.api";
 import { useStackSidebar } from "../../../../../context/StackSidebarContext";
 import { io } from "socket.io-client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { Mermaid } from "../../../../../components/custom/Mermaid";
 import ReactMarkdown from 'react-markdown';
@@ -45,15 +45,18 @@ import ExecutionTimeline from "./ExecutionTimeline";
 import { StreamingResponse } from "./StreamingRendered";
 import Conversation from "./Conversation";
 import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
-import { set } from "date-fns";
+import { Textarea } from "@/components/ui/textarea";
+import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
+
 
 const fileType = [
-    'pdf', 'docx', 'csv'
+    'pdf'
 ]
 
 export default function Chat() {
     const socket = useRef(null); // Use useRef for socket
     console.log(socket, 'socket')
+    const conversationCompRef = useRef(null); // Ref for Conversation component
 
     // Context
     const { id } = useParams();
@@ -87,7 +90,7 @@ export default function Chat() {
     const [isNextChatLoading, setIsNextChatLoading] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [isChanged, setIsChanged] = useState(false);
-    const [showScrollButton, setShowScrollButton] = useState(false);
+    const [showScrollButton, setShowScrollButton] = useState(false); // Correctly declared here
     const [chatIdentifer, setChatIdentifer] = useState(null);
     const [interactionLogs, setInteractionLogs] = useState([]);
     const [isShowInteractionLogs, setIsShowInteractionLogs] = useState(false);
@@ -126,122 +129,10 @@ export default function Chat() {
     const [errorMessage, setErrorMessage] = useState('');
     const currentStepRef = useRef(null); // For tracking current step in deep thinking
 
+    const [pdfFileName, setpPdfFileName] = useState("");
 
-
-
-
-    // Memoize functions to prevent Conversation from re-rendering on every text input change
-    const memoizedHandleBlockSidebar = useCallback((block, type, header = "") => {
-        setSidebarStack(() => [
-            {
-                header,
-                component: (
-                    <div >
-                        <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
-                            <p
-                                className="text-slate-200 font-bold text-lg truncate overflow-hidden whitespace-nowrap"
-                                style={{ maxWidth: '80%' }}
-                                title={header ? header : "ARX Blocks"}
-                            >
-                                {header ? (header.length > 55 ? header.slice(0, 55) + '...' : header) : " ARX Blocks"}
-                            </p>
-                            {/* download */}
-                            <div className="sticky right-0 top-0 z-50">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger>
-                                        <Button className="md:mr-16">
-                                            Download
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        className="bg-slate-700 text-white"
-                                    >
-                                        {
-                                            fileType.map(item => {
-                                                return <div
-                                                    onClick={() => downloadDocument({
-                                                        content: block,
-                                                        type: item,
-                                                        elementId: type === 'pdf' ? 'markdown-preview' : null
-                                                    })}
-                                                    className="hover:bg-slate-800 p-1 rounded-md cursor-pointer focus:outline-none"
-                                                    type={item} >
-                                                    {item.toUpperCase()}
-                                                </div>
-                                            })
-                                        }
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        </div>
-                        <div className="p-4">
-                            {
-                                type == "document" && <div className="overflow-scroll h-[calc(100vh-10rem)]">
-                                    <p>
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkMath, remarkGfm]}
-                                            rehypePlugins={[rehypeKatex]}
-                                            className="module text-wrap overflow-scroll"
-                                            components={{
-                                                p: ({ children }) => <p>{children}</p>,
-                                                table: ({ children }) => (
-                                                    <table
-                                                        style={{
-                                                            borderCollapse: "collapse",
-                                                            width: "100%",
-                                                            color: "#e0e0e0",
-                                                        }}
-                                                    >
-                                                        {children}
-                                                    </table>
-                                                ),
-                                                th: ({ children }) => (
-                                                    <th
-                                                        style={{
-                                                            border: "1px solid #444",
-                                                            padding: "8px",
-                                                            backgroundColor: "#333",
-                                                            color: "#e0e0e0",
-                                                        }}
-                                                    >
-                                                        {children}
-                                                    </th>
-                                                ),
-                                                td: ({ children }) => (
-                                                    <td
-                                                        style={{
-                                                            border: "1px solid #444",
-                                                            padding: "8px",
-                                                            backgroundColor: "#222",
-                                                            color: "#e0e0e0",
-                                                        }}
-                                                    >
-                                                        {children}
-                                                    </td>
-                                                ),
-                                            }}
-                                        >
-                                            {block}
-                                        </ReactMarkdown>
-                                    </p>
-                                </div>
-                            }
-
-                            {
-                                type == "visual" &&
-                                <Mermaid
-                                    className="module overflow-scroll"
-                                    chart={memoizedRenderMermaidChart(block)}
-                                    theme="dark"
-                                    style={{ width: "100%", height: "100%" }}
-                                />
-                            }
-                        </div>
-                    </div>
-                ),
-            },
-        ]);
-    }, [setSidebarStack]);
+    const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+    const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
 
     const memoizedRenderMermaidChart = useCallback((content) => {
         if (!content || typeof content !== 'string') {
@@ -268,7 +159,202 @@ export default function Chat() {
             return "graph TD\nA[Error] --> B[Diagram processing failed]";
         }
     }, []);
+    // Memoize functions to prevent Conversation from re-rendering on every text input change
+    const memoizedHandleBlockSidebar = useCallback((block, type, header = "") => {
+        setSidebarStack(() => [
+            {
+                header,
+                component: <Sb
+                    header={header}
+                    block={block}
+                    type={type}
+                    pdfFileName={pdfFileName}
+                    setpPdfFileName={setpPdfFileName}
+                />,
+            }
+        ]);
+    }, [setSidebarStack]);
 
+    const Sb = useCallback(({ header, block, type }) => {
+        const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
+        const [pdfFileName, setpPdfFileName] = useState("");
+        return <div>
+            <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
+
+                {/* onClick={() => downloadDocument({
+                                                content: block,
+                                                type: "pdf",
+                                                fileName: header ? header : "ARX Blocks"
+                                            })} */}
+                {/* download */}
+                <div className="sticky right-0 top-0 z-50">
+                    <Dialog >
+                        <DialogTrigger>
+                            <div
+
+                                className="hover:bg-slate-800 font-semibold p-1 rounded-md cursor-pointer focus:outline-none bg-slate-700"
+                            >
+                                Download As PDF
+                            </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl bg-slate-800">
+                            <h1 className="font-semibold text-lg  text-white mb-3">Name And Download Your PDF</h1>
+
+                            <p className="text-white -mb-2">File Name</p>
+                            <Textarea
+                                className="w-full h-10 text-white"
+                                placeholder="Document Name"
+                                value={pdfFileName == "" ? header : pdfFileName}
+                                onChange={(e) => setpPdfFileName(e.target.value)}
+                            />
+
+                            <Button
+                                className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
+                                onClick={async () => {
+                                    if (isPdfDownloadLoading) {
+                                        toast({
+                                            title: "PDF Already In Processing...",
+                                            description: "Please Wait While It Completes!",
+                                            variants: "default"
+                                        })
+                                    }
+                                    const loadingToast = toast({
+                                        title: 'Processing PDF...',
+                                        description: `The PDF is downloading and may take a few seconds. You will be notified once the download is complete. Feel free to continue working in the meantime.\n File Name : ${sanitizeFileName(pdfFileName || header)} `,
+                                        variant: "default",
+                                        duration: Infinity,
+                                    });
+
+                                    try {
+                                        setIsPdfDownloadLoading(true);
+                                        console.log("PDF content:", block);
+
+                                        const down = await downloadPdf({
+                                            content: block,
+                                            fileName: sanitizeFileName(pdfFileName && pdfFileName !== "" ? pdfFileName : header),
+                                            type: "pdf",
+                                        });
+
+                                        // Remove loading toast
+                                        loadingToast.dismiss?.();
+
+                                        if (down.success) {
+                                            toast({
+                                                title: 'Success',
+                                                description: "PDF downloaded successfully",
+                                                variant: "success",
+                                            });
+                                        } else {
+                                            toast({
+                                                title: 'Error',
+                                                description: down.message,
+                                                variant: "destructive",
+                                            });
+                                        }
+                                    } catch (error) {
+                                        loadingToast.dismiss?.();
+                                        console.error("Error downloading PDF:", error);
+                                        toast({
+                                            title: 'Error',
+                                            description: error.message,
+                                            variant: "destructive",
+                                        });
+                                    } finally {
+                                        setPdfDialogOpen(false);
+                                        setIsPdfDownloadLoading(false);
+                                    }
+                                }}
+                            >
+                                {
+                                    isPdfDownloadLoading ? (
+                                        <div className="flex items-center gap-2 ">
+                                            <Loader2 className="animate-spin " />
+                                            Downloading...
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <FileDown /> Download
+                                        </div>
+                                    )
+                                }
+                            </Button>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+
+                <p
+                    className="text-slate-200 font-bold text-lg truncate overflow-hidden whitespace-nowrap"
+                    style={{ maxWidth: '80%' }}
+                    title={header ? header : "ARX Blocks"}
+                >
+                    {header ? (header.length > 65 ? header.slice(0, 65) + '...' : header) : " ARX Blocks"}
+                </p>
+            </div>
+            <div className="p-4">
+                {
+                    type == "document" && <div className="overflow-scroll h-[calc(100vh-10rem)]">
+                        <p>
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath, remarkGfm]}
+                                rehypePlugins={[rehypeKatex]}
+                                className="module text-wrap overflow-scroll"
+                                components={{
+                                    p: ({ children }) => <p>{children}</p>,
+                                    table: ({ children }) => (
+                                        <table
+                                            style={{
+                                                borderCollapse: "collapse",
+                                                width: "100%",
+                                                color: "#e0e0e0",
+                                            }}
+                                        >
+                                            {children}
+                                        </table>
+                                    ),
+                                    th: ({ children }) => (
+                                        <th
+                                            style={{
+                                                border: "1px solid #444",
+                                                padding: "8px",
+                                                backgroundColor: "#333",
+                                                color: "#e0e0e0",
+                                            }}
+                                        >
+                                            {children}
+                                        </th>
+                                    ),
+                                    td: ({ children }) => (
+                                        <td
+                                            style={{
+                                                border: "1px solid #444",
+                                                padding: "8px",
+                                                backgroundColor: "#222",
+                                                color: "#e0e0e0",
+                                            }}
+                                        >
+                                            {children}
+                                        </td>
+                                    ),
+                                }}
+                            >
+                                {block}
+                            </ReactMarkdown>
+                        </p>
+                    </div>
+                }
+
+                {
+                    type == "visual" &&
+                    <Mermaid
+                        className="module overflow-scroll"
+                        chart={memoizedRenderMermaidChart(block)}
+                        theme="dark"
+                        style={{ width: "100%", height: "100%" }}
+                    />
+                }
+            </div>
+        </div>
+    }, [memoizedRenderMermaidChart, pdfFileName, setpPdfFileName]);
     // Effect: Load fallback prompt from localStorage
     useEffect(() => {
         async function getPurpose() {
@@ -295,7 +381,7 @@ export default function Chat() {
     // Effect: Handle fallback prompt submission
     useEffect(() => {
         console.log(fallBackPrompt)
-        if(fallBackPrompt.length >4999){
+        if (fallBackPrompt.length > 4999) {
             toast({
                 title: 'Error',
                 description: "Prompt length exceeds 5000 characters.",
@@ -873,81 +959,138 @@ export default function Chat() {
 
             // Custom block extraction with more robust patterns
             const result = [];
-            let remainingText = content;
 
-            // Match patterns for document and visual blocks with more flexible whitespace handling
-            const documentPattern = /<document>([\s\S]*?)<\/document>/g;
+            // IMPROVED APPROACH: First extract document blocks completely with nested content
+            // Use a more careful approach to extract document blocks with balanced tag parsing
+            const extractDocumentBlocks = (content) => {
+                const documentBlocks = [];
+                const regex = /<document>/g;
+                let match;
+                let searchFrom = 0;
+
+                while ((match = regex.exec(content)) !== null) {
+                    const startIndex = match.index;
+                    // Find the matching closing tag, considering nesting
+                    let tagDepth = 1;
+                    let closeIndex = startIndex + 10; // Length of "<document>"
+
+                    while (tagDepth > 0 && closeIndex < content.length) {
+                        const nextOpenTag = content.indexOf("<document>", closeIndex);
+                        const nextCloseTag = content.indexOf("</document>", closeIndex);
+
+                        // If we find a close tag and it's before any next open tag (or there is no next open tag)
+                        if (nextCloseTag !== -1 && (nextOpenTag === -1 || nextCloseTag < nextOpenTag)) {
+                            tagDepth--;
+                            closeIndex = nextCloseTag + 11; // Length of "</document>"
+                        }
+                        // If we find another open tag before a close tag
+                        else if (nextOpenTag !== -1) {
+                            tagDepth++;
+                            closeIndex = nextOpenTag + 10;
+                        }
+                        // If we can't find any more tags, break out
+                        else {
+                            break;
+                        }
+                    }
+
+                    // If we found a balanced document tag
+                    if (tagDepth === 0) {
+                        const fullDocContent = content.substring(startIndex, closeIndex);
+                        const innerContent = content.substring(startIndex + 10, closeIndex - 11);
+
+                        // Extract the name if present
+                        const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(innerContent);
+                        let name = nameMatch ? nameMatch[1].trim() : "Document";
+                        let cleanContent = innerContent;
+
+                        if (nameMatch) {
+                            cleanContent = innerContent.replace(nameMatch[0], '').trim();
+                        }
+
+                        documentBlocks.push({
+                            type: 'document',
+                            name,
+                            content: cleanContent,
+                            isComplete: forceComplete || (cleanContent.length > 0),
+                            start: startIndex,
+                            end: closeIndex
+                        });
+
+                        // Update search position to avoid re-finding the same tag
+                        regex.lastIndex = closeIndex;
+                    }
+                }
+
+                return documentBlocks;
+            };
+
+            // Extract all document blocks first
+            const documentBlocks = extractDocumentBlocks(content);
+
+            // Create a masked content where document blocks are replaced with placeholders
+            let maskedContent = content;
+            documentBlocks.forEach(block => {
+                // Replace the document block in the masked content with spaces
+                maskedContent = maskedContent.substring(0, block.start) +
+                    ' '.repeat(block.end - block.start) +
+                    maskedContent.substring(block.end);
+            });
+
+            // Now extract other blocks from the masked content (where document blocks are removed)
             const visualPattern = /<visual>([\s\S]*?)<\/visual>/g;
             const mermaidPattern = /```mermaid([\s\S]*?)```/g;
 
-            // Step 1: Extract all special blocks with their positions
-            const blocks = [];
+            const otherBlocks = [];
 
-            // Find document blocks
+            // Find visual blocks in masked content
             let match;
-            while ((match = documentPattern.exec(content)) !== null) {
-                const fullBlock = match[0];
-                const blockContent = match[1];
-                const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(blockContent);
+            while ((match = visualPattern.exec(maskedContent)) !== null) {
+                // Only process if not inside a document (check if the match position has content in maskedContent)
+                if (maskedContent.substring(match.index, match.index + 8) === '<visual>') {
+                    const fullBlock = match[0];
+                    const blockContent = match[1];
+                    const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(blockContent);
 
-                let name = nameMatch ? nameMatch[1].trim() : "Document";
-                let cleanContent = blockContent;
+                    let name = nameMatch ? nameMatch[1].trim() : "Visualization";
+                    let cleanContent = blockContent;
 
-                if (nameMatch) {
-                    cleanContent = blockContent.replace(nameMatch[0], '').trim();
+                    if (nameMatch) {
+                        cleanContent = blockContent.replace(nameMatch[0], '').trim();
+                    }
+
+                    otherBlocks.push({
+                        type: 'visual',
+                        name,
+                        content: cleanContent,
+                        isComplete: forceComplete || (cleanContent.length > 0),
+                        start: match.index,
+                        end: match.index + fullBlock.length
+                    });
                 }
-
-                blocks.push({
-                    type: 'document',
-                    name,
-                    content: cleanContent,
-                    isComplete: forceComplete || (cleanContent.length > 0),
-                    start: match.index,
-                    end: match.index + fullBlock.length
-                });
             }
 
-            // Find visual blocks
-            while ((match = visualPattern.exec(content)) !== null) {
-                const fullBlock = match[0];
-                const blockContent = match[1];
-                const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(blockContent);
-
-                let name = nameMatch ? nameMatch[1].trim() : "Visualization";
-                let cleanContent = blockContent;
-
-                if (nameMatch) {
-                    cleanContent = blockContent.replace(nameMatch[0], '').trim();
+            // Find mermaid blocks in masked content
+            while ((match = mermaidPattern.exec(maskedContent)) !== null) {
+                // Only process if not inside a document
+                if (maskedContent.substring(match.index, match.index + 10).includes('mermaid')) {
+                    otherBlocks.push({
+                        type: 'mermaid',
+                        content: match[1].trim(),
+                        isComplete: true,
+                        start: match.index,
+                        end: match.index + match[0].length
+                    });
                 }
-
-                blocks.push({
-                    type: 'visual',
-                    name,
-                    content: cleanContent,
-                    isComplete: forceComplete || (cleanContent.length > 0),
-                    start: match.index,
-                    end: match.index + fullBlock.length
-                });
             }
 
-            // Find mermaid blocks
-            while ((match = mermaidPattern.exec(content)) !== null) {
-                blocks.push({
-                    type: 'mermaid',
-                    content: match[1].trim(),
-                    isComplete: true,
-                    start: match.index,
-                    end: match.index + match[0].length
-                });
-            }
+            // Combine all blocks and sort by position
+            const allBlocks = [...documentBlocks, ...otherBlocks].sort((a, b) => a.start - b.start);
 
-            // Sort blocks by their position
-            blocks.sort((a, b) => a.start - b.start);
-
-            // Step 2: Extract text between blocks
+            // Extract text between blocks
             let lastIndex = 0;
 
-            for (const block of blocks) {
+            for (const block of allBlocks) {
                 // Add text before the current block
                 if (block.start > lastIndex) {
                     const textContent = content.substring(lastIndex, block.start).trim();
@@ -1040,7 +1183,7 @@ export default function Chat() {
         if (prompt.length === 0) {
             return;
         }
-        if (prompt.length >4999) {
+        if (prompt.length > 4999) {
             toast({
                 title: 'Error',
                 description: "Prompt is too long. Please shorten it.",
@@ -1238,6 +1381,17 @@ export default function Chat() {
         setDialogOpen(true);
     };
 
+    const handleScrollToBottomButtonClick = () => {
+        setIsUserScrolling(false); // Indicate that the next scroll is programmatic
+        smoothScrollToBottom(true); // Force scroll to bottom using existing Chat.jsx logic
+    };
+
+    const handleChatInputScrollRequest = () => {
+        if (conversationCompRef.current) {
+            conversationCompRef.current.forceScrollToBottom();
+        }
+    };
+
     if (isChatLoading) {
         return (
             <div className="w-full h-full flex items-center justify-center gap-2">
@@ -1248,8 +1402,9 @@ export default function Chat() {
     }
 
     return (
-        <div className="flex flex-col h-full w-full">
+        <div className="flex flex-col h-full w-full relative"> {/* Added relative for positioning context */}
             <Conversation
+                ref={conversationCompRef} // Pass the ref here
                 conversation={conversation}
                 isNextChatLoading={isNextChatLoading}
                 isShowInteractionLogs={isShowInteractionLogs}
@@ -1264,6 +1419,14 @@ export default function Chat() {
                 interactionLogs={interactionLogs}
                 isChanged={isChanged}
             />
+            {showScrollButton && ( // Corrected variable name here
+                <Button
+                    onClick={handleScrollToBottomButtonClick}
+                    className="absolute bottom-16 right-4 z-50"
+                >
+                    Scroll to Bottom
+                </Button>
+            )}
             <div className="w-full p-2 sticky bottom-0 bg-black mb-2 flex items-center justify-center">
                 <div className="max-w-4xl w-full mx-auto">
                     <ChatInput
@@ -1282,6 +1445,7 @@ export default function Chat() {
                         setIsReconnecting={setIsReconnecting}
                         setIsReconnected={setIsReconnected}
                         isReconnected={isReconnected}
+                        onScrollToBottomRequest={handleChatInputScrollRequest} // Pass the handler
                     // isSearchOn={isSearchOn}
                     // setIsSearchOn={setIsSearchOn}
                     // isDocumentOn={isDocumentOn}

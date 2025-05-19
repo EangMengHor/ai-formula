@@ -67,6 +67,7 @@ function ChatInput({
     setIsReconnecting,
     isReconnected = false,
     setIsReconnected,
+    onScrollToBottomRequest, // Add new prop
 }) {
     // global states
     const { domainState } = useDomain();
@@ -590,6 +591,12 @@ function ChatInput({
 
 
                     <div className="flex gap-1 items-center">
+                        {/* scroll to bottom */}
+                        <div 
+                        onClick={onScrollToBottomRequest} // Use the passed prop
+                        className=" p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer ">
+                            <ChevronDown className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10"/>
+                        </div>
                         <div className=" p-2 rounded-md hover:bg-gray-800 cursor-pointer ">
 
                             {
@@ -606,7 +613,7 @@ function ChatInput({
                                     ) : (
                                         <div
                                             onClick={enchancePrompt}
-                                          >
+                                        >
 
                                             <Sparkles className="w-5 h-5 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
                                         </div>
