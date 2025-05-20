@@ -11,14 +11,17 @@ export default function JamesLogo() {
         console.log("Domain1: 232323", domain1);
         console.log("Domain2: 232323", domain2);
         if (domain1 && domain2) {
-            if (url && url.includes(domain1)) {
+            if (url && !url.includes(domain1)) {
                 console.log("Matched Domain1, setting logo to james-logo.png 232323");
-                setLogoFilePath('./james-logo.png');
+                setLogoFilePath('https://wohssewzaigezyoucrsu.supabase.co/storage/v1/object/public/usermanual//james-logo.png');
             }
             if (url && url.includes(domain2)) {
                 console.log("Matched Domain2, setting logo to arx-logo.png 232323");
                 setLogoFilePath('./arx-logo.png');
             }
+        }
+        else {
+            setLogoFilePath('./james-logo.png');
         }
     }, [url, domain1, domain2])
 
