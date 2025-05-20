@@ -338,7 +338,7 @@ export default function FileUploadDialog() {
             }
 
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="w-[calc(100vw-10rem)] h-[calc(100vh-5rem)]  p-8 bg-[#1a2332] border-0 ">
+                <DialogContent className="w-[calc(100vw-10rem)] h-[calc(100vh-10rem)] overflow-scroll p-8 bg-[#1a2332] border-0 ">
                     <div className="flex flex-col md:flex-row">
 
                         <div className='md:w-3/4'>
@@ -382,7 +382,7 @@ export default function FileUploadDialog() {
                                 }
 
                             </div>
-                            <div className="z-10 overflow-scroll   flex flex-col md:grid grid-cols-1 sm:grid-cols-2  w-full  ">
+                            <div className='grid  sm:grid-cols-2 p-2'>
                                 {files.map((file, index) => (
                                     <div
                                         key={index}
@@ -452,7 +452,7 @@ export default function FileUploadDialog() {
 
                         {/* Upload Area */}
                         <div
-                            className={`flex flex-col items-center justify-center min-h-[400px] rounded-lg border-2 border-dashed w-full md:w-1/4
+                            className={`flex flex-col items-centers justify-center max-h-[800px] rounded-lg border-2 border-dashed w-full md:w-1/4
                 ${isDragging ? 'border-white bg-[#2a3444]/50' : 'border-gray-600'}
                 transition-colors duration-200`}
                             onDragOver={handleDragOver}
@@ -460,7 +460,7 @@ export default function FileUploadDialog() {
                             onDrop={handleDrop}
                         >
 
-                            <div className="flex flex-col items-center justify-center p-6 text-center">
+                            <div className="flex flex-col items-center justify-start p-6 text-center">
                                 {isMemorizing.current && <LoaderCircle className="w-8 h-8 text-white animate-spin absolute top-2 left-2" />}
                                 <Upload className="w-16 h-16 text-white mb-4" />
                                 <h3 className="text-xl font-semibold text-white mb-2">
