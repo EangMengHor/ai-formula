@@ -20,6 +20,9 @@ export default function JamesLogo() {
                 setLogoFilePath('./arx-logo.png');
             }
         }
+        else {
+            setLogoFilePath('./james-logo.png');
+        }
     }, [url, domain1, domain2])
 
     useEffect(() => {

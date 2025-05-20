@@ -30,6 +30,7 @@ import Workshop from "./pages/_private/components/sidebarProvided/components/Wor
 import Test from "./Test"
 import UserManualLayout from "./pages/_userManual/UserManualLayout"
 import DetailPage from "./pages/_userManual/components/DetailPage"
+import PersonalProfileForm from "./components/custom/arxPersonalProfile/arxPersonalProfile"
 
 export default function App() {
     const location = useLocation();
@@ -63,7 +64,7 @@ export default function App() {
                         {/* <Route path="/chat/:id" element={<Chat />} /> */}
                         <Route path="/chat/:id" element={<Chat />} />
                     </Route>
-                    <Route path="/a" element={<AIExecutionFlow />} />
+                    <Route path="/a" element={<PersonalProfileForm />} />
                     {/* knowledge base and persona generation */}
                     <Route element={<KnowledgeLayout />} >
                         <Route path="/knowledge" element={<Knowledge />} />
