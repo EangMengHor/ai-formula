@@ -13,7 +13,7 @@ export default function JamesLogo() {
         if (domain1 && domain2) {
             if (url && !url.includes(domain1)) {
                 console.log("Matched Domain1, setting logo to james-logo.png 232323");
-                setLogoFilePath('https://wohssewzaigezyoucrsu.supabase.co/storage/v1/object/public/usermanual//james-logo.png');
+                setLogoFilePath('./james-logo.png');
             }
             if (url && url.includes(domain2)) {
                 console.log("Matched Domain2, setting logo to arx-logo.png 232323");
