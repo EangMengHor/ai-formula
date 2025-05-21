@@ -780,7 +780,7 @@ function ChatInput({
                                     <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer  transition-all ">
                                         <div
                                             onClick={() => {
-                                                let url = domainState && domainState == 1 ? import.meta.env.VITE_OPENAI_REALTIME_URL : import.meta.env.VITE_OPENAI_REALTIME_URL2;
+                                                let url = domainState ? import.meta.env.VITE_OPENAI_REALTIME_URL : import.meta.env.VITE_OPENAI_REALTIME_URL2;
                                                 console.log(url, 'url', import.meta.env.VITE_OPENAI_REALTIME_URL2)
                                                 url = files.length > 0
                                                     ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files.slice(0, 20).map(file => file.name).join('||||')}&namespace=${id || ''}`
@@ -810,11 +810,11 @@ function ChatInput({
                                         </div>
                                         <div
                                             onClick={() => {
-                                                const url = domainState && domainState == 1 ? import.meta.env.VITE_GEMINI_REALTIME_URL : import.meta.env.VITE_GEMINI_REALTIME_URL2;
+                                                const url = domainState ? import.meta.env.VITE_GEMINI_REALTIME_URL : import.meta.env.VITE_GEMINI_REALTIME_URL2;
                                                 console.log(url, "kajlsdhfklasjd839472509382")
                                                 window.open(url, "_blank")
                                             }}
-                                            className="flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full">
+                                            className={`flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}>
                                             {/* left */}
                                             <div className="flex gap-2">
                                                 {/* image */}
