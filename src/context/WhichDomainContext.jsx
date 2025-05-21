@@ -3,7 +3,7 @@ const DomainContext = createContext();
 
 
 export const DomainProvider = ({ children }) => {
-    const [domainState, setDomainState] = useState(3);
+    const [domainState, setDomainState] = useState(false);
 
 
     useEffect(() => {
@@ -11,22 +11,20 @@ export const DomainProvider = ({ children }) => {
         const domain1 = import.meta.env.VITE_DOMAIN1;
         const domain2 = import.meta.env.VITE_DOMAIN2;
 
-
-        console.log(currentDomain.includes(domain1), currentDomain.includes(domain2), "sdfsd");
         if (currentDomain.includes(domain1)) {
-            setDomainState(1);
+            setDomainState(true);
         } else if (currentDomain.includes(domain2)) {
-            setDomainState(2);
+            setDomainState(false);
         } else {
-            setDomainState(3); // Default or fallback state
+            setDomainState(true); // will trigger when local development
         }
-        console.log("Current Domain: 232323", currentDomain);
+        console.log("Current Domain: ", currentDomain);
     }, []);
 
 
     useEffect(() => {
         console.log(domainState, "domainState Check");
-        let url = domainState && domainState == 1 ? import.meta.env.VITE_OPENAI_REALTIME_URL : import.meta.env.VITE_OPENAI_REALTIME_URL2;
+        let url = domainState && domainState == true ? import.meta.env.VITE_OPENAI_REALTIME_URL : import.meta.env.VITE_OPENAI_REALTIME_URL2;
         console.log(url, "Final URL 232323");
 
 
