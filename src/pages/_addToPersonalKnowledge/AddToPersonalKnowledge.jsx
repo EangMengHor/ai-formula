@@ -12,12 +12,14 @@ import {
 	TableCell,
 } from '@/components/ui/table';
 import { format } from 'date-fns';
-
+import { useLocation } from 'react-router-dom';
 const BUCKET_NAME = 'arx-society-file-queue';
 const POLLING_INTERVAL = 10000; // 10 seconds
 
 export default function AddToPersonalKnowledge() {
 	const { user } = useUser();
+	const location = useLocation();
+	const isFirstTime = location.state?.isFirstTime;
 	const [files, setFiles] = useState([]);
 	const [loading, setLoading] = useState(true);
 
@@ -71,7 +73,9 @@ export default function AddToPersonalKnowledge() {
 	return (
 		<div className="p-4">
 			<p className="font-semibold text-lg text-white mb-6">
-				Add New Document To Knowledge Base
+				{isFirstTime
+					? 'Upload Your Knowledge Base'
+					: 'Add New Document To Knowledge Base'}
 			</p>
 
 			{files.length === 0 ? (
