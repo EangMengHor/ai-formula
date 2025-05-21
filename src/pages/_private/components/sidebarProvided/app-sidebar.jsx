@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Compass, Ellipsis, GalleryVerticalEnd, Layers, Plus } from "lucide-react"
+import { Compass, Ellipsis, GalleryVerticalEnd, Layers, Plus, Settings } from "lucide-react"
 
 import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main"
 import {
@@ -23,6 +23,8 @@ import {
 import { useNavigate } from "react-router-dom"
 import { _useSidebar } from "../../../../context/SidebarContext"
 import JamesLogo from "./components/JamesLogo"
+import { useState } from "react"
+import SettingsModal from "@/components/custom/SettingModal"
 
 // This is sample data.
 const data = {
@@ -159,6 +161,7 @@ const data = {
 export function AppSidebar({ ...props }) {
   const { user, logout } = useUser();
   const { clearAllStates } = _useSidebar();
+  const [openSettings, setOpenSettings] = useState(false)
   const navigate = useNavigate();
   return (
     <Sidebar {...props} className="">
@@ -205,25 +208,13 @@ export function AppSidebar({ ...props }) {
             <AvatarFallback>{user.email.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <p className="truncate">{user.email}</p>
-          <div>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="bg-gray-700 rounded-md mt-2">
-                <Ellipsis />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem className="text-sm flex items-center" onClick={() => {
-                  clearAllStates()
-                  logout()
-                }}>
-                  <Compass />
-                  <p>Log Out</p>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center gap-2 bg-gray-700 rounded-md cursor-pointer">
+            <Ellipsis onClick={() => setOpenSettings(true)} />
           </div>
         </div>
       </SidebarFooter>
       <SidebarRail />
+      <SettingsModal open={openSettings} onClose={() => setOpenSettings(false)} />
     </Sidebar>
   )
 }
