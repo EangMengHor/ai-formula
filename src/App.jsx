@@ -64,7 +64,8 @@ export default function App() {
                         {/* <Route path="/chat/:id" element={<Chat />} /> */}
                         <Route path="/chat/:id" element={<Chat />} />
                     </Route>
-                    <Route path="/a" element={<PersonalProfileForm />} />
+                    <Route path="/createPersonalProfileForm" element={<PersonalProfileForm />} />
+                    {/* <Route path="/a" element={<PersonalProfileForm />} /> */}
                     {/* knowledge base and persona generation */}
                     <Route element={<KnowledgeLayout />} >
                         <Route path="/knowledge" element={<Knowledge />} />
