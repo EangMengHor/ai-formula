@@ -28,8 +28,9 @@ export default function AssetClassStep({ formData, setFormData }) {
     }
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+<div className="flex ">
+        <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">What do you want to invest in?</h1>
         <p className="text-gray-400">Select the asset classes you're interested in for your portfolio.</p>
@@ -63,9 +64,9 @@ export default function AssetClassStep({ formData, setFormData }) {
           and goals."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full">
+    <div key="visual" className="flex flex-col w-1/2 items-center justify-center h-full">
       <div className="w-64 h-64 bg-[#2a3042] rounded-lg flex items-center justify-center">
         <div className="w-48 h-48 relative">
           {formData.preferredAssetClasses.length > 0 ? (
@@ -116,6 +117,8 @@ export default function AssetClassStep({ formData, setFormData }) {
           )
         })}
       </div>
-    </div>,
-  ]
+    </div>
+
+</div>
+  )
 }

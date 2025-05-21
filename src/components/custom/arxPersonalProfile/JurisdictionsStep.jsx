@@ -26,8 +26,9 @@ export default function JurisdictionsStep({ formData, setFormData }) {
     })
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+    <div className="flex ">
+        <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">What jurisdictions are relevant to you?</h1>
         <p className="text-gray-400">
@@ -92,9 +93,9 @@ export default function JurisdictionsStep({ formData, setFormData }) {
           investment strategy."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full">
+    <div key="visual" className="flex flex-col w-1/2 items-center justify-center h-full">
       <div className="w-64 h-64 bg-[#2a3042] rounded-lg flex items-center justify-center p-6">
         {formData.jurisdictions.length > 0 ? (
           <div className="w-full h-full">
@@ -141,6 +142,8 @@ export default function JurisdictionsStep({ formData, setFormData }) {
       <p className="mt-6 text-gray-400 text-center max-w-xs">
         Multi-jurisdictional considerations help AI optimize tax efficiency across borders
       </p>
-    </div>,
-  ]
+    </div>
+
+    </div>
+  )
 }

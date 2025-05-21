@@ -14,8 +14,9 @@ export default function PortfolioMetricsStep({ formData, setFormData }) {
     })
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+  <div className="flex">
+      <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Portfolio-level Risk Metrics</h1>
         <p className="text-gray-400">
@@ -127,9 +128,9 @@ export default function PortfolioMetricsStep({ formData, setFormData }) {
           returns."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full w-full">
+    <div key="visual" className="flex flex-col w-1/2 items-center justify-center h-full">
       <div className="w-full max-w-md bg-[#2a3042] rounded-lg p-6">
         <div className="text-lg font-bold text-white mb-4 text-center">Risk Profile</div>
 
@@ -227,6 +228,8 @@ export default function PortfolioMetricsStep({ formData, setFormData }) {
       <p className="mt-6 text-gray-400 text-center max-w-xs">
         Risk metrics help AI balance potential returns with your risk tolerance
       </p>
-    </div>,
-  ]
+    </div>
+
+  </div>
+  )
 }

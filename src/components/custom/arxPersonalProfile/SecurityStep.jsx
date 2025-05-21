@@ -37,8 +37,9 @@ export default function SecurityStep({ formData, setFormData }) {
     })
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+<div className="flex">
+        <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">What's already in your portfolio?</h1>
         <p className="text-gray-400">Add any existing securities you hold (optional).</p>
@@ -103,9 +104,9 @@ export default function SecurityStep({ formData, setFormData }) {
           "AI will analyze your existing holdings to identify gaps, overlaps, and opportunities for diversification."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full">
+    <div key="visual" className="flex flex-col w-1/2 items-center justify-center h-full">
       <div className="w-64 h-64 bg-[#2a3042] rounded-lg flex items-center justify-center p-6">
         {formData.securities.length > 0 ? (
           <div className="w-full h-full">
@@ -143,6 +144,8 @@ export default function SecurityStep({ formData, setFormData }) {
       <p className="mt-6 text-gray-400 text-center max-w-xs">
         AI will analyze your existing holdings to recommend complementary investments
       </p>
-    </div>,
-  ]
+    </div>
+
+</div>
+  )
 }

@@ -17,8 +17,9 @@ export default function LiquidityStep({ formData, setFormData }) {
     setFormData({ ...formData, liquidityHorizon: value })
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+<div className="flex">
+        <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">When might you need your money?</h1>
         <p className="text-gray-400">Your investment time horizon helps determine appropriate strategies.</p>
@@ -32,10 +33,10 @@ export default function LiquidityStep({ formData, setFormData }) {
               key={option.value}
               type="button"
               variant="outline"
-              className={`w-full justify-start text-left py-4 ${
+              className={`w-full justify-start text-left py-8 ${
                 formData.liquidityHorizon === option.value
                   ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-500"
-                  : "bg-[#2a3042] border-gray-700 text-white hover:bg-[#343e56]"
+                  : "bg-[#2a3042] border-gray-700 py-8 text-white hover:bg-[#343e56]"
               }`}
               onClick={() => handleSelect(option.value)}
             >
@@ -54,9 +55,9 @@ export default function LiquidityStep({ formData, setFormData }) {
           growth with accessibility."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full w-full">
+    <div key="visual" className="flex w-1/2 flex-col items-center justify-center h-full ">
       <div className="w-full max-w-md bg-[#2a3042] rounded-lg p-6">
         {formData.liquidityHorizon ? (
           <div className="w-full h-full flex flex-col items-center justify-center">
@@ -114,6 +115,8 @@ export default function LiquidityStep({ formData, setFormData }) {
       <p className="mt-6 text-gray-400 text-center max-w-xs">
         Your liquidity needs help AI balance growth potential with access to capital
       </p>
-    </div>,
-  ]
+    </div>
+
+</div>
+  )
 }

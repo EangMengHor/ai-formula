@@ -15,8 +15,9 @@ export default function RiskToleranceStep({ formData, setFormData }) {
     setFormData({ ...formData, riskTolerance: value })
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+   <div className="flex">
+     <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">What's your risk tolerance?</h1>
         <p className="text-gray-400">This helps us understand how much volatility you're comfortable with.</p>
@@ -30,7 +31,7 @@ export default function RiskToleranceStep({ formData, setFormData }) {
               key={option.value}
               type="button"
               variant="outline"
-              className={`w-full justify-start text-left py-6 ${
+              className={`w-full justify-start text-left py-10 ${
                 formData.riskTolerance === option.value
                   ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-500"
                   : "bg-[#2a3042] border-gray-700 text-white hover:bg-[#343e56]"
@@ -52,9 +53,9 @@ export default function RiskToleranceStep({ formData, setFormData }) {
           you sleep at night."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full">
+    <div key="visual" className="flex flex-col w-1/2 items-center justify-center h-full">
       <div className="w-64 h-64 bg-[#2a3042] rounded-lg flex items-center justify-center p-6">
         {formData.riskTolerance ? (
           <div className="w-full h-full flex flex-col items-center justify-center">
@@ -116,6 +117,8 @@ export default function RiskToleranceStep({ formData, setFormData }) {
       <p className="mt-6 text-gray-400 text-center max-w-xs">
         Your risk tolerance helps AI balance potential returns with volatility in your portfolio
       </p>
-    </div>,
-  ]
+    </div>
+
+   </div>
+  )
 }

@@ -30,8 +30,9 @@ export default function EsgPreferencesStep({ formData, setFormData }) {
     }
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+<div className="flex">
+        <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">What are your ESG preferences?</h1>
         <p className="text-gray-400">Select any environmental, social, or governance factors important to you.</p>
@@ -66,10 +67,10 @@ export default function EsgPreferencesStep({ formData, setFormData }) {
           performance objectives."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full">
-      <div className="w-64 h-64 bg-[#2a3042] rounded-lg flex items-center justify-center p-6">
+    <div key="visual" className="flex flex-col w-1/2 items-center justify-center h-full">
+      <div className="w-fit h-fit bg-[#2a3042] rounded-lg flex items-center justify-center p-6">
         {formData.esgPreferences.length > 0 ? (
           <div className="w-full h-full">
             <div className="text-lg font-bold text-white mb-4 text-center">ESG Focus Areas</div>
@@ -104,6 +105,8 @@ export default function EsgPreferencesStep({ formData, setFormData }) {
       <p className="mt-6 text-gray-400 text-center max-w-xs">
         Your ESG preferences help AI find investments that align with your values
       </p>
-    </div>,
-  ]
+    </div>
+
+</div>
+  )
 }

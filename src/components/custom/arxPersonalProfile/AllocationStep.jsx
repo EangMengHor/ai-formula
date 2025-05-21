@@ -103,8 +103,9 @@ export default function AllocationStep({ formData, setFormData }) {
     return Array.from(categories)
   }
 
-  return [
-    <div key="form" className="space-y-6">
+  return (
+    <div className="flex">
+        <div key="form" className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Asset Allocation</h1>
         <p className="text-gray-400">Enter your strategic (target) and actual asset allocations (optional).</p>
@@ -277,9 +278,9 @@ export default function AllocationStep({ formData, setFormData }) {
           and optimize your portfolio structure."
         </p>
       </div>
-    </div>,
+    </div>
 
-    <div key="visual" className="flex flex-col items-center justify-center h-full">
+    <div key="visual" className="flex flex-col items-center justify-center h-full w-1/2">
       <div className="w-64 h-64 bg-[#2a3042] rounded-lg flex items-center justify-center p-6">
         {getAllocationCategories().length > 0 ? (
           <div className="w-full h-full">
@@ -368,8 +369,10 @@ export default function AllocationStep({ formData, setFormData }) {
       <p className="mt-6 text-gray-400 text-center max-w-xs">
         AI analyzes allocation gaps to identify rebalancing opportunities
       </p>
-    </div>,
-  ]
+    </div>
+
+    </div>
+  )
 }
 
 // Helper function to create SVG arcs
