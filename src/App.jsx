@@ -31,6 +31,7 @@ import Test from "./Test"
 import UserManualLayout from "./pages/_userManual/UserManualLayout"
 import DetailPage from "./pages/_userManual/components/DetailPage"
 import PersonalProfileForm from "./components/custom/arxPersonalProfile/arxPersonalProfile"
+import AddToPersonalKnowledge from "./pages/_addToPersonalKnowledge/AddToPersonalKnowledge"
 
 export default function App() {
     const location = useLocation();
@@ -73,6 +74,10 @@ export default function App() {
                         <Route path="/uploadDocumentKnowledgeBase/:idx" element={<UploadDocumentKnowledge />} />
                         <Route path="/generatingKnowledge/:idx" element={<GenerateKnowledgeBase />} />
                         <Route path="/addToPermenentKnowledgeBase" element={<AddToExistingKnowledge />} />
+						<Route
+							path="/addToPersonalKnowledge"
+							element={<AddToPersonalKnowledge />}
+						/>
                     </Route>
                     {/* agentic automation interface */}
                     <Route element={<AgenticAutomationLayout />} >
