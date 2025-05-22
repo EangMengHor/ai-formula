@@ -608,7 +608,7 @@ function ChatInput({
             </div>
 
             <div
-              className={` ${isSwarmMode ? "flex" : "hidden"} gap-2 rounded-md`}
+              className={` ${isSwarmMode && !isPublicDomain ? "flex" : "hidden"} gap-2 rounded-md`}
             >
               <div className="relative flex items-center gap-2 ml-2">
                 {/* Auto Button */}
@@ -734,7 +734,7 @@ function ChatInput({
                 </div>
               )}
             </div>
-            {!isPublicDomain && (
+            {
               <div className="flex gap-2 items-center">
                 <div
                   onClick={() => {
@@ -779,7 +779,7 @@ function ChatInput({
 
                 {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
               </div>
-            )}
+            }
             {/* right side */}
             {isMobile && (
               <div className="">
