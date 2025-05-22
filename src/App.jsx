@@ -59,85 +59,85 @@ export default function App() {
   }, [location.pathname, navigate]);
 
 
-  return (
-    <>
-      <Routes>
-        <Route path="/" element={<PublicLayout />}>
-          <Route path={login} element={<Login />} />
-          <Route path={signup} element={<Signup />} />
-        </Route>
-        <Route path="/test" element={<Test />} />
-        <Route element={<PrivateRoute />}>
-          {/* user manual */}
-          <Route path="/manual" element={<UserManualLayout />} />
-          <Route path="/detail/:slug" element={<DetailPage />} />
-          {/* code chat interface */}
-          <Route element={<SidebarProvided />}>
-            <Route path="/workshop" element={<Workshop />} />
-            <Route index path="/dashboard" element={<Dashboard />} />
-            {/* <Route path="/chat/:id" element={<Chat />} /> */}
-            <Route path="/chat/:id" element={<Chat />} />
-          </Route>
-          <Route
-            path="/createPersonalProfileForm"
-            element={<PersonalProfileForm />}
-          />
-          {/* <Route path="/a" element={<PersonalProfileForm />} /> */}
-          {/* knowledge base and persona generation */}
-          <Route element={<KnowledgeLayout />}>
-            <Route path="/knowledge" element={<Knowledge />} />
-            <Route
-              path="/create-knowledge-base"
-              element={<CreateKnowledgeBase />}
-            />
-            <Route
-              path="/editSuperPersona/:idx"
-              element={<EditSuperPersona />}
-            />
-            <Route
-              path="/uploadDocumentKnowledgeBase/:idx"
-              element={<UploadDocumentKnowledge />}
-            />
-            <Route
-              path="/generatingKnowledge/:idx"
-              element={<GenerateKnowledgeBase />}
-            />
-            <Route
-              path="/addToPermenentKnowledgeBase"
-              element={<AddToExistingKnowledge />}
-            />
-            <Route
-              path="/addToPersonalKnowledgeBase"
-              element={<AddToPersonalKnowledgeBase />}
-            />
-          </Route>
-          {/* agentic automation interface */}
-          <Route element={<AgenticAutomationLayout />}>
-            <Route path="/agenticAutomation" element={<AgenticAutomation />} />
-            <Route
-              path="/agenticAutomation/createNewAgenticAutomation"
-              element={<CreateAutomationForm />}
-            />
-            <Route
-              path="/agenticAutomation/automationJobsDetails/:automationId"
-              element={<AgenticJobs />}
-            />
-            <Route
-              path="/agenticAutomation/jobDetails/:jobId"
-              element={<JobDetails />}
-            />
-          </Route>
-          {/* Oasis : Open Agent Social Interaction Simulation */}
-          <Route element={<OasisLayout />}>
-            <Route
-              path={oasisDashboardClientUrl}
-              element={<OasisDashboard />}
-            />
-            <Route
-              path={createNewUserTemplateClientUrl}
-              element={<UserFormProgress />}
-            />
-          </Route>
+	return (
+		<>
+			<Routes>
+				<Route path="/" element={<PublicLayout />}>
+					<Route path={login} element={<Login />} />
+					<Route path={signup} element={<Signup />} />
+				</Route>
+				<Route path="/test" element={<Test />} />
+				<Route element={<PrivateRoute />}>
+					{/* user manual */}
+					<Route path="/manual" element={<UserManualLayout />} />
+					<Route path="/detail/:slug" element={<DetailPage />} />
+					{/* code chat interface */}
+					<Route element={<SidebarProvided />}>
+						<Route path="/workshop" element={<Workshop />} />
+						<Route index path="/dashboard" element={<Dashboard />} />
+						{/* <Route path="/chat/:id" element={<Chat />} /> */}
+						<Route path="/chat/:id" element={<Chat />} />
+					</Route>
+					<Route
+						path="/createPersonalProfileForm"
+						element={<PersonalProfileForm />}
+					/>
+					{/* <Route path="/a" element={<PersonalProfileForm />} /> */}
+					{/* knowledge base and persona generation */}
+					<Route element={<KnowledgeLayout />}>
+						<Route path="/knowledge" element={<Knowledge />} />
+						<Route
+							path="/create-knowledge-base"
+							element={<CreateKnowledgeBase />}
+						/>
+						<Route
+							path="/editSuperPersona/:idx"
+							element={<EditSuperPersona />}
+						/>
+						<Route
+							path="/uploadDocumentKnowledgeBase/:idx"
+							element={<UploadDocumentKnowledge />}
+						/>
+						<Route
+							path="/generatingKnowledge/:idx"
+							element={<GenerateKnowledgeBase />}
+						/>
+						<Route
+							path="/addToPermenentKnowledgeBase"
+							element={<AddToExistingKnowledge />}
+						/>
+						<Route
+							path="/addToPersonalKnowledge"
+							element={<AddToPersonalKnowledgeBase />}
+						/>
+					</Route>
+					{/* agentic automation interface */}
+					<Route element={<AgenticAutomationLayout />}>
+						<Route path="/agenticAutomation" element={<AgenticAutomation />} />
+						<Route
+							path="/agenticAutomation/createNewAgenticAutomation"
+							element={<CreateAutomationForm />}
+						/>
+						<Route
+							path="/agenticAutomation/automationJobsDetails/:automationId"
+							element={<AgenticJobs />}
+						/>
+						<Route
+							path="/agenticAutomation/jobDetails/:jobId"
+							element={<JobDetails />}
+						/>
+					</Route>
+					{/* Oasis : Open Agent Social Interaction Simulation */}
+					<Route element={<OasisLayout />}>
+						<Route
+							path={oasisDashboardClientUrl}
+							element={<OasisDashboard />}
+						/>
+						<Route
+							path={createNewUserTemplateClientUrl}
+							element={<UserFormProgress />}
+						/>
+					</Route>
 
           <Route path="*" element={<ComingSoonPage />} />
         </Route>
