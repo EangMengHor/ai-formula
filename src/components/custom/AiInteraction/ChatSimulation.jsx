@@ -1,20 +1,23 @@
 import { useEffect, useState } from "react";
-import { BrainCog, Building2, Flame, LoaderCircle } from "lucide-react";
+import { BrainCog, Building2, Flame, LoaderCircle, Save } from "lucide-react";
 import { useStackSidebar } from "../../../context/StackSidebarContext";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "../../ui/button";
 import PersonaOp from "./PersonaOp";
 import PersonaDetails from "./PersonaDetails";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import createUserSavedWorflow from "../../../services/user-saved-workflow-apis/createUserSavedWorflow";
+import { useUser } from "../../../context/UserContext";
 export default function ChatSimulation({
   personas,
   isLoading,
   effect = false,
 }) {
   const { sidebarStack, setSidebarStack } = useStackSidebar();
+  const { user } = useUser();
   const [showAll, setShowAll] = useState(false);
-  console.log(isLoading, "isLoading");
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleShowAll = () => {
     setShowAll(!showAll);
   };
@@ -28,6 +31,28 @@ export default function ChatSimulation({
         component: <DigDeeper personas={personas} />,
       },
     ]);
+  }
+
+  async function handleSaveWorkflow() {
+    setIsSaving(true);
+    const personaList = personas.map((persona, index) => ({
+      id: index + 1,
+      name: persona.title || "No title",
+      description: persona.goal || "No goal",
+    }));
+
+    const res = await createUserSavedWorflow({
+      userId: user?.id,
+      personaList,
+      hit: 0,
+      name: "User's saved workflow",
+    });
+
+    if (res.success) {
+      setIsSaving(false);
+    } else {
+      setIsSaving(false);
+    }
   }
 
   useEffect(() => {
@@ -113,14 +138,26 @@ export default function ChatSimulation({
 
       <Separator className="border border-slate-600 my-2" />
 
-      <Button
-        onClick={handleDigDeeper}
-        variant="default"
-        className="flex gap-2 bg-slate-700 hover:bg-slate-800"
-      >
-        <Flame />
-        Dig Deeper
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          onClick={handleDigDeeper}
+          variant="default"
+          className="flex gap-2 bg-slate-700 hover:bg-slate-800"
+        >
+          <Flame />
+          Dig Deeper
+        </Button>
+
+        <Button
+          onClick={handleSaveWorkflow}
+          variant="default"
+          className="flex gap-2 bg-slate-700 hover:bg-slate-800"
+          disabled={isSaving}
+        >
+          {isSaving ? <LoaderCircle className="animate-spin p-1" /> : <Save />}
+          Save Workflow
+        </Button>
+      </div>
     </div>
   );
 }
