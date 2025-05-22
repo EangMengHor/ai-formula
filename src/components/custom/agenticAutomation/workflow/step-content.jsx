@@ -1,5 +1,5 @@
-"use client"
-import { Button } from "@/components/ui/button"
+"use client";
+import { Button } from "@/components/ui/button";
 
 export function StepContent({ name, query, onViewPlan }) {
   return (
@@ -18,6 +18,5 @@ export function StepContent({ name, query, onViewPlan }) {
         </Button>
       </div>
     </div>
-  )
+  );
 }
-

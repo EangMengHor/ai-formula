@@ -1,96 +1,107 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect, useRef } from "react"
-import { ChevronLeft, ChevronRight, Eye, Workflow, ChevronDown, ChevronUp } from "lucide-react"
-import ParseMd from "../ParseMd"
+import React, { useState, useEffect, useRef } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Workflow,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import ParseMd from "../ParseMd";
 
 export default function ChainOfThoughtVisualizer({ data }) {
-  const [activeView, setActiveView] = useState("workflow") // Default to workflow view
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [expandedItems, setExpandedItems] = useState([])
-  const contentRef = useRef(null)
-  const singleViewRef = useRef(null)
-  const expandRefs = useRef([])
+  const [activeView, setActiveView] = useState("workflow"); // Default to workflow view
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [expandedItems, setExpandedItems] = useState([]);
+  const contentRef = useRef(null);
+  const singleViewRef = useRef(null);
+  const expandRefs = useRef([]);
 
   // Initialize refs array for expand animations
   useEffect(() => {
     expandRefs.current = Array(data.length)
       .fill()
-      .map(() => React.createRef())
-  }, [data.length])
+      .map(() => React.createRef());
+  }, [data.length]);
 
   // Parse the content if it's a string
   const parseContent = (content) => {
     try {
       if (typeof content === "string") {
         // Try to parse JSON content if it's a string
-        const parsedContent = JSON.parse(content)
-        if (Array.isArray(parsedContent) && parsedContent.length > 0 && parsedContent[0].output) {
-          return parsedContent[0].output
+        const parsedContent = JSON.parse(content);
+        if (
+          Array.isArray(parsedContent) &&
+          parsedContent.length > 0 &&
+          parsedContent[0].output
+        ) {
+          return parsedContent[0].output;
         }
       }
-      return content
+      return content;
     } catch (e) {
-      return content
+      return content;
     }
-  }
+  };
 
   const toggleExpand = (index) => {
     if (expandedItems.includes(index)) {
-      setExpandedItems(expandedItems.filter((i) => i !== index))
+      setExpandedItems(expandedItems.filter((i) => i !== index));
     } else {
-      setExpandedItems([...expandedItems, index])
+      setExpandedItems([...expandedItems, index]);
     }
-  }
+  };
 
   const goToNext = () => {
     if (currentIndex < data.length - 1) {
       setCurrentIndex((prevIndex) => {
         // Add animation class
         if (singleViewRef.current) {
-          singleViewRef.current.classList.add("animate-slide-left")
+          singleViewRef.current.classList.add("animate-slide-left");
           setTimeout(() => {
-            singleViewRef.current.classList.remove("animate-slide-left")
-          }, 300)
+            singleViewRef.current.classList.remove("animate-slide-left");
+          }, 300);
         }
-        return prevIndex + 1
-      })
+        return prevIndex + 1;
+      });
     }
-  }
+  };
 
   const goToPrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex((prevIndex) => {
         // Add animation class
         if (singleViewRef.current) {
-          singleViewRef.current.classList.add("animate-slide-right")
+          singleViewRef.current.classList.add("animate-slide-right");
           setTimeout(() => {
-            singleViewRef.current.classList.remove("animate-slide-right")
-          }, 300)
+            singleViewRef.current.classList.remove("animate-slide-right");
+          }, 300);
         }
-        return prevIndex - 1
-      })
+        return prevIndex - 1;
+      });
     }
-  }
+  };
 
   const truncateContent = (content, isExpanded) => {
-    const parsedContent = parseContent(content)
-    if (!parsedContent) return ""
+    const parsedContent = parseContent(content);
+    if (!parsedContent) return "";
 
-    if (isExpanded) return parsedContent
+    if (isExpanded) return parsedContent;
 
     // Show approximately 30% of the content
-    const contentLength = parsedContent.length
-    const visibleLength = Math.floor(contentLength * 0.3)
-    return parsedContent.substring(0, visibleLength) + "..."
-  }
+    const contentLength = parsedContent.length;
+    const visibleLength = Math.floor(contentLength * 0.3);
+    return parsedContent.substring(0, visibleLength) + "...";
+  };
 
   // Scroll to top when changing steps in single view
   useEffect(() => {
     if (contentRef.current) {
-      contentRef.current.scrollTop = 0
+      contentRef.current.scrollTop = 0;
     }
-  }, [currentIndex])
+  }, [currentIndex]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-800 text-slate-100 p-4">
@@ -100,16 +111,22 @@ export default function ChainOfThoughtVisualizer({ data }) {
           <div className="bg-slate-900 p-1 rounded-full flex items-center">
             <button
               onClick={() => setActiveView("workflow")}
-              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${activeView === "workflow" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
-                }`}
+              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${
+                activeView === "workflow"
+                  ? "bg-slate-700 text-white"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
             >
               <Workflow className="h-4 w-4 mr-2" />
               Workflow View
             </button>
             <button
               onClick={() => setActiveView("single")}
-              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${activeView === "single" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
-                }`}
+              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${
+                activeView === "single"
+                  ? "bg-slate-700 text-white"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
             >
               <Eye className="h-4 w-4 mr-2" />
               Single View
@@ -117,25 +134,34 @@ export default function ChainOfThoughtVisualizer({ data }) {
           </div>
         </div>
         <p className="text-center text-sm text-slate-400 max-w-md mx-auto">
-          Both views represent the same chain of thought content, but in different formats for different analysis needs.
+          Both views represent the same chain of thought content, but in
+          different formats for different analysis needs.
         </p>
       </div>
 
       {activeView === "single" ? (
         <div className="relative">
-
-
           {/* Single view content with animation */}
-          <div ref={singleViewRef} className="transition-all duration-300 ease-in-out max-w-3xl mx-auto">
+          <div
+            ref={singleViewRef}
+            className="transition-all duration-300 ease-in-out max-w-3xl mx-auto"
+          >
             <div className="flex items-center mb-6">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-700 text-white font-bold mr-4">
                 {currentIndex + 1}
               </div>
-              <h2 className="text-xl font-bold">{data[currentIndex].cotGoal}</h2>
+              <h2 className="text-xl font-bold">
+                {data[currentIndex].cotGoal}
+              </h2>
             </div>
 
-            <div ref={contentRef} className="bg-slate-900 rounded-lg p-6 max-h-[70vh] overflow-y-auto">
-              <div className="whitespace-pre-wrap">{parseContent(data[currentIndex].content)}</div>
+            <div
+              ref={contentRef}
+              className="bg-slate-900 rounded-lg p-6 max-h-[70vh] overflow-y-auto"
+            >
+              <div className="whitespace-pre-wrap">
+                {parseContent(data[currentIndex].content)}
+              </div>
             </div>
 
             <div className="mt-4 text-center text-slate-400">
@@ -187,8 +213,11 @@ export default function ChainOfThoughtVisualizer({ data }) {
 
                     <div
                       ref={(el) => (expandRefs.current[index] = el)}
-                      className={`relative bg-slate-900 p-4 rounded-lg transition-all duration-300 ease-in-out ${expandedItems.includes(index) ? "h-fit" : "max-h-32 overflow-hidden"
-                        }`}
+                      className={`relative bg-slate-900 p-4 rounded-lg transition-all duration-300 ease-in-out ${
+                        expandedItems.includes(index)
+                          ? "h-fit"
+                          : "max-h-32 overflow-hidden"
+                      }`}
                     >
                       <div className="whitespace-pre-wrap text-sm ">
                         <ParseMd text={item.content} />
@@ -201,7 +230,11 @@ export default function ChainOfThoughtVisualizer({ data }) {
                       <button
                         onClick={() => toggleExpand(index)}
                         className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
-                        aria-label={expandedItems.includes(index) ? "Show less" : "Show more"}
+                        aria-label={
+                          expandedItems.includes(index)
+                            ? "Show less"
+                            : "Show more"
+                        }
                       >
                         {expandedItems.includes(index) ? (
                           <ChevronUp className="h-4 w-4" />
@@ -215,11 +248,8 @@ export default function ChainOfThoughtVisualizer({ data }) {
               </div>
             ))}
           </div>
-
-
         </div>
       )}
     </div>
-  )
+  );
 }
-

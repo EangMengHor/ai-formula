@@ -136,7 +136,6 @@
 //         }
 //     }
 
-
 //     return (
 //         <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950">
 //             <h1 className="text-4xl font-bold mb-6 text-white">Login</h1>
@@ -202,35 +201,35 @@
 //     );
 // }
 
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Loader, Lock, Circle } from "lucide-react"
-import {Link, useNavigate} from "react-router-dom"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Loader, Lock, Circle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
-import { login } from "@/services/n8n-apis/_auth/Login.api"
-import { useUser } from "@/context/UserContext"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { login } from "@/services/n8n-apis/_auth/Login.api";
+import { useUser } from "@/context/UserContext";
 
 export default function Login() {
   // context
-  const {setUser} = useUser()
-  const navigate = useNavigate()
+  const { setUser } = useUser();
+  const navigate = useNavigate();
   // States
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Login security states
-  const [failedAttempts, setFailedAttempts] = useState(0)
-  const [isLocked, setIsLocked] = useState(false)
-  const [lockoutEndTime, setLockoutEndTime] = useState(null)
-  const [lockoutDuration, setLockoutDuration] = useState(5) // Initial 5 minutes
-  const [timeRemaining, setTimeRemaining] = useState(0)
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockoutEndTime, setLockoutEndTime] = useState(null);
+  const [lockoutDuration, setLockoutDuration] = useState(5); // Initial 5 minutes
+  const [timeRemaining, setTimeRemaining] = useState(0);
 
   // Animation variants
   const containerVariants = {
@@ -242,7 +241,7 @@ export default function Login() {
         delayChildren: 0.3,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
@@ -251,7 +250,7 @@ export default function Login() {
       opacity: 1,
       transition: { type: "spring", stiffness: 100 },
     },
-  }
+  };
 
   const circleVariants = {
     hidden: { scale: 0, opacity: 0 },
@@ -264,119 +263,121 @@ export default function Login() {
         ease: "easeOut",
       },
     }),
-  }
+  };
 
   // Check if account is locked
   useEffect(() => {
     if (isLocked) {
       const timer = setInterval(() => {
-        const now = new Date()
-        const remainingMs = lockoutEndTime - now
+        const now = new Date();
+        const remainingMs = lockoutEndTime - now;
 
         if (remainingMs <= 0) {
-          setIsLocked(false)
-          clearInterval(timer)
+          setIsLocked(false);
+          clearInterval(timer);
         } else {
-          setTimeRemaining(Math.ceil(remainingMs / 1000 / 60)) // Convert to minutes
+          setTimeRemaining(Math.ceil(remainingMs / 1000 / 60)); // Convert to minutes
         }
-      }, 1000)
+      }, 1000);
 
-      return () => clearInterval(timer)
+      return () => clearInterval(timer);
     }
-  }, [isLocked, lockoutEndTime])
+  }, [isLocked, lockoutEndTime]);
 
   // Handle account lockout
   const lockAccount = () => {
     // Increase lockout duration exponentially after each set of 5 attempts
-    const newDuration = Math.min(60, lockoutDuration * (failedAttempts >= 10 ? 2 : 1))
-    setLockoutDuration(newDuration)
+    const newDuration = Math.min(
+      60,
+      lockoutDuration * (failedAttempts >= 10 ? 2 : 1),
+    );
+    setLockoutDuration(newDuration);
 
-    const endTime = new Date()
-    endTime.setMinutes(endTime.getMinutes() + newDuration)
+    const endTime = new Date();
+    endTime.setMinutes(endTime.getMinutes() + newDuration);
 
-    setLockoutEndTime(endTime)
-    setIsLocked(true)
-    setTimeRemaining(newDuration)
+    setLockoutEndTime(endTime);
+    setIsLocked(true);
+    setTimeRemaining(newDuration);
 
     toast({
       title: "Account Temporarily Locked",
       description: `Too many failed attempts. Try again in ${newDuration} minutes.`,
       variant: "destructive",
-    })
-  }
+    });
+  };
 
   async function handleLogin() {
-            // Check if account is locked
-            if (isLocked) {
-                toast({
-                    title: 'Account Locked',
-                    description: `Please wait ${timeRemaining} minutes before trying again.`,
-                    variant: "destructive"
-                });
-                return;
-            }
-    
-            if (email.length === 0 || password.length === 0) {
-                toast({
-                    title: 'Error',
-                    description: 'Please fill all the fields',
-                    variant: "destructive"
-                });
-                return;
-            }
-    
-            setIsLoading(true);
-            try {
-                const response = await login(email, password);
-    
-                if (response.success) {
-                    // Reset failed attempts on successful login
-                    setFailedAttempts(0);
-    
-                    localStorage.setItem('id', response.data.id)
-                    localStorage.setItem('email', response.data.email)
-    
-                    setUser({
-                        id: response.data.id,
-                        email: response.data.email,
-                        isAuthenticated: true
-                    });
-    
-                    toast({
-                        title: 'Success',
-                        description: response.message,
-                        variant: 'default'
-                    });
-    
-                    const from = location.state?.from?.pathname || '/dashboard';
-                    navigate(from, { replace: true });
-                } else {
-                    // Increment failed attempts
-                    const newAttempts = failedAttempts + 1;
-                    setFailedAttempts(newAttempts);
-    
-                    // Check if we should lock the account
-                    if (newAttempts >= 5 && newAttempts % 5 === 0) {
-                        lockAccount();
-                    } else {
-                        toast({
-                            title: 'Error',
-                            description: `${response.message} (${5 - (newAttempts % 5)} attempts remaining)`,
-                            variant: "destructive"
-                        });
-                    }
-                }
-            } catch (error) {
-                toast({
-                    title: 'Error',
-                    description: error.message,
-                    variant: "destructive"
-                });
-            } finally {
-                setIsLoading(false);
-            }
+    // Check if account is locked
+    if (isLocked) {
+      toast({
+        title: "Account Locked",
+        description: `Please wait ${timeRemaining} minutes before trying again.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (email.length === 0 || password.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please fill all the fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await login(email, password);
+
+      if (response.success) {
+        // Reset failed attempts on successful login
+        setFailedAttempts(0);
+
+        localStorage.setItem("id", response.data.id);
+        localStorage.setItem("email", response.data.email);
+
+        setUser({
+          id: response.data.id,
+          email: response.data.email,
+          isAuthenticated: true,
+        });
+
+        toast({
+          title: "Success",
+          description: response.message,
+          variant: "default",
+        });
+
+        const from = location.state?.from?.pathname || "/dashboard";
+        navigate(from, { replace: true });
+      } else {
+        // Increment failed attempts
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+
+        // Check if we should lock the account
+        if (newAttempts >= 5 && newAttempts % 5 === 0) {
+          lockAccount();
+        } else {
+          toast({
+            title: "Error",
+            description: `${response.message} (${5 - (newAttempts % 5)} attempts remaining)`,
+            variant: "destructive",
+          });
         }
-    
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-950">
@@ -387,10 +388,19 @@ export default function Login() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <motion.div className="w-full max-w-md" variants={containerVariants} initial="hidden" animate="visible">
+        <motion.div
+          className="w-full max-w-md"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <motion.div variants={itemVariants} className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-white">Welcome Back</h1>
-            <p className="text-slate-400 mt-2">Sign in to your account to continue</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-white">
+              Welcome Back
+            </h1>
+            <p className="text-slate-400 mt-2">
+              Sign in to your account to continue
+            </p>
           </motion.div>
 
           <div className="bg-slate-900/50 backdrop-blur-sm p-8 rounded-xl shadow-2xl border border-slate-800">
@@ -402,16 +412,24 @@ export default function Login() {
                 transition={{ duration: 0.3 }}
               >
                 <Lock className="mx-auto mb-2 text-red-500" size={32} />
-                <h3 className="text-red-400 font-bold text-lg">Account Temporarily Locked</h3>
+                <h3 className="text-red-400 font-bold text-lg">
+                  Account Temporarily Locked
+                </h3>
                 <p className="text-gray-300 mt-2">
                   Too many failed login attempts. Please try again in{" "}
-                  <span className="font-bold text-red-400">{timeRemaining}</span> minutes.
+                  <span className="font-bold text-red-400">
+                    {timeRemaining}
+                  </span>{" "}
+                  minutes.
                 </p>
               </motion.div>
             ) : (
               <>
                 <motion.div variants={itemVariants} className="mb-4">
-                  <label className="block text-slate-300 text-sm font-medium mb-2" htmlFor="email">
+                  <label
+                    className="block text-slate-300 text-sm font-medium mb-2"
+                    htmlFor="email"
+                  >
                     Email
                   </label>
                   <Input
@@ -424,7 +442,10 @@ export default function Login() {
                   />
                 </motion.div>
                 <motion.div variants={itemVariants} className="mb-6">
-                  <label className="block text-slate-300 text-sm font-medium mb-2" htmlFor="password">
+                  <label
+                    className="block text-slate-300 text-sm font-medium mb-2"
+                    htmlFor="password"
+                  >
                     Password
                   </label>
                   <Input
@@ -436,7 +457,10 @@ export default function Login() {
                     placeholder="••••••••"
                   />
                 </motion.div>
-                <motion.div variants={itemVariants} className="flex items-center justify-between mb-6">
+                <motion.div
+                  variants={itemVariants}
+                  className="flex items-center justify-between mb-6"
+                >
                   <div className="flex items-center">
                     <input
                       id="remember-me"
@@ -444,12 +468,18 @@ export default function Login() {
                       type="checkbox"
                       className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-slate-100 focus:ring-slate-600"
                     />
-                    <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-400">
+                    <label
+                      htmlFor="remember-me"
+                      className="ml-2 block text-sm text-slate-400"
+                    >
                       Remember me
                     </label>
                   </div>
                   <div className="text-sm">
-                    <a href="#" className="font-medium text-blue-400 hover:text-blue-300">
+                    <a
+                      href="#"
+                      className="font-medium text-blue-400 hover:text-blue-300"
+                    >
                       Forgot password?
                     </a>
                   </div>
@@ -463,13 +493,23 @@ export default function Login() {
                 disabled={isLocked || isLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
               >
-                {isLoading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : "Sign In"}
+                {isLoading ? (
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </motion.div>
 
-            <motion.p variants={itemVariants} className="mt-6 text-center text-sm text-slate-400">
+            <motion.p
+              variants={itemVariants}
+              className="mt-6 text-center text-sm text-slate-400"
+            >
               Don't have an account?{" "}
-              <Link to="/signup" className="font-medium text-blue-400 hover:text-blue-300">
+              <Link
+                to="/signup"
+                className="font-medium text-blue-400 hover:text-blue-300"
+              >
                 Sign up
               </Link>
             </motion.p>
@@ -564,7 +604,13 @@ export default function Login() {
           animate={{ scale: 1 }}
           transition={{ type: "spring", stiffness: 100, delay: 1.2 }}
         >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
             <motion.path
               d="M12 2L2 7L12 12L22 7L12 2Z"
               stroke="white"
@@ -659,10 +705,8 @@ export default function Login() {
             <Circle className="mx-auto mb-2 text-rose-400/80" size={16} />
             <p className="text-white font-medium">God Partical</p>
           </motion.div>
-          
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
-

@@ -12,9 +12,9 @@ export default defineConfig({
     outDir: "dist",
   },
   server: {
-    historyApiFallback: true,  // Ensure fallback for React Router
+    historyApiFallback: true, // Ensure fallback for React Router
   },
   preview: {
-    port: 5000,  // Test locally before deploying
+    port: 5000, // Test locally before deploying
   },
 });

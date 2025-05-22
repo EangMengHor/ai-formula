@@ -1,7 +1,13 @@
-import * as React from "react"
-import { Compass, Ellipsis, GalleryVerticalEnd, Layers, Plus } from "lucide-react"
+import * as React from "react";
+import {
+  Compass,
+  Ellipsis,
+  GalleryVerticalEnd,
+  Layers,
+  Plus,
+} from "lucide-react";
 
-import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main"
+import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main";
 import {
   Sidebar,
   SidebarContent,
@@ -11,20 +17,20 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { useUser } from "../../../../context/UserContext"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+} from "@/components/ui/sidebar";
+import { useUser } from "../../../../context/UserContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useNavigate } from "react-router-dom"
-import { _useSidebar } from "../../../../context/SidebarContext"
-import JamesLogo from "./components/JamesLogo"
-import SettingsModal from "@/components/custom/SettingModal"
-import { useState } from "react"
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { _useSidebar } from "../../../../context/SidebarContext";
+import JamesLogo from "./components/JamesLogo";
+import SettingsModal from "@/components/custom/SettingModal";
+import { useState } from "react";
 
 // This is sample data.
 const data = {
@@ -151,12 +157,11 @@ const data = {
         {
           title: "Turbopack",
           url: "#",
-
         },
       ],
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }) {
   const { user, logout } = useUser();
@@ -173,9 +178,12 @@ export function AppSidebar({ ...props }) {
           <SidebarMenuItem>
             <div
               onClick={() => {
-                navigate('/dashboard')
+                navigate("/dashboard");
               }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-700 bg-gray-800 mt-2 mx-2 rounded-md" size="lg" asChild>
+              className="cursor-pointer px-2 py-1 hover:bg-slate-700 bg-gray-800 mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
               <div className="flex gap-2 items-center">
                 <div className="w-7 h-7 flex gap-1 items-center p-1">
                   <Plus className=" rounded-md  " />
@@ -185,9 +193,12 @@ export function AppSidebar({ ...props }) {
             </div>
             <div
               onClick={() => {
-                navigate('/workshop')
+                navigate("/workshop");
               }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md" size="lg" asChild>
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
               <div className="flex gap-2 items-center">
                 <div className="w-6 h-6 flex gap-1 items-center p-1">
                   <Layers className="w-5 rounded-md  " />
@@ -205,16 +216,24 @@ export function AppSidebar({ ...props }) {
         <div className="flex gap-2 items-center">
           <Avatar>
             <AvatarImage src="#" />
-            <AvatarFallback>{user.email.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {user.email.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <p className="truncate">{user.email}</p>
           <div className="bg-gray-700 rounded-md mt-2">
-            <Ellipsis className="w-4 h-4 cursor-pointer" onClick={() => setOpenSettingsModal(true)} />
+            <Ellipsis
+              className="w-4 h-4 cursor-pointer"
+              onClick={() => setOpenSettingsModal(true)}
+            />
           </div>
         </div>
       </SidebarFooter>
       <SidebarRail />
-      <SettingsModal open={openSettingsModal} onClose={() => setOpenSettingsModal(false)} />
+      <SettingsModal
+        open={openSettingsModal}
+        onClose={() => setOpenSettingsModal(false)}
+      />
     </Sidebar>
-  )
+  );
 }

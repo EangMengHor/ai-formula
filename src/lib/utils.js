@@ -11,7 +11,7 @@ export function response(success, message, data = null) {
     success,
     message,
     data,
-  })
+  });
   return {
     success,
     message,
@@ -38,7 +38,6 @@ export function throttle(func, wait) {
     }
   };
 }
-
 
 export function sortByDateGroup(data) {
   const order = ["today", "yesterday"]; // Predefined order for today and yesterday
@@ -102,11 +101,12 @@ export function sortByDateGroup(data) {
 }
 export function parseContent(input) {
   if (input.length <= 0) {
-    throw new Error('Please enter some content to parse.');
+    throw new Error("Please enter some content to parse.");
   }
 
   const sections = [];
-  const combinedRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<document>([\s\S]*?)<\/document>)|(<visual>([\s\S]*?)<\/visual>)/g;
+  const combinedRegex =
+    /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<document>([\s\S]*?)<\/document>)|(<visual>([\s\S]*?)<\/visual>)/g;
   let lastIndex = 0;
   let match;
 
@@ -114,62 +114,62 @@ export function parseContent(input) {
     // Process text before the block
     if (match.index > lastIndex) {
       sections.push({
-        type: 'text',
+        type: "text",
         content: input.substring(lastIndex, match.index).trim(),
         isComplete: true, // Text blocks are always complete
       });
     }
 
     // Check which type of block it is
-    if (match[0].startsWith('```mermaid')) {
+    if (match[0].startsWith("```mermaid")) {
       sections.push({
-        type: 'mermaid',
+        type: "mermaid",
         content: match[2].trim(),
         isComplete: true, // Mermaid blocks are always complete
       });
-    } else if (match[0].startsWith('<|agent|')) {
+    } else if (match[0].startsWith("<|agent|")) {
       // Parse the persona/agent block
       const agentContent = match[4];
       const parsedAgent = parseAgentBlock(agentContent);
       sections.push({
-        type: 'persona',
+        type: "persona",
         isComplete: true, // Persona blocks are always complete
         ...parsedAgent,
       });
-    } else if (match[0].startsWith('<document>')) {
+    } else if (match[0].startsWith("<document>")) {
       // Parse document block
       const docContent = match[6];
       const nameMatch = /<name>([\s\S]*?)<\/name>/g.exec(docContent);
-      
+
       let name = nameMatch ? nameMatch[1].trim() : "Document";
       let content = docContent;
-      
+
       // Remove name tag if present
       if (nameMatch) {
-        content = docContent.replace(nameMatch[0], '').trim();
+        content = docContent.replace(nameMatch[0], "").trim();
       }
-      
+
       sections.push({
-        type: 'document',
+        type: "document",
         name: name,
         content: content,
         isComplete: true, // Mark document blocks as complete when parsing from history
       });
-    } else if (match[0].startsWith('<visual>')) {
+    } else if (match[0].startsWith("<visual>")) {
       // Parse visual block
       const visualContent = match[8];
       const nameMatch = /<name>([\s\S]*?)<\/name>/g.exec(visualContent);
-      
+
       let name = nameMatch ? nameMatch[1].trim() : "Visualization";
       let content = visualContent;
-      
+
       // Remove name tag if present
       if (nameMatch) {
-        content = visualContent.replace(nameMatch[0], '').trim();
+        content = visualContent.replace(nameMatch[0], "").trim();
       }
-      
+
       sections.push({
-        type: 'visual',
+        type: "visual",
         name: name,
         content: content,
         isComplete: true, // Mark visual blocks as complete when parsing from history
@@ -182,26 +182,28 @@ export function parseContent(input) {
   // Process any remaining text after the last match
   if (lastIndex < input.length) {
     sections.push({
-      type: 'text',
+      type: "text",
       content: input.substring(lastIndex).trim(),
       isComplete: true, // Text blocks are always complete
     });
   }
 
   // Remove sections with empty content
-  const validSections = sections.filter(item => item.content?.trim() !== '');
+  const validSections = sections.filter((item) => item.content?.trim() !== "");
 
   // Build the final array:
   // - All persona sections are merged into a single simulation object.
   // - The simulation object is inserted in place of the first encountered persona block.
   const finalSections = [];
   let simulationInserted = false;
-  const personaSections = validSections.filter(item => item.type === 'persona');
-  
+  const personaSections = validSections.filter(
+    (item) => item.type === "persona",
+  );
+
   // Only process personas if there are any
   if (personaSections.length > 0) {
     for (const section of validSections) {
-      if (section.type === 'persona') {
+      if (section.type === "persona") {
         if (!simulationInserted) {
           finalSections.push({
             type: "simulation",
@@ -219,79 +221,80 @@ export function parseContent(input) {
     // No personas, just add all sections directly
     finalSections.push(...validSections);
   }
-  
+
   console.log("Parsed sections:", finalSections);
   return finalSections;
 }
 // Process content that isn't nested inside document blocks
 function processNonNestedBlocks(text) {
   const sections = [];
-  const blockRegex = /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<visual>([\s\S]*?)<\/visual>)/g;
+  const blockRegex =
+    /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<visual>([\s\S]*?)<\/visual>)/g;
   let match;
   let lastIndex = 0;
-  
+
   while ((match = blockRegex.exec(text)) !== null) {
     // Add text before this block
     if (match.index > lastIndex) {
       const textBefore = text.substring(lastIndex, match.index).trim();
       if (textBefore) {
         sections.push({
-          type: 'text',
+          type: "text",
           content: textBefore,
-          isComplete: true
+          isComplete: true,
         });
       }
     }
-    
+
     // Process the block based on its type
-    if (match[0].startsWith('```mermaid')) {
+    if (match[0].startsWith("```mermaid")) {
       sections.push({
-        type: 'mermaid',
+        type: "mermaid",
         content: match[2].trim(),
-        isComplete: true
+        isComplete: true,
       });
-    } else if (match[0].startsWith('<|agent|')) {
+    } else if (match[0].startsWith("<|agent|")) {
       const agentContent = match[4];
       const parsedAgent = parseAgentBlock(agentContent);
       sections.push({
-        type: 'persona',
+        type: "persona",
         isComplete: true,
-        ...parsedAgent
+        ...parsedAgent,
       });
-    } else if (match[0].startsWith('<visual>')) {
+    } else if (match[0].startsWith("<visual>")) {
       const visualContent = match[6];
       const nameMatch = /<name>([\s\S]*?)<\/name>/.exec(visualContent);
-      
+
       let name = nameMatch ? nameMatch[1].trim() : "Visualization";
       let content = visualContent;
-      
+
       if (nameMatch) {
-        content = visualContent.replace(nameMatch[0], '').trim();
+        content = visualContent.replace(nameMatch[0], "").trim();
       }
-      
+
       sections.push({
-        type: 'visual',
+        type: "visual",
         name: name,
         content: content,
-        isComplete: true
+        isComplete: true,
       });
     }
-    
+
     lastIndex = match.index + match[0].length;
   }
-  
+
   // Add remaining text
   if (lastIndex < text.length) {
     const remainingText = text.substring(lastIndex).trim();
     if (remainingText) {
       sections.push({
-        type: 'text',
+        type: "text",
         content: remainingText,
-        isComplete: true
+        isComplete: true,
       });
     }
   }
-  
+
   return sections;
 }
 
@@ -301,25 +304,23 @@ export const getFavicon = (urls) => {
     return [];
   }
 
-  return urls.map(url => {
+  return urls.map((url) => {
     try {
       const domain = new URL(url).hostname;
       const favImage = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
       return { link: url, favImage: favImage, root: domain };
     } catch (error) {
-      return { link: url, favImage: '' };
+      return { link: url, favImage: "" };
     }
   });
 };
-
-
 
 export class LayoutEngine {
   constructor(config) {
     this.config = config;
     this.nodeSize = {
       width: LAYOUT_CONFIG.NODE_WIDTH,
-      height: LAYOUT_CONFIG.NODE_HEIGHT
+      height: LAYOUT_CONFIG.NODE_HEIGHT,
     };
   }
 
@@ -339,7 +340,10 @@ export class LayoutEngine {
       let hasOverlap = false;
 
       for (const node of nodes) {
-        const distance = this.calculateNodeDistance(adjustedPosition, node.position);
+        const distance = this.calculateNodeDistance(
+          adjustedPosition,
+          node.position,
+        );
         if (distance < minDistance) {
           hasOverlap = true;
           break;
@@ -353,7 +357,7 @@ export class LayoutEngine {
       const angle = (attempts % 8) * angleStep;
       adjustedPosition = {
         x: position.x + radius * Math.cos(angle),
-        y: position.y + radius * Math.sin(angle)
+        y: position.y + radius * Math.sin(angle),
       };
 
       attempts++;
@@ -362,14 +366,20 @@ export class LayoutEngine {
     return adjustedPosition;
   }
 
-  calculateOptimalPosition(level, totalLevels, nodesInLevel, nodeIndexInLevel, totalNodes) {
+  calculateOptimalPosition(
+    level,
+    totalLevels,
+    nodesInLevel,
+    nodeIndexInLevel,
+    totalNodes,
+  ) {
     const padding = 200;
-    const availableWidth = this.config.canvasWidth - (2 * padding);
-    const availableHeight = this.config.canvasHeight - (2 * padding);
+    const availableWidth = this.config.canvasWidth - 2 * padding;
+    const availableHeight = this.config.canvasHeight - 2 * padding;
 
     // Calculate angle for circular distribution
     const angleStep = (2 * Math.PI) / totalNodes;
-    const currentAngle = (level * angleStep * 3) + (nodeIndexInLevel * angleStep);
+    const currentAngle = level * angleStep * 3 + nodeIndexInLevel * angleStep;
 
     // Use a spiral layout with increasing radius based on level
     const baseRadius = Math.min(availableWidth, availableHeight) * 0.35;
@@ -401,7 +411,7 @@ export class LayoutEngine {
     const positionedNodes = [];
 
     // Group nodes by level
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const level = node.data.execution;
       if (!nodesByLevel.has(level)) {
         nodesByLevel.set(level, []);
@@ -420,11 +430,14 @@ export class LayoutEngine {
           maxExecution,
           nodesInLevel,
           index,
-          totalNodes
+          totalNodes,
         );
 
         // Adjust position to avoid overlaps with already positioned nodes
-        const adjustedPosition = this.adjustNodePosition(basePosition, positionedNodes);
+        const adjustedPosition = this.adjustNodePosition(
+          basePosition,
+          positionedNodes,
+        );
 
         const positionedNode = {
           ...node,
@@ -442,9 +455,6 @@ export class LayoutEngine {
     return positionedNodes;
   }
 }
-
-
-
 
 export function groupWorkflowData(flatData) {
   // Group nodes by execution level using a reducer.
@@ -467,34 +477,34 @@ export function groupWorkflowData(flatData) {
   return { other: sortedGroups };
 }
 
-
-
 export const getStatusColor = (status) => {
   const colors = {
     running: " bg-blue-500/20 text-blue-400 border-blue-500/30",
     failed: "bg-red-500/20 text-red-400 border-red-500/30",
     completed: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
     pending: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  }
-  return colors[status?.toLowerCase()] || "bg-slate-500/20 text-slate-400 border-slate-500/30"
-}
+  };
+  return (
+    colors[status?.toLowerCase()] ||
+    "bg-slate-500/20 text-slate-400 border-slate-500/30"
+  );
+};
 
 export const formatDate = (dateString) => {
-  if (!dateString) return "Not set"
+  if (!dateString) return "Not set";
   try {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
       hour: "numeric",
       minute: "numeric",
-    }).format(date)
+    }).format(date);
   } catch (e) {
-    return dateString
+    return dateString;
   }
-}
-
+};
 
 export function sanitizeFileName(input) {
   return input
@@ -512,14 +522,16 @@ export function sanitizeFileName(input) {
 // Special helper for parsing streaming content chunks
 export function parseStreamingContent(chunk, previousState = {}) {
   // Initialize or use existing buffers from previous state
-  const buffer = previousState.buffer || '';
+  const buffer = previousState.buffer || "";
   const completeBuffer = buffer + chunk;
-  const openDocTags = (previousState.openDocTags || 0) + countTags(chunk, '<document>');
-  const closeDocTags = (previousState.closeDocTags || 0) + countTags(chunk, '</document>');
-  
+  const openDocTags =
+    (previousState.openDocTags || 0) + countTags(chunk, "<document>");
+  const closeDocTags =
+    (previousState.closeDocTags || 0) + countTags(chunk, "</document>");
+
   // Check if we're inside a document block (more open tags than close tags)
   const insideDocument = openDocTags > closeDocTags;
-  
+
   // If inside document block, just accumulate and wait for complete document
   if (insideDocument) {
     return {
@@ -527,183 +539,189 @@ export function parseStreamingContent(chunk, previousState = {}) {
       buffer: completeBuffer,
       openDocTags,
       closeDocTags,
-      insideDocument
+      insideDocument,
     };
   }
-  
+
   // If we have a balanced number of tags or a complete chunk, try to parse it
   if (openDocTags === closeDocTags && openDocTags > 0) {
     // We have at least one complete document, use standard parser
     const parsedSections = parseContent(completeBuffer);
-    
+
     // Reset buffer since we've processed everything
     return {
       sections: parsedSections,
-      buffer: '',
+      buffer: "",
       openDocTags: 0,
       closeDocTags: 0,
-      insideDocument: false
+      insideDocument: false,
     };
   }
-  
+
   // If no document tags, check for complete visual blocks
   if (openDocTags === 0 && closeDocTags === 0) {
     // No document blocks, so parse for standalone visual, mermaid, and other blocks
     const visualRegex = /<visual>([\s\S]*?)<\/visual>/g;
     const mermaidRegex = /```mermaid([\s\S]*?)```/g;
     const agentRegex = /<\|agent\|([\s\S]*?)<\|end\|>/g;
-    
+
     let lastIndex = 0;
     const sections = [];
     let match;
-    
+
     // Check for complete visual blocks
     while ((match = visualRegex.exec(completeBuffer)) !== null) {
       // Add text before if any
       if (match.index > lastIndex) {
-        const textContent = completeBuffer.substring(lastIndex, match.index).trim();
+        const textContent = completeBuffer
+          .substring(lastIndex, match.index)
+          .trim();
         if (textContent) {
           sections.push({
-            type: 'text',
+            type: "text",
             content: textContent,
-            isComplete: true
+            isComplete: true,
           });
         }
       }
-      
+
       // Process the visual block
       const visualContent = match[1];
       const nameMatch = /<name>([\s\S]*?)<\/name>/.exec(visualContent);
-      
+
       let name = nameMatch ? nameMatch[1].trim() : "Visualization";
       let content = visualContent;
-      
+
       if (nameMatch) {
-        content = visualContent.replace(nameMatch[0], '').trim();
+        content = visualContent.replace(nameMatch[0], "").trim();
       }
-      
+
       sections.push({
-        type: 'visual',
+        type: "visual",
         name: name,
         content: content,
-        isComplete: true
+        isComplete: true,
       });
-      
+
       lastIndex = match.index + match[0].length;
     }
-    
+
     // Check for complete mermaid blocks
     while ((match = mermaidRegex.exec(completeBuffer)) !== null) {
       // Add text before if any
       if (match.index > lastIndex) {
-        const textContent = completeBuffer.substring(lastIndex, match.index).trim();
+        const textContent = completeBuffer
+          .substring(lastIndex, match.index)
+          .trim();
         if (textContent) {
           sections.push({
-            type: 'text',
+            type: "text",
             content: textContent,
-            isComplete: true
+            isComplete: true,
           });
         }
       }
-      
+
       sections.push({
-        type: 'mermaid',
+        type: "mermaid",
         content: match[1].trim(),
-        isComplete: true
+        isComplete: true,
       });
-      
+
       lastIndex = match.index + match[0].length;
     }
-    
+
     // Check for complete agent blocks
     while ((match = agentRegex.exec(completeBuffer)) !== null) {
       // Add text before if any
       if (match.index > lastIndex) {
-        const textContent = completeBuffer.substring(lastIndex, match.index).trim();
+        const textContent = completeBuffer
+          .substring(lastIndex, match.index)
+          .trim();
         if (textContent) {
           sections.push({
-            type: 'text',
+            type: "text",
             content: textContent,
-            isComplete: true
+            isComplete: true,
           });
         }
       }
-      
+
       const agentContent = match[1];
       const parsedAgent = parseAgentBlock(agentContent);
       sections.push({
-        type: 'persona',
+        type: "persona",
         isComplete: true,
-        ...parsedAgent
+        ...parsedAgent,
       });
-      
+
       lastIndex = match.index + match[0].length;
     }
-    
+
     // Add remaining text
     if (lastIndex < completeBuffer.length) {
       const remainingText = completeBuffer.substring(lastIndex).trim();
       if (remainingText) {
         sections.push({
-          type: 'text',
+          type: "text",
           content: remainingText,
-          isComplete: true
+          isComplete: true,
         });
       }
     }
-    
+
     // Return what we've parsed and any remaining text as buffer
     return {
       sections,
-      buffer: '', // Reset buffer if we've processed everything
+      buffer: "", // Reset buffer if we've processed everything
       openDocTags: 0,
       closeDocTags: 0,
-      insideDocument: false
+      insideDocument: false,
     };
   }
-  
+
   // If we have unbalanced tags, or couldn't parse anything properly
   return {
     sections: [],
     buffer: completeBuffer, // Keep accumulating
     openDocTags,
     closeDocTags,
-    insideDocument
+    insideDocument,
   };
 }
 
 // Helper function to count tag occurrences in a string
 function countTags(str, tag) {
-  const regex = new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+  const regex = new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
   const matches = str.match(regex);
   return matches ? matches.length : 0;
 }
 
 function parseAgentBlock(agentContent) {
   const result = {
-    content: agentContent
+    content: agentContent,
   };
 
   // Extract title
   const titleMatch = /<\|title\|([\s\S]*?)<\|title\|>/g.exec(agentContent);
   if (titleMatch) {
     let title = titleMatch[1].trim();
-    if (title.startsWith('>')) {
+    if (title.startsWith(">")) {
       title = title.substring(1).trim();
     }
     result.title = title;
-    result.content = result.content.replace(titleMatch[0], '');
+    result.content = result.content.replace(titleMatch[0], "");
   }
 
   // Extract goal
   const goalMatch = /<\|goal\|([\s\S]*?)<\|goal\|>/g.exec(agentContent);
   if (goalMatch) {
     let goal = goalMatch[1].trim();
-    if (goal.startsWith('>')) {
+    if (goal.startsWith(">")) {
       goal = goal.substring(1).trim();
     }
     result.goal = goal;
-    result.content = result.content.replace(goalMatch[0], '');
+    result.content = result.content.replace(goalMatch[0], "");
   }
 
   // Extract all team entries
@@ -716,14 +734,14 @@ function parseAgentBlock(agentContent) {
 
     if (teamContent.startsWith('"') && teamContent.endsWith('"')) {
       let member = teamContent.slice(1, -1).trim();
-      if (member.startsWith('>')) {
+      if (member.startsWith(">")) {
         member = member.substring(1).trim();
       }
       result.team.push(member);
     } else {
-      const members = teamContent.split(',').map(item => {
+      const members = teamContent.split(",").map((item) => {
         let trimmed = item.trim();
-        if (trimmed.startsWith('>')) {
+        if (trimmed.startsWith(">")) {
           trimmed = trimmed.substring(1).trim();
         }
         return trimmed.startsWith('"') && trimmed.endsWith('"')
@@ -733,11 +751,11 @@ function parseAgentBlock(agentContent) {
       result.team.push(...members);
     }
 
-    result.content = result.content.replace(teamMatch[0], '');
+    result.content = result.content.replace(teamMatch[0], "");
   }
 
   result.content = result.content.trim();
-  if (result.content.startsWith('>')) {
+  if (result.content.startsWith(">")) {
     result.content = result.content.substring(1).trim();
   }
   return result;

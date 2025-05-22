@@ -1,9 +1,16 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { ChevronRight } from "lucide-react"
+import { motion } from "framer-motion";
+import { ChevronRight } from "lucide-react";
 
-export function StepCard({ title, icon: Icon, number, isExpanded, onClick, children }) {
+export function StepCard({
+  title,
+  icon: Icon,
+  number,
+  isExpanded,
+  onClick,
+  children,
+}) {
   return (
     <div className="bg-slate-800/50 backdrop-blur rounded-lg border border-slate-700 shadow-lg">
       <div className="flex items-center p-4 cursor-pointer" onClick={onClick}>
@@ -15,16 +22,20 @@ export function StepCard({ title, icon: Icon, number, isExpanded, onClick, child
         </div>
 
         <div className="flex-1">
-          <h3 className="text-lg font-medium text-slate-200 text-ellipsis line-clamp-2">{title}</h3>
+          <h3 className="text-lg font-medium text-slate-200 text-ellipsis line-clamp-2">
+            {title}
+          </h3>
         </div>
 
-        <motion.div animate={{ rotate: isExpanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
+        <motion.div
+          animate={{ rotate: isExpanded ? 90 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
           <ChevronRight className="w-5 h-5 text-slate-400" />
         </motion.div>
       </div>
 
       {children}
     </div>
-  )
+  );
 }
-

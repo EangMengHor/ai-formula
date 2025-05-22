@@ -1,19 +1,10 @@
-import { useEffect } from "react"
+import { useEffect } from "react";
 
-export default function Chat1(){
-    const socket  = useRef(null)
+export default function Chat1() {
+  const socket = useRef(null);
 
+  //
+  useEffect(() => {}, []);
 
-
-    // 
-    useEffect(()=>{
-        
-    },[])
-
-
-    return (
-        <div>
-
-        </div>
-    )
+  return <div></div>;
 }

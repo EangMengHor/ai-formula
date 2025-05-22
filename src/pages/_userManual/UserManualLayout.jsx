@@ -1,8 +1,8 @@
-import ExtendedFeaturesNavBar from "@/components/custom/ExtendFeaturesNavBar"
-import FeatureSections from "./components/FeatureSections"
-import { userManualUrl } from "@/namespace/client"
-import { validToShowMenuForKnowledge } from "./config"
-import { m } from "framer-motion"
+import ExtendedFeaturesNavBar from "@/components/custom/ExtendFeaturesNavBar";
+import FeatureSections from "./components/FeatureSections";
+import { userManualUrl } from "@/namespace/client";
+import { validToShowMenuForKnowledge } from "./config";
+import { m } from "framer-motion";
 
 export const featuresData = [
   {
@@ -123,7 +123,7 @@ export const featuresData = [
         name: "Quick",
         description: "Faster Answering Using ARX Knowledge",
         gradient: "from-orange-300 to-orange-500",
-        pageContent:   `# Quick response — Web User Manual
+        pageContent: `# Quick response — Web User Manual
 
 > **Version:** v1.0 – generated 2024-06-07  
 > **Context:** Part of the AI-powered Knowledge Graph & Retrieval-Augmented Generation (RAG) platform.
@@ -202,7 +202,8 @@ accuracy and context for follow-up questions.
       },
       {
         name: "Deep Thinking",
-        description: "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
+        description:
+          "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
         gradient: "from-yellow-300 to-amber-200",
         pageContent: `
   # o3
@@ -234,17 +235,17 @@ accuracy and context for follow-up questions.
   - Available through API with enterprise support options
           `,
       },
-     
     ],
   },
   {
-    section:"Agentic Simulation",
-    subtitle:"Multi Agent Chat With ARX Knowledge",
-    isLargeCard:false,
-    items:[
+    section: "Agentic Simulation",
+    subtitle: "Multi Agent Chat With ARX Knowledge",
+    isLargeCard: false,
+    items: [
       {
         name: "Auto Agentic Automation",
-        description: "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
+        description:
+          "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
         gradient: "from-blue-400 to-cyan-300",
         pageContent: `
   # o3
@@ -278,7 +279,8 @@ accuracy and context for follow-up questions.
       },
       {
         name: "Manual Agentic Automation",
-        description: "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
+        description:
+          "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
         gradient: "from-purple-400 to-blue-400",
         pageContent: `
   # o3
@@ -309,14 +311,14 @@ accuracy and context for follow-up questions.
   - Trained on diverse datasets including scientific literature
   - Available through API with enterprise support options
           `,
-      }
-    ]
+      },
+    ],
   },
   {
-    section:"Agentic Automation",
-    subtitle:"Multi Agent Daily Automated Workflow Based Automation",
-    isLargeCard:false,
-    items:[
+    section: "Agentic Automation",
+    subtitle: "Multi Agent Daily Automated Workflow Based Automation",
+    isLargeCard: false,
+    items: [
       {
         name: "Create Your First Automation",
         description: "How We Can Create New Agentic Automation",
@@ -353,7 +355,8 @@ accuracy and context for follow-up questions.
       },
       {
         name: "How It Impacts",
-        description: "How to Access, visualize , refine and filter your agentic automations",
+        description:
+          "How to Access, visualize , refine and filter your agentic automations",
         gradient: "from-red-400 to-red-800",
         pageContent: `
   # o3
@@ -384,14 +387,14 @@ accuracy and context for follow-up questions.
   - Trained on diverse datasets including scientific literature
   - Available through API with enterprise support options
           `,
-      }
-    ]
+      },
+    ],
   },
   {
-    section:"ARX Accessories",
-    subtitle:"Orbital Features Of ARX Chat And Automation",
-    isLargeCard:false,
-    items:[
+    section: "ARX Accessories",
+    subtitle: "Orbital Features Of ARX Chat And Automation",
+    isLargeCard: false,
+    items: [
       {
         name: "Mic",
         description: " Voice To Text Prompting",
@@ -494,16 +497,17 @@ accuracy and context for follow-up questions.
   - Available through API with enterprise support options
           `,
       },
-    ]
+    ],
   },
   {
-    section:"ARX Voice Technology",
-    subtitle:"Real Time Voice To Voice Conversation With ARX Knowledge",
-    isLargeCard:false,
-    items:[
+    section: "ARX Voice Technology",
+    subtitle: "Real Time Voice To Voice Conversation With ARX Knowledge",
+    isLargeCard: false,
+    items: [
       {
         name: "ARX Next Voice Agent",
-        description: "Most Superior ,Fast And Fully Integrated Voice Agent with ARX",
+        description:
+          "Most Superior ,Fast And Fully Integrated Voice Agent with ARX",
         gradient: "from-rose-300 to-rose-700",
         pageContent: `
   # o3
@@ -568,10 +572,10 @@ accuracy and context for follow-up questions.
   - Trained on diverse datasets including scientific literature
   - Available through API with enterprise support options
           `,
-      }
-    ]
+      },
+    ],
   },
-]
+];
 
 export default function UserManualLayout() {
   return (
@@ -582,10 +586,7 @@ export default function UserManualLayout() {
         validToShowMenu={validToShowMenuForKnowledge}
       />
 
-
       <FeatureSections sections={featuresData} />
-
-
     </main>
-  )
+  );
 }

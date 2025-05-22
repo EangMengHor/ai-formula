@@ -4,10 +4,8 @@ import { useEffect } from "react";
 import { useToast } from "../../hooks/use-toast";
 
 export default function PublicLayout() {
-    const location = useLocation();
-    const navigate = useNavigate()
+  const location = useLocation();
+  const navigate = useNavigate();
 
-    return (
-        <Outlet />
-    )
+  return <Outlet />;
 }

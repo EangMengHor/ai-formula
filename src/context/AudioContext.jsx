@@ -23,7 +23,6 @@ export const AudioProvider = ({ children }) => {
     }
   };
 
-
   return (
     <AudioContext.Provider
       value={{
@@ -33,7 +32,7 @@ export const AudioProvider = ({ children }) => {
         isPlaying,
         playAudio,
         stopAudio,
-        setIsPlaying
+        setIsPlaying,
       }}
     >
       {children}
