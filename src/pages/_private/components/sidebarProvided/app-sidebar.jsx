@@ -9,7 +9,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 
-import { usePersona } from "../../../../context/PersonaContext";
+import { useWorkflow } from "../../../../context/WorkflowContext";
 
 import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main";
 import {
@@ -184,16 +184,17 @@ export function AppSidebar({ ...props }) {
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
   const navigate = useNavigate();
 
-  // Add persona context
+  // Add workflow context
   const {
-    selectedPersonaId,
-    personaList,
-    personaModalOpen,
-    setPersonaModalOpen,
-    selectPersona,
-  } = usePersona();
+    selectedWorkflowId,
+    workflowList,
+    workflowModalOpen,
+    setWorkflowModalOpen,
+    selectWorkflow,
+    getSelectedWorkflow,
+  } = useWorkflow();
 
-  const selectedPersona = personaList.find((p) => p.id === selectedPersonaId);
+  const selectedWorkflow = getSelectedWorkflow();
 
   return (
     <Sidebar {...props} className="">
@@ -251,20 +252,20 @@ export function AppSidebar({ ...props }) {
             </div>
             <div
               onClick={() => {
-                setPersonaModalOpen(true);
+                setWorkflowModalOpen(true);
               }}
-              className={`cursor-pointer px-2 py-1 hover:bg-slate-800 mt-2 mx-2 rounded-md ${selectedPersonaId ? "bg-slate-700" : ""}`}
+              className={`cursor-pointer px-2 py-1 hover:bg-slate-800 mt-2 mx-2 rounded-md ${selectedWorkflowId ? "bg-slate-700" : ""}`}
               size="lg"
               asChild
             >
               <div className="flex gap-2 items-center">
                 <div
-                  className={`w-6 h-6 flex gap-1 items-center p-1 ${selectedPersonaId ? "text-yellow-400" : ""}`}
+                  className={`w-6 h-6 flex gap-1 items-center p-1 ${selectedWorkflowId ? "text-yellow-400" : ""}`}
                 >
                   <UserCircle2 className="w-5 rounded-md" />
                 </div>
                 <p className="font-bold">
-                  {selectedPersona ? selectedPersona.name : "Select Persona"}
+                  {selectedWorkflow ? selectedWorkflow.name : "Select Workflow"}
                 </p>
               </div>
             </div>
@@ -297,45 +298,45 @@ export function AppSidebar({ ...props }) {
         onClose={() => setOpenSettingsModal(false)}
       />
 
-      <Dialog open={personaModalOpen} onOpenChange={setPersonaModalOpen}>
+      <Dialog open={workflowModalOpen} onOpenChange={setWorkflowModalOpen}>
         <DialogContent className="bg-slate-800 text-white border border-slate-600 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-white">
-              Select Persona
+              Select Workflow
             </DialogTitle>
             <DialogDescription className="text-slate-300">
-              Choose a persona for this conversation
+              Choose a workflow for this conversation
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto">
             <div
-              onClick={() => selectPersona(null)}
+              onClick={() => selectWorkflow(null)}
               className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                selectedPersonaId === null
+                selectedWorkflowId === null
                   ? "bg-slate-700 border-blue-500"
                   : "border-slate-600 hover:bg-slate-700"
               }`}
             >
-              <div className="font-medium">No persona</div>
+              <div className="font-medium">No workflow</div>
               <div className="text-sm text-slate-400">
-                Use default conversation without a specific persona
+                Use default conversation without a specific workflow
               </div>
             </div>
 
-            {personaList.map((persona) => (
+            {workflowList.map((workflow) => (
               <div
-                key={persona.id}
-                onClick={() => selectPersona(persona.id)}
+                key={workflow.id}
+                onClick={() => selectWorkflow(workflow.id)}
                 className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                  selectedPersonaId === persona.id
+                  selectedWorkflowId === workflow.id
                     ? "bg-slate-700 border-blue-500"
                     : "border-slate-600 hover:bg-slate-700"
                 }`}
               >
-                <div className="font-medium">{persona.name}</div>
+                <div className="font-medium">{workflow.name}</div>
                 <div className="text-sm text-slate-400">
-                  {persona.description}
+                  {workflow.personaList.length} personas included
                 </div>
               </div>
             ))}
@@ -344,7 +345,7 @@ export function AppSidebar({ ...props }) {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setPersonaModalOpen(false)}
+              onClick={() => setWorkflowModalOpen(false)}
               className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
             >
               Cancel

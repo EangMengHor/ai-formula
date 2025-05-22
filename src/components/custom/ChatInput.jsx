@@ -88,7 +88,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "../ui/button";
 import { useDomain } from "@/context/WhichDomainContext";
 import { getPromptEnhancerApi } from "@/services/n8n-apis/_core/getPromptEnhancer.api";
-import { usePersona } from "../../context/PersonaContext";
+import { useWorkflow } from "../../context/WorkflowContext";
 const maxRows = 30;
 
 function ChatInput({
@@ -174,13 +174,12 @@ function ChatInput({
   const [prevUnenchancedPrompt, setPrevUnenchancedPrompt] = useState("");
   // Add a ref to track if input is being set by enhancer API
   const isEnhancerApiUpdateRef = useRef(false);
-  const {
-    selectedPersonaId,
-    personaModalOpen,
-    setPersonaModalOpen,
-    selectPersona,
-    personaList,
-  } = usePersona();
+  const { selectedWorkflowId, workflowList, setWorkflowModalOpen } =
+    useWorkflow();
+
+  const selectedWorkflow = workflowList.find(
+    (w) => w.id === selectedWorkflowId,
+  );
 
   // prompt enhancer
   async function enchancePrompt() {
@@ -670,21 +669,21 @@ function ChatInput({
           </div>
 
           <div className="flex gap-1 items-center">
-            {/* Favorite */}
+            {/* Favorite - Now represents workflow */}
             <TooltipProvider>
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
                   <div
-                    onClick={() => setPersonaModalOpen(true)}
+                    onClick={() => setWorkflowModalOpen(true)}
                     className="p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer"
                   >
                     <Star
-                      className={`w-5 h-5 ${selectedPersonaId ? "text-yellow-400 fill-yellow-400" : "text-white"} drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10`}
+                      className={`w-5 h-5 ${selectedWorkflowId ? "text-yellow-400 fill-yellow-400" : "text-white"} drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10`}
                     />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="border border-slate-400 max-w-sm text-center">
-                  <p>Set Persona</p>
+                  <p>Set Workflow</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -1242,65 +1241,6 @@ function ChatInput({
           )}
         </AnimatePresence>
       </div>
-
-      {/* Add the persona dialog */}
-      <Dialog open={personaModalOpen} onOpenChange={setPersonaModalOpen}>
-        <DialogContent className="bg-slate-800 text-white border border-slate-600 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
-              Select Persona
-            </DialogTitle>
-            <DialogDescription className="text-slate-300">
-              Choose a persona for this conversation
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto">
-            {/* No persona option */}
-            <div
-              onClick={() => selectPersona(null)}
-              className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                selectedPersonaId === null
-                  ? "bg-slate-700 border-blue-500"
-                  : "border-slate-600 hover:bg-slate-700"
-              }`}
-            >
-              <div className="font-medium">No persona</div>
-              <div className="text-sm text-slate-400">
-                Use default conversation without a specific persona
-              </div>
-            </div>
-
-            {/* Persona list */}
-            {personaList.map((persona) => (
-              <div
-                key={persona.id}
-                onClick={() => selectPersona(persona.id)}
-                className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                  selectedPersonaId === persona.id
-                    ? "bg-slate-700 border-blue-500"
-                    : "border-slate-600 hover:bg-slate-700"
-                }`}
-              >
-                <div className="font-medium">{persona.name}</div>
-                <div className="text-sm text-slate-400">
-                  {persona.description}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setPersonaModalOpen(false)}
-              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { AudioProvider } from "./context/AudioContext";
 import StackSidebarProvider from "./context/StackSidebarContext";
 import { ReactFlowProvider } from "@xyflow/react";
 import { DomainProvider } from "./context/WhichDomainContext";
-import { PersonaProvider } from "./context/PersonaContext";
+import { WorkflowProvider } from "./context/WorkflowContext";
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <DomainProvider>
@@ -21,9 +21,9 @@ createRoot(document.getElementById("root")).render(
             <StackSidebarProvider>
               <AudioProvider>
                 <ReactFlowProvider>
-                  <PersonaProvider>
+                  <WorkflowProvider>
                     <App />
-                  </PersonaProvider>
+                  </WorkflowProvider>
                 </ReactFlowProvider>
               </AudioProvider>
             </StackSidebarProvider>
