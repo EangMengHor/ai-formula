@@ -53,7 +53,6 @@ export default function PrivateRoute() {
     }, [hasPersonalProfile, loading, isMounted]);
 
 
-
     return (
         <>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
