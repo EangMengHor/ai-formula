@@ -1,7 +1,17 @@
-import * as React from "react"
-import { Compass, Ellipsis, GalleryVerticalEnd, Layers, Plus } from "lucide-react"
+import * as React from "react";
+import {
+  Compass,
+  Ellipsis,
+  GalleryVerticalEnd,
+  Layers,
+  Orbit,
+  Plus,
+  UserCircle2,
+} from "lucide-react";
 
-import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main"
+import { useWorkflow } from "../../../../context/WorkflowContext";
+
+import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main";
 import {
   Sidebar,
   SidebarContent,
@@ -11,20 +21,30 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { useUser } from "../../../../context/UserContext"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+} from "@/components/ui/sidebar";
+import { useUser } from "../../../../context/UserContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useNavigate } from "react-router-dom"
-import { _useSidebar } from "../../../../context/SidebarContext"
-import JamesLogo from "./components/JamesLogo"
-import SettingsModal from "@/components/custom/SettingModal"
-import { useState } from "react"
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { _useSidebar } from "../../../../context/SidebarContext";
+import JamesLogo from "./components/JamesLogo";
+import SettingsModal from "@/components/custom/SettingModal";
+import { useState } from "react";
+import { useDomain } from "../../../../context/WhichDomainContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // This is sample data.
 const data = {
@@ -151,15 +171,15 @@ const data = {
         {
           title: "Turbopack",
           url: "#",
-
         },
       ],
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }) {
   const { user, logout } = useUser();
+  const { isPublicDomain } = useDomain();
   const { clearAllStates } = _useSidebar();
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
   const navigate = useNavigate();
@@ -173,9 +193,12 @@ export function AppSidebar({ ...props }) {
           <SidebarMenuItem>
             <div
               onClick={() => {
-                navigate('/dashboard')
+                navigate("/dashboard");
               }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-700 bg-gray-800 mt-2 mx-2 rounded-md" size="lg" asChild>
+              className="cursor-pointer px-2 py-1 hover:bg-slate-700 bg-gray-800 mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
               <div className="flex gap-2 items-center">
                 <div className="w-7 h-7 flex gap-1 items-center p-1">
                   <Plus className=" rounded-md  " />
@@ -184,10 +207,14 @@ export function AppSidebar({ ...props }) {
               </div>
             </div>
             <div
+              hidden={isPublicDomain}
               onClick={() => {
-                navigate('/workshop')
+                navigate("/workshop");
               }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md" size="lg" asChild>
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
               <div className="flex gap-2 items-center">
                 <div className="w-6 h-6 flex gap-1 items-center p-1">
                   <Layers className="w-5 rounded-md  " />
@@ -195,6 +222,22 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">Workshop</p>
               </div>
             </div>
+            <div
+              onClick={() => {
+                navigate("/addToPersonalKnowledgeBase");
+              }}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <Orbit className="w-5 rounded-md  " />
+                </div>
+                <p className="font-bold">Internal Knowledge</p>
+              </div>
+            </div>
+            
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -205,16 +248,25 @@ export function AppSidebar({ ...props }) {
         <div className="flex gap-2 items-center">
           <Avatar>
             <AvatarImage src="#" />
-            <AvatarFallback>{user.email.slice(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {user.email.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <p className="truncate">{user.email}</p>
+
           <div className="bg-gray-700 rounded-md mt-2 p-2 cursor-pointer hover:bg-slate-800" onClick={() => setOpenSettingsModal(true)}>
             <Ellipsis className="w-4 h-4 "  />
+
           </div>
         </div>
       </SidebarFooter>
       <SidebarRail />
-      <SettingsModal open={openSettingsModal} onClose={() => setOpenSettingsModal(false)} />
+      <SettingsModal
+        open={openSettingsModal}
+        onClose={() => setOpenSettingsModal(false)}
+      />
+
+  
     </Sidebar>
-  )
+  );
 }

@@ -23,7 +23,7 @@ export default function PortfolioCard({ data }) {
     privateEquity: false,
     jurisdictions: false,
   });
-console.log(data, "data");
+  console.log(data, "data");
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -306,7 +306,7 @@ console.log(data, "data");
                                 }}
                               />
                             </div>
-                          )
+                          ),
                         )}
                       </TabsContent>
                       <TabsContent value="strategic" className="space-y-3 pt-3">
@@ -326,7 +326,7 @@ console.log(data, "data");
                                 }}
                               />
                             </div>
-                          )
+                          ),
                         )}
                       </TabsContent>
                     </Tabs>
@@ -381,7 +381,7 @@ console.log(data, "data");
                                     : value}
                                 </p>
                               </div>
-                            )
+                            ),
                           )}
                         </div>
                       </div>
@@ -398,12 +398,12 @@ console.log(data, "data");
                                   {key === "var"
                                     ? "VaR"
                                     : key === "cvar"
-                                    ? "CVaR"
-                                    : key.replace(/([A-Z])/g, " $1").trim()}
+                                      ? "CVaR"
+                                      : key.replace(/([A-Z])/g, " $1").trim()}
                                 </p>
                                 <p className="font-medium">{value}</p>
                               </div>
-                            )
+                            ),
                           )}
                         </div>
                       </div>
@@ -536,8 +536,8 @@ console.log(data, "data");
                                 exposure.jurisdiction === "US"
                                   ? "#3b82f6"
                                   : exposure.jurisdiction === "EU"
-                                  ? "#60a5fa"
-                                  : "#93c5fd",
+                                    ? "#60a5fa"
+                                    : "#93c5fd",
                             }}
                           />
                         </div>

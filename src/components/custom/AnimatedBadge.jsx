@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function AnimatedBadge({ children, onClick }) {
-  const [pulse, setPulse] = useState(false)
+  const [pulse, setPulse] = useState(false);
 
   // Toggle pulse state every 2 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setPulse((prev) => !prev)
-    }, 2000)
+      setPulse((prev) => !prev);
+    }, 2000);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Badge
@@ -69,8 +69,5 @@ export default function AnimatedBadge({ children, onClick }) {
       {/* Enhanced shine effect on hover */}
       <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-blue-100/20 to-transparent" />
     </Badge>
-  )
+  );
 }
-
-
-

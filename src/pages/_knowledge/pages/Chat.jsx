@@ -1,10 +1,5 @@
-// Knowledge base 
+// Knowledge base
 
-
-export default function Chat(){
-    return(
-        <div>
-            chat with knowledge 
-        </div>
-    )
+export default function Chat() {
+  return <div>chat with knowledge</div>;
 }

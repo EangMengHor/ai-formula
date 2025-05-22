@@ -1,5 +1,5 @@
 .module {
-    font-family: "Figtree", sans-serif;
+  font-family: "Figtree", sans-serif;
 }
 
 .module h1,
@@ -8,90 +8,89 @@
 .module h4,
 .module h5,
 .module h6 {
-    margin-top: 0.5rem;
-    /* or 0, if you prefer */
-    margin-bottom: 0.5rem;
-    /* or 0, if you prefer */
-    padding-bottom: 0;
-    /* remove underlines or reduce as needed */
-    border-bottom: none;
-    /* or remove this if you don't want the underline style */
+  margin-top: 0.5rem;
+  /* or 0, if you prefer */
+  margin-bottom: 0.5rem;
+  /* or 0, if you prefer */
+  padding-bottom: 0;
+  /* remove underlines or reduce as needed */
+  border-bottom: none;
+  /* or remove this if you don't want the underline style */
 }
 
 .module .custom-p {
-    margin-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .module li {
-    margin: 0px;
-    padding: 0;
+  margin: 0px;
+  padding: 0;
 }
 
 .module ul {
-    margin: 0px;
-    padding: 0;
+  margin: 0px;
+  padding: 0;
 }
 
 .module li {
-    white-space: normal !important;
+  white-space: normal !important;
 }
-
 
 .module li,
 .module li * {
-    white-space: normal !important;
+  white-space: normal !important;
 }
 
 /* Overall Container - Dark Slate Background */
 .module {
-    background-color: #2F4F4F;
-    /* A dark slate color */
-    padding: 1rem;
-    border-radius: 0.5rem;
-    /* Optional: subtle box shadow for the container */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: #2f4f4f;
+  /* A dark slate color */
+  padding: 1rem;
+  border-radius: 0.5rem;
+  /* Optional: subtle box shadow for the container */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 /* Table Styling */
 .module table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1rem 0;
-    overflow: hidden;
-    /* Ensures corners remain rounded */
-    color: #000000;
-    /* Light text on dark background */
-    background-color: #2F4F4F;
-    /* Matches container's background */
-    font-size: 1rem;
-    box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow: hidden;
+  /* Ensures corners remain rounded */
+  color: #000000;
+  /* Light text on dark background */
+  background-color: #2f4f4f;
+  /* Matches container's background */
+  font-size: 1rem;
+  box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
 }
 
 /* Table Headers */
 .module th {
-    background-color: #c6c6c6;
-    /* Slightly darker for header row */
-    color: #ffffff;
-    font-weight: 600;
-    padding: 0.75rem;
-    text-align: left;
-    border: 1px solid #555;
-    /* Subtle border color */
+  background-color: #c6c6c6;
+  /* Slightly darker for header row */
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.75rem;
+  text-align: left;
+  border: 1px solid #555;
+  /* Subtle border color */
 }
 
 /* Table Cells */
 .module td {
-    border: 1px solid #555;
-    /* Matches header border color */
-    padding: 0.75rem;
-    text-align: left;
-    background-color: #2F4F4F;
-    /* Keep cells the same color as table BG */
+  border: 1px solid #555;
+  /* Matches header border color */
+  padding: 0.75rem;
+  text-align: left;
+  background-color: #2f4f4f;
+  /* Keep cells the same color as table BG */
 }
 
 /* Hover effect for rows (optional) */
 .module tr:hover td {
-    background-color: #394E4E;
+  background-color: #394e4e;
 }
 
 /* Additional tweaks for typography within the module */
@@ -102,19 +101,19 @@
 .module h5,
 .module h6,
 .module p {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-    color: #ffffff;
-    /* Ensure headings and paragraphs have enough contrast */
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+  /* Ensure headings and paragraphs have enough contrast */
 }
 
 /* Links within the module (optional) */
 .module a {
-    color: #63b3ed;
-    text-decoration: none;
-    transition: color 0.2s ease-in-out;
+  color: #63b3ed;
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
 }
 
 .module a:hover {
-    color: #4299e1;
+  color: #4299e1;
 }

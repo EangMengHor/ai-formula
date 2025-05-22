@@ -1,7 +1,7 @@
 const url = import.meta.env.VITE_N8N_API_URL;
 const test = import.meta.env.VITE_N8N_TEST_API_URL;
 const backendUrl = import.meta.env.VITE_SOCKET_URL;
-const migrate = 'https://backend.jamesscott.tech/webhook-test';
+const migrate = "https://backend.jamesscott.tech/webhook-test";
 console.log(url);
 
 // chat interface
@@ -11,9 +11,9 @@ export const getChatSessionHistory = `${url}/get-chat-sessions-history`;
 export const getChatSession = `${url}/create-new-chat`;
 // production
 // export const chat = `${test}/chats-1-1`;
-// Development 
+// Development
 export const chat = `${url}/chats-1-1-dev`;
-// poll output 
+// poll output
 export const pollChatOutputUrl = `${url}/poll-chat-output`;
 export const conversationHistory = `${url}/get-conversation-data`;
 export const vectorizeDocument = `${url}/vectorize-documents`;
@@ -46,11 +46,11 @@ export const getUserAgenticAutomationUrl = `${url}/get-user-agentic-automation`;
 // get jobs of the agentic automation
 export const getJobAutomation = `${url}/get-automation-jobs`;
 // get full detail of specific automation agent
-export const getAutomationSectionDataUrl = `${url}/get-automation-detail`
+export const getAutomationSectionDataUrl = `${url}/get-automation-detail`;
 // get details about specific job id all the details about specific job id
 export const getJobDetailsUrl = `${url}/get-job-details`;
 // gets data about all the agents and their workflow execution with interaction between agents
-export const getJobEachAgentResponseUrl = `${url}/get-job-each-agent-responses`
+export const getJobEachAgentResponseUrl = `${url}/get-job-each-agent-responses`;
 
 // prompt enhancer
 
@@ -61,3 +61,6 @@ export const getUserPersonalKnowledgeStatusUrl = `${backendUrl}/api/personalKnow
 export const toggleUserPersonalKnowledgeStatusUrl = `${backendUrl}/api/personalKnowledge/toggleUserPersonalKnowledgeStatus`;
 export const getUserPersonalProfileUrl = `${backendUrl}/api/personalProfile/getUserPersonalProfile`;
 
+// user saved workflow APIs
+export const createUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/createUserSavedWorkflow`;
+export const getUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/getUserSavedWorkflow`;

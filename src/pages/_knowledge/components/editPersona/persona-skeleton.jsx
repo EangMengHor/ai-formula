@@ -1,5 +1,5 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 
 export default function PersonaSkeleton() {
   return (
@@ -29,7 +29,10 @@ export default function PersonaSkeleton() {
         {/* Collapsible sections skeletons */}
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between py-3 border-b border-[#1E2028] last:border-0">
+            <div
+              key={i}
+              className="flex items-center justify-between py-3 border-b border-[#1E2028] last:border-0"
+            >
               <Skeleton className="h-5 w-40 bg=slate-700" />
               <Skeleton className="h-4 w-4 bg=slate-700" />
             </div>
@@ -37,6 +40,5 @@ export default function PersonaSkeleton() {
         </div>
       </div>
     </Card>
-  )
+  );
 }
-

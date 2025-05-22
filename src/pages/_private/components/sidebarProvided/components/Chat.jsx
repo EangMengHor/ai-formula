@@ -4,11 +4,11 @@ import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
 import { useParams } from "react-router-dom";
 import { parseContent, sanitizeFileName } from "../../../../../lib/utils";
 import ChatInput from "../../../../../components/custom/ChatInput";
-import 'katex/dist/katex.min.css';
+import "katex/dist/katex.min.css";
 import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
 import { FileDown, LoaderCircle } from "lucide-react";
-import '../../../../_private/components/sidebarProvided/components/Chat.css';
+import "../../../../_private/components/sidebarProvided/components/Chat.css";
 import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_core/getUploadedDocumentHis.api";
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
 import PollStatus from "../../../../../components/custom/PolledStatus";
@@ -21,13 +21,19 @@ import polling from "../../../../../lib/polling";
 import { pollInteractionLogs } from "../../../../../services/n8n-apis/_core/pollInteractionLogs.api";
 import { useStackSidebar } from "../../../../../context/StackSidebarContext";
 import { io } from "socket.io-client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import { Mermaid } from "../../../../../components/custom/Mermaid";
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import remarkGfm from 'remark-gfm';
-import rehypeKatex from 'rehype-katex';
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
+import rehypeKatex from "rehype-katex";
 import LoadingAnimation from "@/components/custom/Loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +43,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import { downloadDocument } from "@/lib/downloadModule";
 
 // Import the components needed for deep thinking mode
@@ -47,21 +53,30 @@ import Conversation from "./Conversation";
 import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
+import { useWorkflow } from "@/context/WorkflowContext";
 
-
-const fileType = [
-    'pdf'
-]
+const fileType = ["pdf"];
 
 export default function Chat() {
     const socket = useRef(null); // Use useRef for socket
-    console.log(socket, 'socket')
+    console.log(socket, "socket");
     const conversationCompRef = useRef(null); // Ref for Conversation component
 
     // Context
     const { id } = useParams();
     const { toast } = useToast();
-    const { setFileCount, setMemorizedFiles, isMemorizationLoading, setIsMemorizationLoading, fileName, setFileName, files, setFiles, resetAllStates } = useFilesUploadMetadata();
+    const {
+        setFileCount,
+        setMemorizedFiles,
+        isMemorizationLoading,
+        setIsMemorizationLoading,
+        fileName,
+        setFileName,
+        files,
+        setFiles,
+        resetAllStates,
+    } = useFilesUploadMetadata();
+    const { selectedWorkflowId } = useWorkflow()
     const {
         isDocumentOn,
         setIsDocumentOn,
@@ -79,7 +94,8 @@ export default function Chat() {
         setSelectedSuperiorPersona,
         currActiveIntraction,
         setCurrActiveIntraction,
-        isDeepThinkMode } = useUser();
+        isDeepThinkMode,
+    } = useUser();
     const { sidebarStack, setSidebarStack } = useStackSidebar();
 
     // Local state
@@ -88,7 +104,7 @@ export default function Chat() {
     const [conversation, setConversation] = useState([]);
 
     const [isNextChatLoading, setIsNextChatLoading] = useState(false);
-    const [prompt, setPrompt] = useState('');
+    const [prompt, setPrompt] = useState("");
     const [isChanged, setIsChanged] = useState(false);
     const [showScrollButton, setShowScrollButton] = useState(false); // Correctly declared here
     const [chatIdentifer, setChatIdentifer] = useState(null);
@@ -103,7 +119,6 @@ export default function Chat() {
     const [dialogType, setDialogType] = useState("visual");
     const [dialogTitle, setDialogTitle] = useState("");
     const [isUserScrolling, setIsUserScrolling] = useState(false); // Add state for user scroll tracking
-
 
     // socket reconnection
     const [socketId, setSocketId] = useState("");
@@ -126,7 +141,7 @@ export default function Chat() {
 
     // error
     const [isError, setIsError] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState("");
     const currentStepRef = useRef(null); // For tracking current step in deep thinking
 
     const [pdfFileName, setpPdfFileName] = useState("");
@@ -135,7 +150,7 @@ export default function Chat() {
     const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
 
     const memoizedRenderMermaidChart = useCallback((content) => {
-        if (!content || typeof content !== 'string') {
+        if (!content || typeof content !== "string") {
             console.error("Invalid mermaid content:", content);
             return "graph TD\nA[Error] --> B[Invalid diagram content]";
         }
@@ -143,16 +158,27 @@ export default function Chat() {
             let sanitizedContent = content.trim();
             sanitizedContent = sanitizedContent.replace(/<\/?[^>]+(>|$)/g, "");
             const validTypes = [
-                'graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
-                'stateDiagram', 'erDiagram', 'gantt', 'pie'
+                "graph",
+                "flowchart",
+                "sequenceDiagram",
+                "classDiagram",
+                "stateDiagram",
+                "erDiagram",
+                "gantt",
+                "pie",
             ];
-            const hasValidStart = validTypes.some(type => sanitizedContent.startsWith(type));
+            const hasValidStart = validTypes.some((type) =>
+                sanitizedContent.startsWith(type),
+            );
             if (!hasValidStart) {
                 sanitizedContent = `graph TD\n${sanitizedContent}`;
             }
-            sanitizedContent = sanitizedContent.replace(/\[([^\]]+)\]/g, (match, p1) => {
-                return `[${p1.replace(/[^a-zA-Z0-9 _-]/g, ' ')}]`;
-            });
+            sanitizedContent = sanitizedContent.replace(
+                /\[([^\]]+)\]/g,
+                (match, p1) => {
+                    return `[${p1.replace(/[^a-zA-Z0-9 _-]/g, " ")}]`;
+                },
+            );
             return sanitizedContent;
         } catch (error) {
             console.error("Error sanitizing Mermaid content:", error);
@@ -160,205 +186,218 @@ export default function Chat() {
         }
     }, []);
     // Memoize functions to prevent Conversation from re-rendering on every text input change
-    const memoizedHandleBlockSidebar = useCallback((block, type, header = "") => {
-        setSidebarStack(() => [
-            {
-                header,
-                component: <Sb
-                    header={header}
-                    block={block}
-                    type={type}
-                    pdfFileName={pdfFileName}
-                    setpPdfFileName={setpPdfFileName}
-                />,
-            }
-        ]);
-    }, [setSidebarStack]);
+    const memoizedHandleBlockSidebar = useCallback(
+        (block, type, header = "") => {
+            setSidebarStack(() => [
+                {
+                    header,
+                    component: (
+                        <Sb
+                            header={header}
+                            block={block}
+                            type={type}
+                            pdfFileName={pdfFileName}
+                            setpPdfFileName={setpPdfFileName}
+                        />
+                    ),
+                },
+            ]);
+        },
+        [setSidebarStack],
+    );
 
-    const Sb = useCallback(({ header, block, type }) => {
-        const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
-        const [pdfFileName, setpPdfFileName] = useState("");
-        return <div>
-            <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
-
-                {/* onClick={() => downloadDocument({
+    const Sb = useCallback(
+        ({ header, block, type }) => {
+            const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
+            const [pdfFileName, setpPdfFileName] = useState("");
+            return (
+                <div>
+                    <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
+                        {/* onClick={() => downloadDocument({
                                                 content: block,
                                                 type: "pdf",
                                                 fileName: header ? header : "ARX Blocks"
                                             })} */}
-                {/* download */}
-                <div className="sticky right-0 top-0 z-50">
-                    <Dialog >
-                        <DialogTrigger>
-                            <div
+                        {/* download */}
+                        <div className="sticky right-0 top-0 z-50">
+                            <Dialog>
+                                <DialogTrigger>
+                                    <div className="hover:bg-slate-800 font-semibold p-1 rounded-md cursor-pointer focus:outline-none bg-slate-700">
+                                        Download As PDF
+                                    </div>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-4xl bg-slate-800">
+                                    <h1 className="font-semibold text-lg  text-white mb-3">
+                                        Name And Download Your PDF
+                                    </h1>
 
-                                className="hover:bg-slate-800 font-semibold p-1 rounded-md cursor-pointer focus:outline-none bg-slate-700"
-                            >
-                                Download As PDF
-                            </div>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl bg-slate-800">
-                            <h1 className="font-semibold text-lg  text-white mb-3">Name And Download Your PDF</h1>
+                                    <p className="text-white -mb-2">File Name</p>
+                                    <Textarea
+                                        className="w-full h-10 text-white"
+                                        placeholder="Document Name"
+                                        value={pdfFileName == "" ? header : pdfFileName}
+                                        onChange={(e) => setpPdfFileName(e.target.value)}
+                                    />
 
-                            <p className="text-white -mb-2">File Name</p>
-                            <Textarea
-                                className="w-full h-10 text-white"
-                                placeholder="Document Name"
-                                value={pdfFileName == "" ? header : pdfFileName}
-                                onChange={(e) => setpPdfFileName(e.target.value)}
-                            />
-
-                            <Button
-                                className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
-                                onClick={async () => {
-                                    if (isPdfDownloadLoading) {
-                                        toast({
-                                            title: "PDF Already In Processing...",
-                                            description: "Please Wait While It Completes!",
-                                            variants: "default"
-                                        })
-                                    }
-                                    const loadingToast = toast({
-                                        title: 'Processing PDF...',
-                                        description: `The PDF is downloading and may take a few seconds. You will be notified once the download is complete. Feel free to continue working in the meantime.\n File Name : ${sanitizeFileName(pdfFileName || header)} `,
-                                        variant: "default",
-                                        duration: Infinity,
-                                    });
-
-                                    try {
-                                        setIsPdfDownloadLoading(true);
-                                        console.log("PDF content:", block);
-
-                                        const down = await downloadPdf({
-                                            content: block,
-                                            fileName: sanitizeFileName(pdfFileName && pdfFileName !== "" ? pdfFileName : header),
-                                            type: "pdf",
-                                        });
-
-                                        // Remove loading toast
-                                        loadingToast.dismiss?.();
-
-                                        if (down.success) {
-                                            toast({
-                                                title: 'Success',
-                                                description: "PDF downloaded successfully",
-                                                variant: "success",
+                                    <Button
+                                        className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
+                                        onClick={async () => {
+                                            if (isPdfDownloadLoading) {
+                                                toast({
+                                                    title: "PDF Already In Processing...",
+                                                    description: "Please Wait While It Completes!",
+                                                    variants: "default",
+                                                });
+                                            }
+                                            const loadingToast = toast({
+                                                title: "Processing PDF...",
+                                                description: `The PDF is downloading and may take a few seconds. You will be notified once the download is complete. Feel free to continue working in the meantime.\n File Name : ${sanitizeFileName(pdfFileName || header)} `,
+                                                variant: "default",
+                                                duration: Infinity,
                                             });
-                                        } else {
-                                            toast({
-                                                title: 'Error',
-                                                description: down.message,
-                                                variant: "destructive",
-                                            });
-                                        }
-                                    } catch (error) {
-                                        loadingToast.dismiss?.();
-                                        console.error("Error downloading PDF:", error);
-                                        toast({
-                                            title: 'Error',
-                                            description: error.message,
-                                            variant: "destructive",
-                                        });
-                                    } finally {
-                                        setPdfDialogOpen(false);
-                                        setIsPdfDownloadLoading(false);
-                                    }
-                                }}
-                            >
-                                {
-                                    isPdfDownloadLoading ? (
-                                        <div className="flex items-center gap-2 ">
-                                            <Loader2 className="animate-spin " />
-                                            Downloading...
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2">
-                                            <FileDown /> Download
-                                        </div>
-                                    )
-                                }
-                            </Button>
-                        </DialogContent>
-                    </Dialog>
-                </div>
 
-                <p
-                    className="text-slate-200 font-bold text-lg truncate overflow-hidden whitespace-nowrap"
-                    style={{ maxWidth: '80%' }}
-                    title={header ? header : "ARX Blocks"}
-                >
-                    {header ? (header.length > 65 ? header.slice(0, 65) + '...' : header) : " ARX Blocks"}
-                </p>
-            </div>
-            <div className="p-4">
-                {
-                    type == "document" && <div className="overflow-scroll h-[calc(100vh-10rem)]">
-                        <p>
-                            <ReactMarkdown
-                                remarkPlugins={[remarkMath, remarkGfm]}
-                                rehypePlugins={[rehypeKatex]}
-                                className="module text-wrap overflow-scroll"
-                                components={{
-                                    p: ({ children }) => <p>{children}</p>,
-                                    table: ({ children }) => (
-                                        <table
-                                            style={{
-                                                borderCollapse: "collapse",
-                                                width: "100%",
-                                                color: "#e0e0e0",
-                                            }}
-                                        >
-                                            {children}
-                                        </table>
-                                    ),
-                                    th: ({ children }) => (
-                                        <th
-                                            style={{
-                                                border: "1px solid #444",
-                                                padding: "8px",
-                                                backgroundColor: "#333",
-                                                color: "#e0e0e0",
-                                            }}
-                                        >
-                                            {children}
-                                        </th>
-                                    ),
-                                    td: ({ children }) => (
-                                        <td
-                                            style={{
-                                                border: "1px solid #444",
-                                                padding: "8px",
-                                                backgroundColor: "#222",
-                                                color: "#e0e0e0",
-                                            }}
-                                        >
-                                            {children}
-                                        </td>
-                                    ),
-                                }}
-                            >
-                                {block}
-                            </ReactMarkdown>
+                                            try {
+                                                setIsPdfDownloadLoading(true);
+                                                console.log("PDF content:", block);
+
+                                                const down = await downloadPdf({
+                                                    content: block,
+                                                    fileName: sanitizeFileName(
+                                                        pdfFileName && pdfFileName !== ""
+                                                            ? pdfFileName
+                                                            : header,
+                                                    ),
+                                                    type: "pdf",
+                                                });
+
+                                                // Remove loading toast
+                                                loadingToast.dismiss?.();
+
+                                                if (down.success) {
+                                                    toast({
+                                                        title: "Success",
+                                                        description: "PDF downloaded successfully",
+                                                        variant: "success",
+                                                    });
+                                                } else {
+                                                    toast({
+                                                        title: "Error",
+                                                        description: down.message,
+                                                        variant: "destructive",
+                                                    });
+                                                }
+                                            } catch (error) {
+                                                loadingToast.dismiss?.();
+                                                console.error("Error downloading PDF:", error);
+                                                toast({
+                                                    title: "Error",
+                                                    description: error.message,
+                                                    variant: "destructive",
+                                                });
+                                            } finally {
+                                                setPdfDialogOpen(false);
+                                                setIsPdfDownloadLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        {isPdfDownloadLoading ? (
+                                            <div className="flex items-center gap-2 ">
+                                                <Loader2 className="animate-spin " />
+                                                Downloading...
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <FileDown /> Download
+                                            </div>
+                                        )}
+                                    </Button>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+
+                        <p
+                            className="text-slate-200 font-bold text-lg truncate overflow-hidden whitespace-nowrap"
+                            style={{ maxWidth: "80%" }}
+                            title={header ? header : "ARX Blocks"}
+                        >
+                            {header
+                                ? header.length > 65
+                                    ? header.slice(0, 65) + "..."
+                                    : header
+                                : " ARX Blocks"}
                         </p>
                     </div>
-                }
+                    <div className="p-4">
+                        {type == "document" && (
+                            <div className="overflow-scroll h-[calc(100vh-10rem)]">
+                                <p>
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        className="module text-wrap overflow-scroll"
+                                        components={{
+                                            p: ({ children }) => <p>{children}</p>,
+                                            table: ({ children }) => (
+                                                <table
+                                                    style={{
+                                                        borderCollapse: "collapse",
+                                                        width: "100%",
+                                                        color: "#e0e0e0",
+                                                    }}
+                                                >
+                                                    {children}
+                                                </table>
+                                            ),
+                                            th: ({ children }) => (
+                                                <th
+                                                    style={{
+                                                        border: "1px solid #444",
+                                                        padding: "8px",
+                                                        backgroundColor: "#333",
+                                                        color: "#e0e0e0",
+                                                    }}
+                                                >
+                                                    {children}
+                                                </th>
+                                            ),
+                                            td: ({ children }) => (
+                                                <td
+                                                    style={{
+                                                        border: "1px solid #444",
+                                                        padding: "8px",
+                                                        backgroundColor: "#222",
+                                                        color: "#e0e0e0",
+                                                    }}
+                                                >
+                                                    {children}
+                                                </td>
+                                            ),
+                                        }}
+                                    >
+                                        {block}
+                                    </ReactMarkdown>
+                                </p>
+                            </div>
+                        )}
 
-                {
-                    type == "visual" &&
-                    <Mermaid
-                        className="module overflow-scroll"
-                        chart={memoizedRenderMermaidChart(block)}
-                        theme="dark"
-                        style={{ width: "100%", height: "100%" }}
-                    />
-                }
-            </div>
-        </div>
-    }, [memoizedRenderMermaidChart, pdfFileName, setpPdfFileName]);
+                        {type == "visual" && (
+                            <Mermaid
+                                className="module overflow-scroll"
+                                chart={memoizedRenderMermaidChart(block)}
+                                theme="dark"
+                                style={{ width: "100%", height: "100%" }}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        },
+        [memoizedRenderMermaidChart, pdfFileName, setpPdfFileName],
+    );
     // Effect: Load fallback prompt from localStorage
     useEffect(() => {
         async function getPurpose() {
-            const localItem = localStorage.getItem('prompt');
+            const localItem = localStorage.getItem("prompt");
             if (localItem) {
                 setFallBackPrompt(localItem);
                 setIsNextChatLoading(true);
@@ -371,8 +410,8 @@ export default function Chat() {
 
     // Effect: Remove fallback prompt from localStorage
     useEffect(() => {
-        if (localStorage.getItem('prompt')) {
-            localStorage.removeItem('prompt');
+        if (localStorage.getItem("prompt")) {
+            localStorage.removeItem("prompt");
         } else {
             setIsChatLoading(true);
         }
@@ -380,14 +419,14 @@ export default function Chat() {
 
     // Effect: Handle fallback prompt submission
     useEffect(() => {
-        console.log(fallBackPrompt)
+        console.log(fallBackPrompt);
         if (fallBackPrompt.length > 4999) {
             toast({
-                title: 'Error',
+                title: "Error",
                 description: "Prompt length exceeds 5000 characters.",
 
-                variant: "destructive"
-            })
+                variant: "destructive",
+            });
         }
         if (fallBackPrompt.length > 0) {
             handleSubmit(fallBackPrompt);
@@ -399,7 +438,7 @@ export default function Chat() {
         async function fetchConversations() {
             try {
                 const res = await getConversationHistory(id);
-                console.log(res, 'conversation history')
+                console.log(res, "conversation history");
                 if (res.success) {
                     const processedData = res.data.map((item) => {
                         if (item.role === "human") {
@@ -414,12 +453,11 @@ export default function Chat() {
                                     isLoading: false,
                                     isComplete: true,
                                     message: parsedResponse,
-                                }
+                                };
                             }
                             return {
                                 role: "ai",
                                 message: parsedResponse,
-
                             };
                         }
                     });
@@ -427,9 +465,9 @@ export default function Chat() {
                 }
             } catch (error) {
                 toast({
-                    title: 'Error',
+                    title: "Error",
                     description: error.message,
-                    variant: "destructive"
+                    variant: "destructive",
                 });
             } finally {
                 // Make sure loading is turned off regardless of outcome
@@ -444,13 +482,15 @@ export default function Chat() {
                     const fileNames = [...new Set(res.data[0].fileName || [])];
                     setFileCount(fileNames.length);
                     setFileName(fileNames);
-                    setFiles(fileNames.map(item => {
-                        const splited = item.split('.') || [];
-                        return {
-                            name: item,
-                            type: item.split('.')[splited.length - 1]
-                        };
-                    }) || []);
+                    setFiles(
+                        fileNames.map((item) => {
+                            const splited = item.split(".") || [];
+                            return {
+                                name: item,
+                                type: item.split(".")[splited.length - 1],
+                            };
+                        }) || [],
+                    );
                     setMemorizedFiles(fileNames);
                 }
             } catch (error) {
@@ -460,11 +500,7 @@ export default function Chat() {
 
         async function getData() {
             resetAllStates();
-            await Promise.all([
-                getUploadedDocumentHis(),
-                fetchConversations()
-            ]);
-
+            await Promise.all([getUploadedDocumentHis(), fetchConversations()]);
         }
 
         if (isChatLoading) {
@@ -474,7 +510,7 @@ export default function Chat() {
 
     // Effect: Log conversation and chat identifier
     useEffect(() => {
-        console.log(chatIdentifer, conversation, 'conversation ksdkfl2389040');
+        console.log(chatIdentifer, conversation, "conversation ksdkfl2389040");
     }, [conversation, chatIdentifer]);
 
     // Effect: Start polling interaction logs
@@ -496,16 +532,15 @@ export default function Chat() {
             if (streamTimeoutRef.current) {
                 clearTimeout(streamTimeoutRef.current);
             }
-        }
+        };
     }, []);
 
     // Monitor streaming status for deep thinking and finalize after inactivity
     useEffect(() => {
         // Find the latest deep thinking conversation item that is streaming
-        const deepThinkingItem = conversation.find(item =>
-            item.role === "ai" &&
-            item.type === "deepThink" &&
-            item.isStreaming
+        const deepThinkingItem = conversation.find(
+            (item) =>
+                item.role === "ai" && item.type === "deepThink" && item.isStreaming,
         );
 
         if (deepThinkingItem) {
@@ -516,9 +551,13 @@ export default function Chat() {
 
             // Set new timeout to detect end of streaming
             streamTimeoutRef.current = setTimeout(() => {
-                setConversation(prevConversation => {
-                    return prevConversation.map(item => {
-                        if (item.role === "ai" && item.type === "deepThink" && item.isStreaming) {
+                setConversation((prevConversation) => {
+                    return prevConversation.map((item) => {
+                        if (
+                            item.role === "ai" &&
+                            item.type === "deepThink" &&
+                            item.isStreaming
+                        ) {
                             return { ...item, isStreaming: false };
                         }
                         return item;
@@ -532,37 +571,38 @@ export default function Chat() {
             if (streamTimeoutRef.current) {
                 clearTimeout(streamTimeoutRef.current);
             }
-        }
+        };
     }, [conversation]);
 
     // Socket Connection and Event Handling
     useEffect(() => {
-
         socket.current = io(import.meta.env.VITE_SOCKET_URL, {
             // -------- transport -----------
             // allow polling for the first handshake, then auto-upgrade to WS
-            transports: ['polling', 'websocket'],
+            transports: ["polling", "websocket"],
             // -------- reconnection -------
             reconnection: true,
-            reconnectionAttempts: 20,       // try ~4 min total (20×12 s)
-            reconnectionDelay: 12_000,      // first retry 12 s after drop
-            reconnectionDelayMax: 15_000,   // later retries back off to 15 s max
-            path: '/socket.io',           // custom path for the socket server
+            reconnectionAttempts: 20, // try ~4 min total (20×12 s)
+            reconnectionDelay: 12_000, // first retry 12 s after drop
+            reconnectionDelayMax: 15_000, // later retries back off to 15 s max
+            path: "/socket.io", // custom path for the socket server
             // -------- optional -----------
-            timeout: 20_000,               // give the open() call up to 20 s
+            timeout: 20_000, // give the open() call up to 20 s
             connectionStateRecovery: {
                 maxDisconnectionDuration: 60 * 60 * 1000,
-                skipMiddlewares: true
+                skipMiddlewares: true,
             },
         });
         // Log when ping is sent to server
-        socket.current.io.engine.on('ping', () => {
-            console.log('[↔️ CLIENT] Ping received from server');
+        socket.current.io.engine.on("ping", () => {
+            console.log("[↔️ CLIENT] Ping received from server");
         });
 
-        socket.current.io.engine.on('pong', (latency) => {
-            console.log(latency, 'latency')
-            console.log(`[↔️ CLIENT] Pong sent back to server (latency: ${latency} ms)`);
+        socket.current.io.engine.on("pong", (latency) => {
+            console.log(latency, "latency");
+            console.log(
+                `[↔️ CLIENT] Pong sent back to server (latency: ${latency} ms)`,
+            );
         });
 
         socket.current.on("reconnect_attempt", (attempt) => {
@@ -583,11 +623,21 @@ export default function Chat() {
         socket.current.on("connect", () => {
             const currentSocketId = socket.current.id;
             console.log(`Socket connected: ${currentSocketId}`);
-            console.log(previousSocketIdRef.current && socket.current.connected, socket.current.connected, previousSocketIdRef.current, 'isReconnecting')
+            console.log(
+                previousSocketIdRef.current && socket.current.connected,
+                socket.current.connected,
+                previousSocketIdRef.current,
+                "isReconnecting",
+            );
 
             // Check if we have a previous socket ID (not the first connection)
-            if (previousSocketIdRef.current && previousSocketIdRef.current !== currentSocketId) {
-                console.log(`Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`);
+            if (
+                previousSocketIdRef.current &&
+                previousSocketIdRef.current !== currentSocketId
+            ) {
+                console.log(
+                    `Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`,
+                );
                 setIsReconnectionNeeded(true);
             }
 
@@ -597,8 +647,7 @@ export default function Chat() {
             // Also update state (for UI display purposes)
             setSocketId(currentSocketId);
 
-            console.log('socket.recovered =', socket.current.recovered);
-
+            console.log("socket.recovered =", socket.current.recovered);
         });
 
         if (socket.current.recovered) {
@@ -607,7 +656,6 @@ export default function Chat() {
         }
 
         socket.current.on("disconnect", () => {
-
             if (socket.current.recovered) {
                 setIsReconnected(true);
             }
@@ -619,36 +667,36 @@ export default function Chat() {
             handleSocketEvent(event);
         });
 
-        socket.current.on('error', (data) => {
-            console.log(data, 'error')
+        socket.current.on("error", (data) => {
+            console.log(data, "error");
             setIsNextChatLoading(false);
             if (!data?.isBreakage) {
                 toast({
-                    title: 'Error',
+                    title: "Error",
                     description: data.message,
-                    variant: "destructive"
-                })
-            }
-            else {
+                    variant: "destructive",
+                });
+            } else {
                 setIsError(true);
                 setErrorMessage(data.message);
             }
-        })
+        });
 
         return () => {
             socket.current?.disconnect();
         };
     }, []);
 
-
     useEffect(() => {
-        console.log(socket.current.connected, "isconnected")
-    }, [socket])
+        console.log(socket.current.connected, "isconnected");
+    }, [socket]);
 
     const smoothScrollToBottom = useCallback(() => {
         // Prevent auto-scroll if the user is manually scrolling up or if an auto-scroll is already happening
         if (isUserScrolling || isAutoScrolling.current) {
-            console.log(`Auto-scroll skipped: isUserScrolling=${isUserScrolling}, isAutoScrolling=${isAutoScrolling.current}`);
+            console.log(
+                `Auto-scroll skipped: isUserScrolling=${isUserScrolling}, isAutoScrolling=${isAutoScrolling.current}`,
+            );
             return;
         }
 
@@ -657,13 +705,14 @@ export default function Chat() {
             const { scrollTop, scrollHeight, clientHeight } = container;
             // Check if already near the bottom before initiating scroll
             // This prevents unnecessary scrolls if already at the end.
-            if (scrollHeight - scrollTop - clientHeight < 150) { // Only scroll if already close to the bottom
+            if (scrollHeight - scrollTop - clientHeight < 150) {
+                // Only scroll if already close to the bottom
                 console.log("Auto-scrolling initiated...");
                 isAutoScrolling.current = true; // Set flag before starting scroll
 
                 bottomRef.current?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'end'
+                    behavior: "smooth",
+                    block: "end",
                 });
 
                 // Reset the flag after a delay.
@@ -674,7 +723,11 @@ export default function Chat() {
                     isAutoScrolling.current = false;
                     console.log("Auto-scrolling flag reset.");
                     // Optional: Check if still at bottom after scroll finished
-                    const { scrollTop: newScrollTop, scrollHeight: newScrollHeight, clientHeight: newClientHeight } = container;
+                    const {
+                        scrollTop: newScrollTop,
+                        scrollHeight: newScrollHeight,
+                        clientHeight: newClientHeight,
+                    } = container;
                     if (newScrollHeight - newScrollTop - newClientHeight > 10) {
                         // If not at the bottom anymore (e.g., more content arrived during scroll),
                         // you might want to trigger another scroll, but be cautious of loops.
@@ -692,15 +745,15 @@ export default function Chat() {
         } else {
             // Fallback if container isn't found
             bottomRef.current?.scrollIntoView({
-                behavior: 'smooth',
-                block: 'end'
+                behavior: "smooth",
+                block: "end",
             });
         }
     }, [isUserScrolling]); // Dependency: only re-create if isUserScrolling changes
 
     useEffect(() => {
-        console.log(socketId, 'socketId')
-    }, [socketId])
+        console.log(socketId, "socketId");
+    }, [socketId]);
 
     //
     // Updated smoothScrollToBottom
@@ -742,10 +795,10 @@ export default function Chat() {
             }
         };
 
-        container.addEventListener('scroll', handleScroll, { passive: true });
+        container.addEventListener("scroll", handleScroll, { passive: true });
 
         return () => {
-            container.removeEventListener('scroll', handleScroll);
+            container.removeEventListener("scroll", handleScroll);
             if (userScrollTimeoutRef.current) {
                 clearTimeout(userScrollTimeoutRef.current);
             }
@@ -756,28 +809,24 @@ export default function Chat() {
     useEffect(() => {
         async function a() {
             if (conversation.length > 0) {
-
-
             }
         }
-        a()
-    }, [conversation])
+        a();
+    }, [conversation]);
     // Handle socket events (streaming messages) - improved with consistent finalResponse handling
     /********************************************************************
-   * Helpers (plain‑JS, no external deps)
-   ********************************************************************/
+     * Helpers (plain‑JS, no external deps)
+     ********************************************************************/
 
     /* 1️⃣  Make a fresh AI message shell */
     const newAiMessage = (kind = "quick") => ({
         role: "ai",
-        type: kind,                 // "simulation" | "quick" | "deepThink"
+        type: kind, // "simulation" | "quick" | "deepThink"
         isStreaming: kind !== "simulation",
         isComplete: kind === "simulation",
-        message: kind === "simulation"
-            ? [{ type: "simulation", items: [] }]
-            : [],
-        tempContent: "",                   // streaming buffer
-        steps: [],                   // deep‑think only
+        message: kind === "simulation" ? [{ type: "simulation", items: [] }] : [],
+        tempContent: "", // streaming buffer
+        steps: [], // deep‑think only
     });
 
     /* 2️⃣  Append a text chunk to an existing streaming message */
@@ -785,9 +834,10 @@ export default function Chat() {
         msg.tempContent += chunk;
         msg.isStreaming = true;
 
-        msg.message = msg.type === "quick"
-            ? processStreamingContent(msg.tempContent)
-            : parseHistoryAIContent(msg.tempContent);
+        msg.message =
+            msg.type === "quick"
+                ? processStreamingContent(msg.tempContent)
+                : parseHistoryAIContent(msg.tempContent);
     };
 
     /* 3️⃣  Mark a streaming message finished */
@@ -877,9 +927,8 @@ export default function Chat() {
             const steps = last.steps || (last.steps = []);
 
             switch (event.type) {
-
                 case "searchUrls":
-                    console.log(event, 'searchUrls')
+                    console.log(event, "searchUrls");
                     break;
                 case "defineGoal":
                     steps.push({ type: "defineGoal", text: "" });
@@ -946,9 +995,9 @@ export default function Chat() {
                     const parsedContent = parseContent(content);
                     console.log("Standard parser result:", parsedContent);
                     if (Array.isArray(parsedContent) && parsedContent.length > 0) {
-                        return parsedContent.map(block => ({
+                        return parsedContent.map((block) => ({
                             ...block,
-                            isComplete: true
+                            isComplete: true,
                         }));
                     }
                 } catch (e) {
@@ -979,7 +1028,10 @@ export default function Chat() {
                         const nextCloseTag = content.indexOf("</document>", closeIndex);
 
                         // If we find a close tag and it's before any next open tag (or there is no next open tag)
-                        if (nextCloseTag !== -1 && (nextOpenTag === -1 || nextCloseTag < nextOpenTag)) {
+                        if (
+                            nextCloseTag !== -1 &&
+                            (nextOpenTag === -1 || nextCloseTag < nextOpenTag)
+                        ) {
                             tagDepth--;
                             closeIndex = nextCloseTag + 11; // Length of "</document>"
                         }
@@ -997,7 +1049,10 @@ export default function Chat() {
                     // If we found a balanced document tag
                     if (tagDepth === 0) {
                         const fullDocContent = content.substring(startIndex, closeIndex);
-                        const innerContent = content.substring(startIndex + 10, closeIndex - 11);
+                        const innerContent = content.substring(
+                            startIndex + 10,
+                            closeIndex - 11,
+                        );
 
                         // Extract the name if present
                         const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(innerContent);
@@ -1005,16 +1060,16 @@ export default function Chat() {
                         let cleanContent = innerContent;
 
                         if (nameMatch) {
-                            cleanContent = innerContent.replace(nameMatch[0], '').trim();
+                            cleanContent = innerContent.replace(nameMatch[0], "").trim();
                         }
 
                         documentBlocks.push({
-                            type: 'document',
+                            type: "document",
                             name,
                             content: cleanContent,
-                            isComplete: forceComplete || (cleanContent.length > 0),
+                            isComplete: forceComplete || cleanContent.length > 0,
                             start: startIndex,
-                            end: closeIndex
+                            end: closeIndex,
                         });
 
                         // Update search position to avoid re-finding the same tag
@@ -1030,10 +1085,11 @@ export default function Chat() {
 
             // Create a masked content where document blocks are replaced with placeholders
             let maskedContent = content;
-            documentBlocks.forEach(block => {
+            documentBlocks.forEach((block) => {
                 // Replace the document block in the masked content with spaces
-                maskedContent = maskedContent.substring(0, block.start) +
-                    ' '.repeat(block.end - block.start) +
+                maskedContent =
+                    maskedContent.substring(0, block.start) +
+                    " ".repeat(block.end - block.start) +
                     maskedContent.substring(block.end);
             });
 
@@ -1047,7 +1103,9 @@ export default function Chat() {
             let match;
             while ((match = visualPattern.exec(maskedContent)) !== null) {
                 // Only process if not inside a document (check if the match position has content in maskedContent)
-                if (maskedContent.substring(match.index, match.index + 8) === '<visual>') {
+                if (
+                    maskedContent.substring(match.index, match.index + 8) === "<visual>"
+                ) {
                     const fullBlock = match[0];
                     const blockContent = match[1];
                     const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(blockContent);
@@ -1056,16 +1114,16 @@ export default function Chat() {
                     let cleanContent = blockContent;
 
                     if (nameMatch) {
-                        cleanContent = blockContent.replace(nameMatch[0], '').trim();
+                        cleanContent = blockContent.replace(nameMatch[0], "").trim();
                     }
 
                     otherBlocks.push({
-                        type: 'visual',
+                        type: "visual",
                         name,
                         content: cleanContent,
-                        isComplete: forceComplete || (cleanContent.length > 0),
+                        isComplete: forceComplete || cleanContent.length > 0,
                         start: match.index,
-                        end: match.index + fullBlock.length
+                        end: match.index + fullBlock.length,
                     });
                 }
             }
@@ -1073,19 +1131,25 @@ export default function Chat() {
             // Find mermaid blocks in masked content
             while ((match = mermaidPattern.exec(maskedContent)) !== null) {
                 // Only process if not inside a document
-                if (maskedContent.substring(match.index, match.index + 10).includes('mermaid')) {
+                if (
+                    maskedContent
+                        .substring(match.index, match.index + 10)
+                        .includes("mermaid")
+                ) {
                     otherBlocks.push({
-                        type: 'mermaid',
+                        type: "mermaid",
                         content: match[1].trim(),
                         isComplete: true,
                         start: match.index,
-                        end: match.index + match[0].length
+                        end: match.index + match[0].length,
                     });
                 }
             }
 
             // Combine all blocks and sort by position
-            const allBlocks = [...documentBlocks, ...otherBlocks].sort((a, b) => a.start - b.start);
+            const allBlocks = [...documentBlocks, ...otherBlocks].sort(
+                (a, b) => a.start - b.start,
+            );
 
             // Extract text between blocks
             let lastIndex = 0;
@@ -1096,9 +1160,9 @@ export default function Chat() {
                     const textContent = content.substring(lastIndex, block.start).trim();
                     if (textContent) {
                         result.push({
-                            type: 'text',
+                            type: "text",
                             content: textContent,
-                            isComplete: true
+                            isComplete: true,
                         });
                     }
                 }
@@ -1115,9 +1179,9 @@ export default function Chat() {
                 const remainingContent = content.substring(lastIndex).trim();
                 if (remainingContent) {
                     result.push({
-                        type: 'text',
+                        type: "text",
                         content: remainingContent,
-                        isComplete: true
+                        isComplete: true,
                     });
                 }
             }
@@ -1125,9 +1189,9 @@ export default function Chat() {
             // If nothing was found, return the full content as text
             if (result.length === 0 && content.trim()) {
                 result.push({
-                    type: 'text',
+                    type: "text",
                     content: content.trim(),
-                    isComplete: true
+                    isComplete: true,
                 });
             }
 
@@ -1136,11 +1200,13 @@ export default function Chat() {
         } catch (error) {
             console.error("Error in processStreamingContent:", error);
             // Ultimate fallback - just return as plain text
-            return [{
-                type: 'text',
-                content: content || "",
-                isComplete: true
-            }];
+            return [
+                {
+                    type: "text",
+                    content: content || "",
+                    isComplete: true,
+                },
+            ];
         }
     };
 
@@ -1156,9 +1222,9 @@ export default function Chat() {
                 const parsedResult = parseContent(content);
                 if (Array.isArray(parsedResult) && parsedResult.length > 0) {
                     // Force all blocks to be marked as complete
-                    return parsedResult.map(block => ({
+                    return parsedResult.map((block) => ({
                         ...block,
-                        isComplete: true
+                        isComplete: true,
                     }));
                 }
             } catch (e) {
@@ -1169,126 +1235,166 @@ export default function Chat() {
             return processStreamingContent(content, true);
         } catch (error) {
             console.error("All parsing methods failed for history:", error);
-            return [{
-                type: 'text',
-                content: content || "",
-                isComplete: true
-            }];
+            return [
+                {
+                    type: "text",
+                    content: content || "",
+                    isComplete: true,
+                },
+            ];
         }
     };
 
     // Function: Handle prompt submission
-    const handleSubmit = useCallback(async (prompt, isRetry = false) => {
-        console.log(prompt.length, 'prompt')
-        if (prompt.length === 0) {
-            return;
-        }
-        if (prompt.length > 4999) {
-            toast({
-                title: 'Error',
-                description: "Prompt is too long. Please shorten it.",
-                variant: "destructive"
-            })
-            return;
-        }
-        if (isError) {
-            setIsError(false);
-            setErrorMessage("");
-        }
-        // Set loading state
-        setIsNextChatLoading(true);
-        const prevPrompt = prompt;
-
-        try {
-            setPrompt("");
-
-            // Add human message to conversation
-            setConversation(prev => [...prev, {
-                message: prompt,
-                role: "human",
-                isRetry: isRetry,
-            }]);
-
-            // Reset streaming response
-            setStreamingResponse("");
-
-            // Add AI message placeholder based on mode
-            if (isDeepThinkMode) {
-                // Add a placeholder for deep thinking response
-                setConversation(prev => [...prev, {
-                    role: "ai",
-                    type: "deepThink",
-                    steps: [], // Will hold the execution steps
-                    markdownBuffer: "", // Will hold the final markdown response
-                    isComplete: false,
-                    isStreaming: false,
-                    isLoading: true
-                }]);
-            } else {
-                // Add a placeholder for quick response
-                setConversation(prev => [...prev, {
-                    role: "ai",
-                    type: "quick",
-                    message: [],
-                    streamingContent: "",
-                    isComplete: false,
-                    isLoading: true
-                }]);
+    const handleSubmit = useCallback(
+        async (prompt, isRetry = false) => {
+            console.log(prompt.length, "prompt");
+            if (prompt.length === 0) {
+                return;
             }
-            // ---> Add this log <---
-            console.log('handleSubmit - isSwarmMode:', isSwarmMode, 'isAutoSwarm:', isAutoSwarmContextState);
-            console.log({
-                prompt,
-                sessionId: id,
-                mode: isDeepThinkMode ? "deep" : "quick",
-                isSwarm: isSwarmMode,
-                swarmIds: selectedSuperiorPersona ? selectedSuperiorPersona.map(item => item.id) : [],
-                isAutoSwarm: isAutoSwarmContextState ? true : (selectedSuperiorPersona.length <= 0 ? true : false),
-            }, 'sending message')
-            // Send message to the server with appropriate mode
-            setIsShowAgenticBlock(true)
-            socket.current.emit("chat", {
-                prompt,
-                sessionId: id,
-                mode: isDeepThinkMode ? "deep" : "quick",
-                isSwarm: isSwarmMode, // Ensure this value is correct when emitted
-                swarmIds: selectedSuperiorPersona ? selectedSuperiorPersona.map(item => item.id) : [],
-                isAutoSwarm: isAutoSwarmContextState,
-            });
+            if (prompt.length > 4999) {
+                toast({
+                    title: "Error",
+                    description: "Prompt is too long. Please shorten it.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            if (isError) {
+                setIsError(false);
+                setErrorMessage("");
+            }
+            // Set loading state
+            setIsNextChatLoading(true);
+            const prevPrompt = prompt;
 
-            // Scroll to bottom
-            setTimeout(() => {
-                smoothScrollToBottom();
-            }, 100);
+            try {
+                setPrompt("");
 
-        } catch (error) {
-            toast({
-                title: 'Error',
-                description: error.message,
-                variant: "destructive"
-            });
-            setPrompt(prevPrompt);
-        }
-    }, [id, toast, isDeepThinkMode, isSwarmMode, selectedSuperiorPersona, isAutoSwarmContextState, smoothScrollToBottom]); // Added dependencies
+                // Add human message to conversation
+                setConversation((prev) => [
+                    ...prev,
+                    {
+                        message: prompt,
+                        role: "human",
+                        isRetry: isRetry,
+                    },
+                ]);
 
+                // Reset streaming response
+                setStreamingResponse("");
+
+                // Add AI message placeholder based on mode
+                if (isDeepThinkMode) {
+                    // Add a placeholder for deep thinking response
+                    setConversation((prev) => [
+                        ...prev,
+                        {
+                            role: "ai",
+                            type: "deepThink",
+                            steps: [], // Will hold the execution steps
+                            markdownBuffer: "", // Will hold the final markdown response
+                            isComplete: false,
+                            isStreaming: false,
+                            isLoading: true,
+                        },
+                    ]);
+                } else {
+                    // Add a placeholder for quick response
+                    setConversation((prev) => [
+                        ...prev,
+                        {
+                            role: "ai",
+                            type: "quick",
+                            message: [],
+                            streamingContent: "",
+                            isComplete: false,
+                            isLoading: true,
+                        },
+                    ]);
+                }
+                // ---> Add this log <---
+                console.log(
+                    "handleSubmit - isSwarmMode:",
+                    isSwarmMode,
+                    "isAutoSwarm:",
+                    isAutoSwarmContextState,
+                );
+                console.log(
+                    {
+                        prompt,
+                        sessionId: id,
+                        mode: isDeepThinkMode ? "deep" : "quick",
+                        isSwarm: isSwarmMode,
+                        swarmIds: selectedSuperiorPersona
+                            ? selectedSuperiorPersona.map((item) => item.id)
+                            : [],
+                        isAutoSwarm: isAutoSwarmContextState
+                            ? true
+                            : selectedSuperiorPersona.length <= 0
+                                ? true
+                                : false,
+                    },
+                    "sending message",
+                );
+                // Send message to the server with appropriate mode
+                setIsShowAgenticBlock(true);
+                socket.current.emit("chat", {
+                    prompt,
+                    sessionId: id,
+                    mode: isDeepThinkMode ? "deep" : "quick",
+                    isSwarm: isSwarmMode, // Ensure this value is correct when emitted
+                    swarmIds: selectedSuperiorPersona
+                        ? selectedSuperiorPersona.map((item) => item.id)
+                        : [],
+                    isAutoSwarm: isAutoSwarmContextState,
+                    workflowId: selectedWorkflowId,
+                });
+
+                // Scroll to bottom
+                setTimeout(() => {
+                    smoothScrollToBottom();
+                }, 100);
+            } catch (error) {
+                toast({
+                    title: "Error",
+                    description: error.message,
+                    variant: "destructive",
+                });
+                setPrompt(prevPrompt);
+            }
+        },
+        [
+            id,
+            toast,
+            isDeepThinkMode,
+            isSwarmMode,
+            selectedSuperiorPersona,
+            isAutoSwarmContextState,
+            smoothScrollToBottom,
+            selectedWorkflowId
+        ],
+    ); // Added dependencies
 
     // retry function
     const lastContent = useRef(null);
     const isRetryTrigger = useRef(false);
     const onRetry = useCallback(() => {
-        const lastHumanMessage = conversation.filter(item => item.role === "human").slice(-1)[0];
+        const lastHumanMessage = conversation
+            .filter((item) => item.role === "human")
+            .slice(-1)[0];
         if (lastHumanMessage) {
-            console.log(lastHumanMessage, 'last human message');
+            console.log(lastHumanMessage, "last human message");
             lastContent.current = lastHumanMessage.message;
             // remove only last element of human message
-            setConversation(prev => {
+            setConversation((prev) => {
                 const lastIndex = prev.lastIndexOf(lastHumanMessage);
                 return prev.filter((_, index) => index !== lastIndex);
             });
             isRetryTrigger.current = true;
         }
-        console.log(lastHumanMessage, 'last human message');
-    }, [conversation])
+        console.log(lastHumanMessage, "last human message");
+    }, [conversation]);
 
     // useEffect: this is depended to onRetry function: when react removes the last message from the conversation we need to add new item as retry
     useEffect(() => {
@@ -1296,14 +1402,14 @@ export default function Chat() {
             isRetryTrigger.current = false;
 
             const lastHumanMessageContent = lastContent.current;
-            console.log(lastHumanMessageContent, 'last human message content');
+            console.log(lastHumanMessageContent, "last human message content");
             // setPrompt(lastHumanMessageContent);
             handleSubmit(lastHumanMessageContent, true);
             setIsNextChatLoading(true);
             setIsError(false);
             setErrorMessage("");
         }
-    }, [conversation])
+    }, [conversation]);
 
     // Function: Poll chat output (keeping for compatibility)
     async function _pollChatOutput(id) {
@@ -1312,51 +1418,97 @@ export default function Chat() {
 
     // Function: Start polling chat output
     const startPollingChatOutput = (chatId) => {
-        if (pollChatOutputRef.current && pollChatOutputRef.current.hasOwnProperty("stopPolling")) return;
+        if (
+            pollChatOutputRef.current &&
+            pollChatOutputRef.current.hasOwnProperty("stopPolling")
+        )
+            return;
         startPollingStatus();
 
-        pollChatOutputRef.current = polling(async () => {
-            const pollResult = await _pollChatOutput(chatId);
-            if (pollResult && pollResult.success && pollResult.data.length > 0 && !dataFetchedRef.current) {
-                const parsedResponse = parseContent(pollResult.data);
-                setConversation((prev) => [...prev, { message: parsedResponse, role: "ai", workflow: compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn), updated: latestUpdatedStatus.current }]);
-                dataFetchedRef.current = true;
-                setIsNextChatLoading(false);
-                clearPolling();
-            }
-        }, 10000, 2)();
+        pollChatOutputRef.current = polling(
+            async () => {
+                const pollResult = await _pollChatOutput(chatId);
+                if (
+                    pollResult &&
+                    pollResult.success &&
+                    pollResult.data.length > 0 &&
+                    !dataFetchedRef.current
+                ) {
+                    const parsedResponse = parseContent(pollResult.data);
+                    setConversation((prev) => [
+                        ...prev,
+                        {
+                            message: parsedResponse,
+                            role: "ai",
+                            workflow: compileWorkflow(
+                                isDocumentOn,
+                                isSearchOn,
+                                isVectorBaseOn,
+                            ),
+                            updated: latestUpdatedStatus.current,
+                        },
+                    ]);
+                    dataFetchedRef.current = true;
+                    setIsNextChatLoading(false);
+                    clearPolling();
+                }
+            },
+            10000,
+            2,
+        )();
     };
 
     // Function: Start polling chat status
     const startPollingStatus = () => {
-        if (pollChatStatusRef.current && pollChatStatusRef.current.hasOwnProperty("stopPolling")) return;
+        if (
+            pollChatStatusRef.current &&
+            pollChatStatusRef.current.hasOwnProperty("stopPolling")
+        )
+            return;
 
-        pollChatStatusRef.current = polling(async () => {
-            const data = await pollStatus(id);
-            if (latestUpdatedStatus.current.length < data.data.length) {
-                latestUpdatedStatus.current = data.data;
-            };
-            setIsChanged(prev => !prev);
-        }, 2000, 2)();
+        pollChatStatusRef.current = polling(
+            async () => {
+                const data = await pollStatus(id);
+                if (latestUpdatedStatus.current.length < data.data.length) {
+                    latestUpdatedStatus.current = data.data;
+                }
+                setIsChanged((prev) => !prev);
+            },
+            2000,
+            2,
+        )();
     };
 
     useEffect(() => {
-        console.log(conversation)
-    }, [conversation])
+        console.log(conversation);
+    }, [conversation]);
 
     // Function: Start polling interaction logs
     const startPollingInteractionLogs = () => {
-        if (pollInteractionLogsRef.current && pollInteractionLogsRef.current.hasOwnProperty("stopPolling")) return;
+        if (
+            pollInteractionLogsRef.current &&
+            pollInteractionLogsRef.current.hasOwnProperty("stopPolling")
+        )
+            return;
         if (!chatIdentifer) return;
 
-        pollInteractionLogsRef.current = polling(async () => {
-            const data = await pollInteractionLogs(chatIdentifer);
-            if (data.data.length > 0) {
-                const processedData = data.data.map(item => parseContent(item.output));
-                const setterData = processedData.map(data => data?.[0]?.items[0] || {});
-                if (interactionLogs.length !== setterData.length) setInteractionLogs(setterData);
-            }
-        }, 8000, 2)();
+        pollInteractionLogsRef.current = polling(
+            async () => {
+                const data = await pollInteractionLogs(chatIdentifer);
+                if (data.data.length > 0) {
+                    const processedData = data.data.map((item) =>
+                        parseContent(item.output),
+                    );
+                    const setterData = processedData.map(
+                        (data) => data?.[0]?.items[0] || {},
+                    );
+                    if (interactionLogs.length !== setterData.length)
+                        setInteractionLogs(setterData);
+                }
+            },
+            8000,
+            2,
+        )();
     };
 
     // Function: Clear polling
@@ -1402,7 +1554,9 @@ export default function Chat() {
     }
 
     return (
-        <div className="flex flex-col h-full w-full relative"> {/* Added relative for positioning context */}
+        <div className="flex flex-col h-full w-full relative">
+            {" "}
+            {/* Added relative for positioning context */}
             <Conversation
                 ref={conversationCompRef} // Pass the ref here
                 conversation={conversation}
@@ -1481,7 +1635,12 @@ export default function Chat() {
 }
 
 // Helper function for workflow compilation
-function compileWorkflow(isDocumentOn, isSearchOn, isVectorBaseOn, isInteraction) {
+function compileWorkflow(
+    isDocumentOn,
+    isSearchOn,
+    isVectorBaseOn,
+    isInteraction,
+) {
     const workflow = [];
     if (isDocumentOn) {
         workflow.push("document");

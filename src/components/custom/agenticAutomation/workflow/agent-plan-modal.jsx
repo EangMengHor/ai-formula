@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { motion } from "framer-motion"
-import { X } from "lucide-react"
+import { motion } from "framer-motion";
+import { X } from "lucide-react";
 
 export function AgentPlanModal({ agentTask, onClose }) {
-  const sections = agentTask.split(/\d+\.\s/).filter(Boolean)
+  const sections = agentTask.split(/\d+\.\s/).filter(Boolean);
 
   return (
     <motion.div
@@ -22,8 +22,13 @@ export function AgentPlanModal({ agentTask, onClose }) {
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-800">
-            <h2 className="text-xl font-semibold text-slate-200">Agent Plan Details</h2>
-            <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
+            <h2 className="text-xl font-semibold text-slate-200">
+              Agent Plan Details
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+            >
               <X className="w-5 h-5 text-slate-400" />
             </button>
           </div>
@@ -31,7 +36,7 @@ export function AgentPlanModal({ agentTask, onClose }) {
           {/* Content */}
           <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
             {sections.map((section, index) => {
-              const [title, ...content] = section.trim().split("\n")
+              const [title, ...content] = section.trim().split("\n");
               return (
                 <div key={index} className="space-y-2">
                   <h3 className="text-lg font-medium text-slate-200">
@@ -43,12 +48,11 @@ export function AgentPlanModal({ agentTask, onClose }) {
                     ))}
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         </motion.div>
       </div>
     </motion.div>
-  )
+  );
 }
-

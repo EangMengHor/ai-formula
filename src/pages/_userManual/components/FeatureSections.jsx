@@ -1,17 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function FeatureSections({ sections }) {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const handleCardClick = (item) => {
     // Store the clicked item data in localStorage for the detail page
-    localStorage.setItem("selectedItem", JSON.stringify(item))
-    navigate(`/detail/${encodeURIComponent(item.name.toLowerCase().replace(/\s+/g, "-"))}`)
-  }
+    localStorage.setItem("selectedItem", JSON.stringify(item));
+    navigate(
+      `/detail/${encodeURIComponent(item.name.toLowerCase().replace(/\s+/g, "-"))}`,
+    );
+  };
 
   return (
     <div className="space-y-16 mt-5">
@@ -37,21 +39,27 @@ export default function FeatureSections({ sections }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
-function LargeCardSection({ title, subtitle, items, sectionIndex, onCardClick }) {
-  const [hoveredId, setHoveredId] = useState(null)
-  const [isVisible, setIsVisible] = useState(false)
+function LargeCardSection({
+  title,
+  subtitle,
+  items,
+  sectionIndex,
+  onCardClick,
+}) {
+  const [hoveredId, setHoveredId] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     // Delay visibility to trigger animations
     const timer = setTimeout(() => {
-      setIsVisible(true)
-    }, 100)
+      setIsVisible(true);
+    }, 100);
 
-    return () => clearTimeout(timer)
-  }, [])
+    return () => clearTimeout(timer);
+  }, []);
 
   // Animation variants
   const containerVariants = {
@@ -63,7 +71,7 @@ function LargeCardSection({ title, subtitle, items, sectionIndex, onCardClick })
         delayChildren: 0.1,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
@@ -76,7 +84,7 @@ function LargeCardSection({ title, subtitle, items, sectionIndex, onCardClick })
         damping: 12,
       },
     },
-  }
+  };
 
   return (
     <section>
@@ -97,8 +105,15 @@ function LargeCardSection({ title, subtitle, items, sectionIndex, onCardClick })
         animate={isVisible ? "visible" : "hidden"}
       >
         {items.map((item, index) => (
-          <motion.div key={index} className="flex flex-col" variants={itemVariants}>
-            <div className="block h-full cursor-pointer" onClick={() => onCardClick(item)}>
+          <motion.div
+            key={index}
+            className="flex flex-col"
+            variants={itemVariants}
+          >
+            <div
+              className="block h-full cursor-pointer"
+              onClick={() => onCardClick(item)}
+            >
               <motion.div
                 className={`relative overflow-hidden rounded-xl aspect-[16/9] bg-gradient-to-br ${item.gradient} p-6 flex items-center justify-center cursor-pointer mb-2`}
                 whileHover={{ scale: 1.02 }}
@@ -120,23 +135,29 @@ function LargeCardSection({ title, subtitle, items, sectionIndex, onCardClick })
         ))}
       </motion.div>
     </section>
-  )
+  );
 }
 
-function SmallCardSection({ title, subtitle, items, sectionIndex, onCardClick }) {
-  const [isVisible, setIsVisible] = useState(false)
+function SmallCardSection({
+  title,
+  subtitle,
+  items,
+  sectionIndex,
+  onCardClick,
+}) {
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     // Delay visibility to trigger animations
     const timer = setTimeout(
       () => {
-        setIsVisible(true)
+        setIsVisible(true);
       },
       100 + sectionIndex * 100,
-    )
+    );
 
-    return () => clearTimeout(timer)
-  }, [sectionIndex])
+    return () => clearTimeout(timer);
+  }, [sectionIndex]);
 
   // Animation variants
   const containerVariants = {
@@ -148,7 +169,7 @@ function SmallCardSection({ title, subtitle, items, sectionIndex, onCardClick })
         delayChildren: 0.1,
       },
     },
-  }
+  };
 
   const itemVariants = {
     hidden: { x: -20, opacity: 0 },
@@ -161,7 +182,7 @@ function SmallCardSection({ title, subtitle, items, sectionIndex, onCardClick })
         damping: 12,
       },
     },
-  }
+  };
 
   return (
     <section>
@@ -183,14 +204,23 @@ function SmallCardSection({ title, subtitle, items, sectionIndex, onCardClick })
       >
         {items.map((item, index) => (
           <motion.div key={index} variants={itemVariants}>
-            <div className="flex items-center gap-4 cursor-pointer group" onClick={() => onCardClick(item)}>
+            <div
+              className="flex items-center gap-4 cursor-pointer group"
+              onClick={() => onCardClick(item)}
+            >
               <div
                 className={`w-16 h-16 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-center shrink-0 transition-transform duration-300 group-hover:scale-105`}
               >
-                <span className="text-sm font-medium">{item.name.length > 13 ? item.name.slice(0,13) + "..." : item.name}</span>
+                <span className="text-sm font-medium">
+                  {item.name.length > 13
+                    ? item.name.slice(0, 13) + "..."
+                    : item.name}
+                </span>
               </div>
               <div>
-                <h3 className="font-bold group-hover:translate-x-1 transition-transform duration-300">{item.name}</h3>
+                <h3 className="font-bold group-hover:translate-x-1 transition-transform duration-300">
+                  {item.name}
+                </h3>
                 <p className="text-gray-400">{item.description}</p>
               </div>
             </div>
@@ -198,5 +228,5 @@ function SmallCardSection({ title, subtitle, items, sectionIndex, onCardClick })
         ))}
       </motion.div>
     </section>
-  )
+  );
 }

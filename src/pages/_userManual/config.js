@@ -1,3 +1,3 @@
-import { Description } from "@radix-ui/react-dialog"
+import { Description } from "@radix-ui/react-dialog";
 
-export const validToShowMenuForKnowledge = []
+export const validToShowMenuForKnowledge = [];

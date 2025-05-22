@@ -1,1 +1,1 @@
-export const validToShowMenuForKnowledge = []
+export const validToShowMenuForKnowledge = [];

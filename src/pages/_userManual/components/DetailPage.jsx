@@ -1,39 +1,39 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
-import { motion } from "framer-motion"
-import ReactMarkdown from "react-markdown"
-import { ArrowLeft } from "lucide-react"
-import remarkGfm from "remark-gfm"
-import remarkMath from "remark-math"
-import rehypeKatex from "rehype-katex"
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import { ArrowLeft } from "lucide-react";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 
 export default function DetailPage() {
-  const navigate = useNavigate()
-  const { slug } = useParams()
-  const [item, setItem] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate();
+  const { slug } = useParams();
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get the item data from localStorage
-    const storedItem = localStorage.getItem("selectedItem")
+    const storedItem = localStorage.getItem("selectedItem");
     if (storedItem) {
-      setItem(JSON.parse(storedItem))
+      setItem(JSON.parse(storedItem));
     }
-    setLoading(false)
-  }, [])
+    setLoading(false);
+  }, []);
 
   const handleBack = () => {
-    navigate(-1)
-  }
+    navigate(-1);
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
       </div>
-    )
+    );
   }
 
   if (!item) {
@@ -48,10 +48,12 @@ export default function DetailPage() {
         </button>
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">Item not found</h1>
-          <p>The requested item could not be found. Please go back and try again.</p>
+          <p>
+            The requested item could not be found. Please go back and try again.
+          </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -104,7 +106,7 @@ export default function DetailPage() {
                       borderRadius: "8px",
                       overflow: "hidden",
                       color: "#e0e0e0",
-                      margin: "1rem 0"
+                      margin: "1rem 0",
                     }}
                   >
                     {children}
@@ -116,7 +118,7 @@ export default function DetailPage() {
                       border: "1px solid #444",
                       padding: "8px",
                       backgroundColor: "transparent",
-                      textAlign: "left"
+                      textAlign: "left",
                     }}
                   >
                     {children}
@@ -128,17 +130,17 @@ export default function DetailPage() {
                       border: "1px solid #444",
                       padding: "8px",
                       backgroundColor: "#222",
-                      color: "#e0e0e0"
+                      color: "#e0e0e0",
                     }}
                   >
                     {children}
                   </td>
-                )
+                ),
               }}
             />
           </motion.div>
         </div>
       </div>
     </div>
-  )
+  );
 }

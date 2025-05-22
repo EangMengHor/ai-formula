@@ -1,3 +1,10 @@
-import { jobDetailsPage, userAgenticAutomationJobs } from "../../namespace/client";
+import {
+  jobDetailsPage,
+  userAgenticAutomationJobs,
+} from "../../namespace/client";
 
-export const validToShowMenuForAgenticAutomation = ['/createNewAgenticAutomation', userAgenticAutomationJobs, jobDetailsPage]
+export const validToShowMenuForAgenticAutomation = [
+  "/createNewAgenticAutomation",
+  userAgenticAutomationJobs,
+  jobDetailsPage,
+];
