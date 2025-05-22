@@ -106,7 +106,7 @@ export default function App() {
 							element={<AddToExistingKnowledge />}
 						/>
 						<Route
-							path="/addToPersonalKnowledgeBase"
+							path="/addToPersonalKnowledge"
 							element={<AddToPersonalKnowledgeBase />}
 						/>
 					</Route>
