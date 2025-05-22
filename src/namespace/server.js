@@ -1,5 +1,6 @@
 const url = import.meta.env.VITE_N8N_API_URL;
 const test = import.meta.env.VITE_N8N_TEST_API_URL;
+const backendUrl = import.meta.env.VITE_SOCKET_URL;
 const migrate = 'https://backend.jamesscott.tech/webhook-test';
 console.log(url);
 
@@ -54,3 +55,9 @@ export const getJobEachAgentResponseUrl = `${url}/get-job-each-agent-responses`
 // prompt enhancer
 
 export const getPromptEnhancerUrl = `${url}/prompt-enhancer`;
+
+// user setting APIs
+export const getUserPersonalKnowledgeStatusUrl = `${backendUrl}/api/personalKnowledge/getUserPersonalKnowledgeStatus`;
+export const toggleUserPersonalKnowledgeStatusUrl = `${backendUrl}/api/personalKnowledge/toggleUserPersonalKnowledgeStatus`;
+export const getUserPersonalProfileUrl = `${backendUrl}/api/personalProfile/getUserPersonalProfile`;
+

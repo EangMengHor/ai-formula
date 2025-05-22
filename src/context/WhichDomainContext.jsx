@@ -33,7 +33,7 @@ export const DomainProvider = ({ children }) => {
 
 
     return (
-        <DomainContext.Provider value={domainState}>
+        <DomainContext.Provider value={{ domainState, setDomainState }}>
             {children}
         </DomainContext.Provider>
     );

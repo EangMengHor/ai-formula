@@ -1,10 +1,10 @@
 import axios from "axios"
-import { getUserPersonalProfileUrl } from "../../namespace/server"
+import { getUserPersonalKnowledgeStatusUrl } from "../../namespace/server"
 import { response } from "../../lib/utils";
 
-export default async function getUserPersonalProfile(userId) {
+export  async function getUserPersonalKnowledgeStatus(userId) {
     try {
-        const res = await axios.post(getUserPersonalProfileUrl, {
+        const res = await axios.post(getUserPersonalKnowledgeStatusUrl, {
             userId
         });
 
