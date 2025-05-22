@@ -27,6 +27,7 @@ import {
   RotateCcw,
   Sparkles,
   SquarePlus,
+  Star,
   Target,
   TriangleAlert,
   Unplug,
@@ -49,7 +50,16 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useUser } from "../../context/UserContext";
 import { AnimatePresence, motion } from "framer-motion";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +78,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+
 import { Separator } from "@/components/ui/separator";
 
 import { useToast } from "../../hooks/use-toast";
@@ -77,6 +88,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "../ui/button";
 import { useDomain } from "@/context/WhichDomainContext";
 import { getPromptEnhancerApi } from "@/services/n8n-apis/_core/getPromptEnhancer.api";
+import { usePersona } from "../../context/PersonaContext";
 const maxRows = 30;
 
 function ChatInput({
@@ -97,7 +109,7 @@ function ChatInput({
   onScrollToBottomRequest, // Add new prop
 }) {
   // global states
-  const { domainState } = useDomain();
+  const { isPublicDomain, domainState } = useDomain();
   useEffect(() => {
     console.log(domainState, "domainState");
   }, [domainState]);
@@ -162,6 +174,13 @@ function ChatInput({
   const [prevUnenchancedPrompt, setPrevUnenchancedPrompt] = useState("");
   // Add a ref to track if input is being set by enhancer API
   const isEnhancerApiUpdateRef = useRef(false);
+  const {
+    selectedPersonaId,
+    personaModalOpen,
+    setPersonaModalOpen,
+    selectPersona,
+    personaList,
+  } = usePersona();
 
   // prompt enhancer
   async function enchancePrompt() {
@@ -304,6 +323,13 @@ function ChatInput({
       }, 1500);
     }
   }, [isReconnected, isReconnecting]);
+
+  // if public or domain state is false, then set isAutoSwarmContextState to false
+  useEffect(() => {
+    if (isPublicDomain) {
+      setIsAutoSwarmContextState(true);
+    }
+  }, [isPublicDomain]);
 
   return (
     <div className="flex w-full flex-col animate-fade-in ">
@@ -644,13 +670,42 @@ function ChatInput({
           </div>
 
           <div className="flex gap-1 items-center">
+            {/* Favorite */}
+            <TooltipProvider>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={() => setPersonaModalOpen(true)}
+                    className="p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer"
+                  >
+                    <Star
+                      className={`w-5 h-5 ${selectedPersonaId ? "text-yellow-400 fill-yellow-400" : "text-white"} drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10`}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="border border-slate-400 max-w-sm text-center">
+                  <p>Set Persona</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             {/* scroll to bottom */}
-            <div
-              onClick={onScrollToBottomRequest} // Use the passed prop
-              className=" p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer "
-            >
-              <ChevronDown className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10" />
-            </div>
+            <TooltipProvider>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <div
+                    onClick={onScrollToBottomRequest}
+                    className="p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer"
+                  >
+                    <ChevronDown className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="border border-slate-400 max-w-sm text-center">
+                  <p>Scroll to Bottom</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <div className=" p-2 rounded-md hover:bg-gray-800 cursor-pointer ">
               {isPromptEnchanced ? (
                 <div
@@ -664,11 +719,22 @@ function ChatInput({
                 <LoaderCircle className="animate-spin w-5 h-5 text-white" />
               ) : (
                 <div onClick={enchancePrompt}>
-                  <Sparkles className="w-5 h-5 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger>
+                        <div className="cursor-pointer flex gap-2 items-center rounded-md hover:bg-gray-800">
+                          <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-sm text-center">
+                        <p>Enhance your Prompt</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               )}
             </div>
-            <div className="flex gap-2 items-center">
+            {!isPublicDomain && (
               <div className="flex gap-2 items-center">
                 <div
                   onClick={() => {
@@ -713,7 +779,7 @@ function ChatInput({
 
                 {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
               </div>
-            </div>
+            )}
             {/* right side */}
             {isMobile && (
               <div className="">
@@ -763,7 +829,9 @@ function ChatInput({
                         {/* content */}
                         <div className="flex flex-col leading-5">
                           <p className="font-semibold text-white">
-                            ARX Next Voice Agent (Highly Recommended)
+                            {isPublicDomain
+                              ? "ARX Beta Voice Agent"
+                              : "ARX Next Voice Agent (Highly Recommended)"}
                           </p>
                           <p className="text-slate-300">
                             ARX Next Can Access Voice • Most Superior And Fast •
@@ -831,8 +899,8 @@ function ChatInput({
                   <TooltipProvider>
                     <Tooltip delayDuration={0}>
                       <TooltipTrigger>
-                        <div className="cursor-pointer  md:flex hidden gap-2 items-center p-2 rounded-md hover:bg-gray-800  mr-2 ">
-                          <AudioLines className="w-5 h-5 " />
+                        <div className="cursor-pointer md:flex hidden gap-2 items-center p-2 rounded-md hover:bg-gray-800 mr-2">
+                          <AudioLines className="w-5 h-5" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -884,11 +952,14 @@ function ChatInput({
                         {/* content */}
                         <div className="flex flex-col leading-5">
                           <p className="font-semibold text-white">
-                            ARX Next Voice Agent (Highly Recommended)
+                            {isPublicDomain
+                              ? "Beta Voice Agent"
+                              : "ARX Next Voice Agent (Highly Recommended)"}
                           </p>
                           <p className="text-slate-300">
-                            ARX Next Can Access Voice • Most Superior And Fast •
-                            Automation Features
+                            {isPublicDomain
+                              ? "Beta Can Access Voice • Most Superior And Fast • Automation Features"
+                              : "ARX Next Can Access Voice • Most Superior And Fast • Automation Features"}
                           </p>
                         </div>
                       </div>
@@ -1171,6 +1242,65 @@ function ChatInput({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Add the persona dialog */}
+      <Dialog open={personaModalOpen} onOpenChange={setPersonaModalOpen}>
+        <DialogContent className="bg-slate-800 text-white border border-slate-600 max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-white">
+              Select Persona
+            </DialogTitle>
+            <DialogDescription className="text-slate-300">
+              Choose a persona for this conversation
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto">
+            {/* No persona option */}
+            <div
+              onClick={() => selectPersona(null)}
+              className={`p-4 border rounded-md cursor-pointer transition-colors ${
+                selectedPersonaId === null
+                  ? "bg-slate-700 border-blue-500"
+                  : "border-slate-600 hover:bg-slate-700"
+              }`}
+            >
+              <div className="font-medium">No persona</div>
+              <div className="text-sm text-slate-400">
+                Use default conversation without a specific persona
+              </div>
+            </div>
+
+            {/* Persona list */}
+            {personaList.map((persona) => (
+              <div
+                key={persona.id}
+                onClick={() => selectPersona(persona.id)}
+                className={`p-4 border rounded-md cursor-pointer transition-colors ${
+                  selectedPersonaId === persona.id
+                    ? "bg-slate-700 border-blue-500"
+                    : "border-slate-600 hover:bg-slate-700"
+                }`}
+              >
+                <div className="font-medium">{persona.name}</div>
+                <div className="text-sm text-slate-400">
+                  {persona.description}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPersonaModalOpen(false)}
+              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
