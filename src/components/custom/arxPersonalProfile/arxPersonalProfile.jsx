@@ -103,7 +103,7 @@ export default function PersonalProfileForm() {
           duration: 3000,
           position: "top-right",
         });
-        navigate("/addToPersonalKnowledge", {
+        navigate("/addToPersonalKnowledgeBase", {
           replace: true,
           state: { isFirstTime: true },
         });
