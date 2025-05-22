@@ -253,11 +253,10 @@ export function AppSidebar({ ...props }) {
             </AvatarFallback>
           </Avatar>
           <p className="truncate">{user.email}</p>
-          <div className="bg-gray-700 rounded-md mt-2">
-            <Ellipsis
-              className="w-4 h-4 cursor-pointer"
-              onClick={() => setOpenSettingsModal(true)}
-            />
+
+          <div className="bg-gray-700 rounded-md mt-2 p-2 cursor-pointer hover:bg-slate-800" onClick={() => setOpenSettingsModal(true)}>
+            <Ellipsis className="w-4 h-4 "  />
+
           </div>
         </div>
       </SidebarFooter>
