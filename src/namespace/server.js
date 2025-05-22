@@ -63,3 +63,4 @@ export const getUserPersonalProfileUrl = `${backendUrl}/api/personalProfile/getU
 
 // user saved workflow APIs
 export const createUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/createUserSavedWorkflow`;
+export const getUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/getUserSavedWorkflow`;

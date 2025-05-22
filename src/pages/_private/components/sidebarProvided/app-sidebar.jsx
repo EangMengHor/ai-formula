@@ -183,19 +183,6 @@ export function AppSidebar({ ...props }) {
   const { clearAllStates } = _useSidebar();
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
   const navigate = useNavigate();
-
-  // Add workflow context
-  const {
-    selectedWorkflowId,
-    workflowList,
-    workflowModalOpen,
-    setWorkflowModalOpen,
-    selectWorkflow,
-    getSelectedWorkflow,
-  } = useWorkflow();
-
-  const selectedWorkflow = getSelectedWorkflow();
-
   return (
     <Sidebar {...props} className="">
       <SidebarHeader>
@@ -250,25 +237,7 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">Internal Knowledge</p>
               </div>
             </div>
-            <div
-              onClick={() => {
-                setWorkflowModalOpen(true);
-              }}
-              className={`cursor-pointer px-2 py-1 hover:bg-slate-800 mt-2 mx-2 rounded-md ${selectedWorkflowId ? "bg-slate-700" : ""}`}
-              size="lg"
-              asChild
-            >
-              <div className="flex gap-2 items-center">
-                <div
-                  className={`w-6 h-6 flex gap-1 items-center p-1 ${selectedWorkflowId ? "text-yellow-400" : ""}`}
-                >
-                  <UserCircle2 className="w-5 rounded-md" />
-                </div>
-                <p className="font-bold">
-                  {selectedWorkflow ? selectedWorkflow.name : "Select Workflow"}
-                </p>
-              </div>
-            </div>
+            
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -298,61 +267,7 @@ export function AppSidebar({ ...props }) {
         onClose={() => setOpenSettingsModal(false)}
       />
 
-      <Dialog open={workflowModalOpen} onOpenChange={setWorkflowModalOpen}>
-        <DialogContent className="bg-slate-800 text-white border border-slate-600 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-white">
-              Select Workflow
-            </DialogTitle>
-            <DialogDescription className="text-slate-300">
-              Choose a workflow for this conversation
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto">
-            <div
-              onClick={() => selectWorkflow(null)}
-              className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                selectedWorkflowId === null
-                  ? "bg-slate-700 border-blue-500"
-                  : "border-slate-600 hover:bg-slate-700"
-              }`}
-            >
-              <div className="font-medium">No workflow</div>
-              <div className="text-sm text-slate-400">
-                Use default conversation without a specific workflow
-              </div>
-            </div>
-
-            {workflowList.map((workflow) => (
-              <div
-                key={workflow.id}
-                onClick={() => selectWorkflow(workflow.id)}
-                className={`p-4 border rounded-md cursor-pointer transition-colors ${
-                  selectedWorkflowId === workflow.id
-                    ? "bg-slate-700 border-blue-500"
-                    : "border-slate-600 hover:bg-slate-700"
-                }`}
-              >
-                <div className="font-medium">{workflow.name}</div>
-                <div className="text-sm text-slate-400">
-                  {workflow.personaList.length} personas included
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setWorkflowModalOpen(false)}
-              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  
     </Sidebar>
   );
 }
