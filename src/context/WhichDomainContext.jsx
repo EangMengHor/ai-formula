@@ -15,7 +15,7 @@ export const DomainProvider = ({ children }) => {
     } else if (currentDomain.includes(domain2)) {
       setDomainState(false);
     } else {
-      setDomainState(true); // will trigger when local development
+      setDomainState(false); // will trigger when local development
     }
     console.log("Current Domain: ", currentDomain);
   }, []);

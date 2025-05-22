@@ -682,7 +682,7 @@ function ChatInput({
                     />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="border border-slate-400 max-w-sm text-center">
+                <TooltipContent className="max-w-sm text-center">
                   <p>Set Workflow</p>
                 </TooltipContent>
               </Tooltip>
@@ -699,7 +699,7 @@ function ChatInput({
                     <ChevronDown className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10" />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent className="border border-slate-400 max-w-sm text-center">
+                <TooltipContent className="max-w-sm text-center">
                   <p>Scroll to Bottom</p>
                 </TooltipContent>
               </Tooltip>
