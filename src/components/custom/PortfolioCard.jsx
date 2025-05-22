@@ -197,9 +197,9 @@ console.log(data, "data");
                         </p>
                         <p className="text-sm">
                           <span className="text-green-400">BUY</span>{" "}
-                          {data.transactions[0].amount}{" "}
-                          {data.transactions[0].ticker} @ $
-                          {data.transactions[0].price}
+                          {data.transactions[0]?.amount}{" "}
+                          {data.transactions[0]?.ticker} @ $
+                          {data.transactions[0]?.price}
                         </p>
                       </div>
                     </div>
