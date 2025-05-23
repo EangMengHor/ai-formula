@@ -60,6 +60,8 @@ export const getPromptEnhancerUrl = `${url}/prompt-enhancer`;
 export const getUserPersonalKnowledgeStatusUrl = `${backendUrl}/api/personalKnowledge/getUserPersonalKnowledgeStatus`;
 export const toggleUserPersonalKnowledgeStatusUrl = `${backendUrl}/api/personalKnowledge/toggleUserPersonalKnowledgeStatus`;
 export const getUserPersonalProfileUrl = `${backendUrl}/api/personalProfile/getUserPersonalProfile`;
+export const getUserPersonalProfileOnStatusUrl = `${backendUrl}/api/personalProfileOn/getUserPersonalProfileOnStatus`;
+export const toggleUserPersonalProfileOnStatusUrl = `${backendUrl}/api/personalProfileOn/toggleUserPersonalProfileOnStatus`;
 
 // user saved workflow APIs
 export const createUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/createUserSavedWorkflow`;

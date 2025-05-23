@@ -11,6 +11,8 @@ import { useEffect } from "react";
 import PortfolioCard from "./PortfolioCard";
 import { getUserPersonalKnowledgeStatus } from "@/services/user-setting-apis/getUserPersonalKnowledgeStatus";
 import getUserPersonalProfile from "@/services/user-setting-apis/getUserPersonalProfile";
+import getUserPersonalProfileOnStatus from "@/services/user-setting-apis/getUserPersonalProfileOnStatus";
+import toggleUserPersonalProfileOnStatus from "@/services/user-setting-apis/toggleUserPersonalProfileOnStatus";
 
 const menuItems = ["Personal knowledge", "My Profile", "Logout"];
 
@@ -22,17 +24,23 @@ export default function SettingsModal({ open, onClose }) {
 
   const [userPersonalKnowledgeStatus, setUserPersonalKnowledgeStatus] =
     useState(false);
+  const [userPersonalProfileOnStatus, setUserPersonalProfileOnStatus] =
+    useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       if (user.id != null) {
         console.log("here123124312");
         try {
-          const [knowledgeRes, profileRes] = await Promise.all([
-            getUserPersonalKnowledgeStatus(user.id),
-            getUserPersonalProfile(user.id),
-          ]);
+          const [knowledgeRes, profileRes, profileOnStatusRes] =
+            await Promise.all([
+              getUserPersonalKnowledgeStatus(user.id),
+              getUserPersonalProfile(user.id),
+              getUserPersonalProfileOnStatus(user.id),
+            ]);
           setUserPersonalKnowledgeStatus(knowledgeRes.data);
           setUserPersonalProfile(profileRes.data);
+          setUserPersonalProfileOnStatus(profileOnStatusRes.data);
         } catch (error) {
           console.error("Failed to fetch user settings:", error);
         }
@@ -49,6 +57,17 @@ export default function SettingsModal({ open, onClose }) {
     } catch (error) {
       setUserPersonalKnowledgeStatus((prev) => !checked);
       console.error("Failed to toggle personal knowledge status:", error);
+    }
+  };
+
+  const handleTogglePersonalProfileOnStatus = async (checked) => {
+    setUserPersonalProfileOnStatus(checked);
+    if (user?.id == null) return;
+    try {
+      await toggleUserPersonalProfileOnStatus(user.id, checked);
+    } catch (error) {
+      setUserPersonalProfileOnStatus((prev) => !checked);
+      console.error("Failed to toggle personal profile on status:", error);
     }
   };
 
@@ -95,7 +114,7 @@ export default function SettingsModal({ open, onClose }) {
                 <h3 className="text-xl font-semibold">Personal knowledge</h3>
                 <div className="flex justify-between items-center">
                   <Label>
-                    ARX Use Your Personal Profile Knowledge{" "}
+                    ARX Use Your Personal Knowledge{" "}
                     {userPersonalKnowledgeStatus
                       ? "(Currently On)"
                       : "(Currently Off)"}
@@ -112,6 +131,18 @@ export default function SettingsModal({ open, onClose }) {
             {selectedTab === "My Profile" && userPersonalProfile ? (
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold">My Profile</h3>
+                <div className="flex justify-between items-center">
+                  <Label>
+                    ARX Use Your Personal Profile{" "}
+                    {userPersonalProfileOnStatus
+                      ? "(Currently On)"
+                      : "(Currently Off)"}
+                  </Label>
+                  <Switch
+                    checked={userPersonalProfileOnStatus}
+                    onCheckedChange={handleTogglePersonalProfileOnStatus}
+                  />
+                </div>
                 <PortfolioCard data={userPersonalProfile} />
               </div>
             ) : (
