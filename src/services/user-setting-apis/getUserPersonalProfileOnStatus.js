@@ -4,7 +4,6 @@ import { response } from "../../lib/utils";
 
 export default async function getUserPersonalProfileOnStatus(userId) {
   try {
-    debugger;
     const res = await axios.post(getUserPersonalProfileOnStatusUrl, {
       userId,
     });
