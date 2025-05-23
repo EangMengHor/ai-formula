@@ -64,3 +64,8 @@ export const getUserPersonalProfileUrl = `${backendUrl}/api/personalProfile/getU
 // user saved workflow APIs
 export const createUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/createUserSavedWorkflow`;
 export const getUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/getUserSavedWorkflow`;
+
+// user personal knowledge APIs
+export const generatePresignedUrl = `${backendUrl}/api/personalKnowledge/generatePresignedUrl`;
+export const uploadPersonalKnowledgeUrl = `${backendUrl}/api/personalKnowledge/upload`;
+export const getUserPersonalKnowledgeFilesUrl = `${backendUrl}/api/personalKnowledge/files`;
