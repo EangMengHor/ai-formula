@@ -275,6 +275,7 @@ export function AppSidebar({ ...props }) {
                 </div>
               )}
             </div>
+
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

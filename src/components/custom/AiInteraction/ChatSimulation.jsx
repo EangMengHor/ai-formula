@@ -21,6 +21,7 @@ export default function ChatSimulation({
   const [showAll, setShowAll] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+
   const { workflowList, setWorkflowList } = useWorkflow();
   const handleShowAll = () => {
     setShowAll(!showAll);
@@ -70,6 +71,7 @@ export default function ChatSimulation({
         duration: 3000,
         position: "top-right",
       });
+
     }
   }
 
@@ -186,22 +188,22 @@ export default function ChatSimulation({
 }
 
 function DigDeeper({ personas }) {
-    return (
-        <div className="p-4 bg-slate-800 rounded-md border border-slate-700">
-            <h2 className="text-2xl font-bold text-slate-100 mb-4 border-b border-slate-600 pb-2">
-                Explore Deeper Insights
-            </h2>
-            <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                {personas.map((persona, index) => (
-                    <PersonaOp
-                        key={index}
-                        title={persona?.title || "No title"}
-                        goal={persona?.goal || "No goal"}
-                        team={persona?.team || "No team"}
-                        output={persona?.content || "No content"}
-                    />
-                ))}
-            </div>
-        </div>
-    );
+  return (
+    <div className="p-4 bg-slate-800 rounded-md border border-slate-700">
+      <h2 className="text-2xl font-bold text-slate-100 mb-4 border-b border-slate-600 pb-2">
+        Explore Deeper Insights
+      </h2>
+      <div className="space-y-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+        {personas.map((persona, index) => (
+          <PersonaOp
+            key={index}
+            title={persona?.title || "No title"}
+            goal={persona?.goal || "No goal"}
+            team={persona?.team || "No team"}
+            output={persona?.content || "No content"}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }

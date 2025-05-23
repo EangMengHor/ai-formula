@@ -30,11 +30,13 @@ export default function AddToPersonalKnowledge() {
       const userFiles = await getPersonalKnowledgeFiles(user.id);
       if (userFiles) {
         setFiles(userFiles.data);
+
       }
     } catch (error) {
       console.error("Error fetching files:", error);
       toast.error("Failed to fetch files");
       setFiles([]);
+
     } finally {
       setLoading(false);
     }
@@ -101,6 +103,7 @@ export default function AddToPersonalKnowledge() {
       </div>
 
       {files && files.length === 0 ? (
+
         // Large upload area when no files
         <div className="flex items-center justify-center min-h-[70vh]">
           <div className="w-full max-w-4xl h-[60vh] flex flex-col items-center justify-center border-2 border-dashed border-slate-600 rounded-lg bg-[#181e29] p-8">
@@ -154,6 +157,7 @@ export default function AddToPersonalKnowledge() {
                   </TableRow>
                 ) : (
                   files &&
+
                   files.map((file) => (
                     <TableRow
                       key={file.id}
