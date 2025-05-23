@@ -7,6 +7,8 @@ import {
   Orbit,
   Plus,
   UserCircle2,
+  Workflow,
+  X,
 } from "lucide-react";
 
 import { useWorkflow } from "../../../../context/WorkflowContext";
@@ -182,7 +184,17 @@ export function AppSidebar({ ...props }) {
   const { isPublicDomain } = useDomain();
   const { clearAllStates } = _useSidebar();
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
+  const [isClickedWorkflows, setIsClickedWorkflows] = useState(false);
   const navigate = useNavigate();
+
+  const handleWorkflowsClick = async () => {
+    try {
+      setIsClickedWorkflows(true);
+    } catch (error) {
+      console.error("Error fetching workflows:", error);
+    }
+  };
+
   return (
     <Sidebar {...props} className="">
       <SidebarHeader>
@@ -237,11 +249,38 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">Internal Knowledge</p>
               </div>
             </div>
+            <div
+              onClick={handleWorkflowsClick}
+              className={`cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md flex items-center justify-between ${
+                isClickedWorkflows ? "bg-slate-800" : ""
+              }`}
+              size="lg"
+              asChild
+            >
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <Workflow className="w-5 rounded-md  " />
+                </div>
+                <p className="font-bold">Your Workflows</p>
+              </div>
+              {isClickedWorkflows && (
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <X
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setIsClickedWorkflows(false);
+                    }}
+                    className="w-5 rounded-md  "
+                  />
+                </div>
+              )}
+            </div>
+
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} isClickedWorkflows={isClickedWorkflows} />
       </SidebarContent>
       <SidebarFooter>
         <div className="flex gap-2 items-center">

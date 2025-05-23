@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import createUserSavedWorflow from "../../../services/user-saved-workflow-apis/createUserSavedWorflow";
 import { useUser } from "../../../context/UserContext";
 import { useWorkflow } from "@/context/WorkflowContext";
+import { useToast } from "../../../hooks/use-toast";
 import { set } from "date-fns";
 export default function ChatSimulation({
   personas,
@@ -19,6 +20,8 @@ export default function ChatSimulation({
   const { user } = useUser();
   const [showAll, setShowAll] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+
   const { workflowList, setWorkflowList } = useWorkflow();
   const handleShowAll = () => {
     setShowAll(!showAll);
@@ -54,8 +57,21 @@ export default function ChatSimulation({
       setIsSaving(false);
       setWorkflowList((prev) => [...prev, res.data.data]);
       console.log(res.data, "saved workflow");
+      toast({
+        title: "Workflow saved successfully",
+        description: "Your workflow has been saved successfully",
+        duration: 3000,
+        position: "top-right",
+      });
     } else {
       setIsSaving(false);
+      toast({
+        title: "Workflow save failed",
+        description: "Please try again",
+        duration: 3000,
+        position: "top-right",
+      });
+
     }
   }
 

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { PersonalKnowledgeFileUpload } from "../../components/custom/file-upload-dialog/personal-knowledge-file-upload-dialog";
 import { useUser } from "@/context/UserContext";
 import { toast } from "sonner";
-import { getUserFiles } from "@/lib/supabase/getUserFiles";
 import {
   Table,
   TableHeader,
@@ -14,6 +13,8 @@ import {
 import { format } from "date-fns";
 import { useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { getPersonalKnowledgeFiles } from "@/services/user-setting-apis/getPersonalKnowledgeFiles";
+
 const BUCKET_NAME = "arx-society-file-queue";
 const POLLING_INTERVAL = 10000; // 10 seconds
 
@@ -26,13 +27,16 @@ export default function AddToPersonalKnowledge() {
 
   const fetchFiles = async () => {
     try {
-      const userFiles = await getUserFiles(user.id);
+      const userFiles = await getPersonalKnowledgeFiles(user.id);
       if (userFiles) {
-        setFiles(userFiles);
+        setFiles(userFiles.data);
+
       }
     } catch (error) {
       console.error("Error fetching files:", error);
       toast.error("Failed to fetch files");
+      setFiles([]);
+
     } finally {
       setLoading(false);
     }
@@ -98,7 +102,8 @@ export default function AddToPersonalKnowledge() {
         </p>
       </div>
 
-      {files.length === 0 ? (
+      {files && files.length === 0 ? (
+
         // Large upload area when no files
         <div className="flex items-center justify-center min-h-[70vh]">
           <div className="w-full max-w-4xl h-[60vh] flex flex-col items-center justify-center border-2 border-dashed border-slate-600 rounded-lg bg-[#181e29] p-8">
@@ -151,6 +156,8 @@ export default function AddToPersonalKnowledge() {
                     </TableCell>
                   </TableRow>
                 ) : (
+                  files &&
+
                   files.map((file) => (
                     <TableRow
                       key={file.id}
