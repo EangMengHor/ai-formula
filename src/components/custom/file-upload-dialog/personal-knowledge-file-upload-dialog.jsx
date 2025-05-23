@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
-import { uploadFile } from "../../../lib/supabase/uploadFile";
 import { Card } from "../../ui/card";
 import { Progress } from "../../ui/progress";
 import { X, Upload, FileIcon, CheckCircle, AlertCircle } from "lucide-react";
 import PropTypes from "prop-types";
+import { generatePresignedUrl } from "@/services/user-setting-apis/generatePresignedUrl";
+import { uploadToSignedUrl } from "@/services/user-setting-apis/uploadToSignedUrl";
 
 export function PersonalKnowledgeFileUpload({
   bucketName,
@@ -105,12 +106,29 @@ export function PersonalKnowledgeFileUpload({
           );
         }, 500);
 
-        // Upload the file
-        const result = await uploadFile(fileObj.file, bucketName, userId);
+        const presignedUrlResult = await generatePresignedUrl({
+          userId,
+          fileName: fileObj.file.name,
+          bucketName,
+        });
+
+        if (!presignedUrlResult.success) {
+          throw new Error(presignedUrlResult.message);
+        }
+
+        const uploadResult = await uploadToSignedUrl({
+          file: fileObj.file,
+          signedUrl: presignedUrlResult.data.signedUrl,
+          token: presignedUrlResult.data.token,
+          contentType: fileObj.file.type,
+          userId,
+          filePath: presignedUrlResult.data.fileName,
+          bucketName,
+        });
 
         clearInterval(progressInterval);
 
-        if (result) {
+        if (uploadResult.success) {
           setFiles((prev) =>
             prev.map((f) =>
               f.id === fileObj.id
@@ -118,12 +136,12 @@ export function PersonalKnowledgeFileUpload({
                     ...f,
                     status: "success",
                     progress: 100,
-                    url: result.fileUrl,
+                    url: uploadResult.data.url,
                   }
                 : f,
             ),
           );
-          uploadedFiles.push(result);
+          uploadedFiles.push(uploadResult.data);
         } else {
           setFiles((prev) =>
             prev.map((f) =>
