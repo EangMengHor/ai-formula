@@ -6,28 +6,18 @@ import { Button } from "../../ui/button";
 import PersonaOp from "./PersonaOp";
 import PersonaDetails from "./PersonaDetails";
 import { Skeleton } from "@/components/ui/skeleton";
-import createUserSavedWorflow from "../../../services/user-saved-workflow-apis/createUserSavedWorflow";
-import { useUser } from "../../../context/UserContext";
-import { useWorkflow } from "@/context/WorkflowContext";
-import { useToast } from "../../../hooks/use-toast";
-import { set } from "date-fns";
+
 export default function ChatSimulation({
   personas,
   isLoading,
   effect = false,
 }) {
   const { sidebarStack, setSidebarStack } = useStackSidebar();
-  const { user } = useUser();
   const [showAll, setShowAll] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
 
-  const { workflowList, setWorkflowList } = useWorkflow();
   const handleShowAll = () => {
     setShowAll(!showAll);
   };
-
-  console.log(personas, "jsdfjas12903");
 
   function handleDigDeeper() {
     setSidebarStack([
@@ -36,43 +26,6 @@ export default function ChatSimulation({
         component: <DigDeeper personas={personas} />,
       },
     ]);
-  }
-
-  async function handleSaveWorkflow() {
-    setIsSaving(true);
-    const personaList = personas.map((persona, index) => ({
-      id: index + 1,
-      name: persona.title || "No title",
-      description: persona.goal || "No goal",
-    }));
-
-    const res = await createUserSavedWorflow({
-      userId: user?.id,
-      personaList,
-      hit: 0,
-      name: "User's saved workflow",
-    });
-
-    if (res.success) {
-      setIsSaving(false);
-      setWorkflowList((prev) => [...prev, res.data.data]);
-      console.log(res.data, "saved workflow");
-      toast({
-        title: "Workflow saved successfully",
-        description: "Your workflow has been saved successfully",
-        duration: 3000,
-        position: "top-right",
-      });
-    } else {
-      setIsSaving(false);
-      toast({
-        title: "Workflow save failed",
-        description: "Please try again",
-        duration: 3000,
-        position: "top-right",
-      });
-
-    }
   }
 
   useEffect(() => {
@@ -167,21 +120,6 @@ export default function ChatSimulation({
           <Flame />
           Dig Deeper
         </Button>
-        {!isLoading && (
-          <Button
-            onClick={handleSaveWorkflow}
-            variant="default"
-            className="flex gap-2 bg-slate-700 hover:bg-slate-800"
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <LoaderCircle className="animate-spin p-1" />
-            ) : (
-              <Save />
-            )}
-            Save Workflow
-          </Button>
-        )}
       </div>
     </div>
   );
