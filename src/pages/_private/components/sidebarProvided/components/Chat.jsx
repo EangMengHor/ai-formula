@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 import { useToast } from "../../../../../hooks/use-toast";
 import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
 import { useParams } from "react-router-dom";
@@ -57,7 +57,7 @@ import { useWorkflow } from "@/context/WorkflowContext";
 
 const fileType = ["pdf"];
 
-export default function Chat() {
+function Chat() {
   const socket = useRef(null); // Use useRef for socket
   console.log(socket, "socket");
   const conversationCompRef = useRef(null); // Ref for Conversation component
@@ -149,6 +149,7 @@ export default function Chat() {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
 
+  const [currLoadingStatus, setCurrLoadingStatus] = useState("Thinking");
   const memoizedRenderMermaidChart = useCallback((content) => {
     if (!content || typeof content !== "string") {
       console.error("Invalid mermaid content:", content);
@@ -669,7 +670,6 @@ export default function Chat() {
 
     socket.current.on("error", (data) => {
       console.log(data, "error");
-      setIsNextChatLoading(false);
       if (!data?.isBreakage) {
         toast({
           title: "Error",
@@ -851,6 +851,11 @@ export default function Chat() {
    * Main socket handler   –  paste this as one block
    ********************************************************************/
   const handleSocketEvent = async (event) => {
+    if (event.type == "loadingStatus") {
+      console.log(event, "loadingStatus");
+      setCurrLoadingStatus(event.status || "Thinking . . .");
+      return;
+    }
     /* ─────────────────────────────────────────────────────── */
     /* 1. “swarmId” → update or create the simulation message  */
     /* ─────────────────────────────────────────────────────── */
@@ -913,6 +918,7 @@ export default function Chat() {
 
       setIsNextChatLoading(false);
       setIsShowAgenticBlock(false);
+      setCurrLoadingStatus("");
       return;
     }
 
@@ -1313,42 +1319,28 @@ export default function Chat() {
             },
           ]);
         }
-        // ---> Add this log <---
+        // Log relevant context information for debugging
         console.log(
           "handleSubmit - isSwarmMode:",
           isSwarmMode,
           "isAutoSwarm:",
           isAutoSwarmContextState,
+          "selectedWorkflowId:",
+          selectedWorkflowId,
         );
-        console.log(
-          {
-            prompt,
-            sessionId: id,
-            mode: isDeepThinkMode ? "deep" : "quick",
-            isSwarm: isSwarmMode,
-            swarmIds: selectedSuperiorPersona
-              ? selectedSuperiorPersona.map((item) => item.id)
-              : [],
-            isAutoSwarm: isAutoSwarmContextState
-              ? true
-              : selectedSuperiorPersona.length <= 0
-                ? true
-                : false,
-          },
-          "sending message",
-        );
+
         // Send message to the server with appropriate mode
         setIsShowAgenticBlock(true);
         socket.current.emit("chat", {
           prompt,
           sessionId: id,
           mode: isDeepThinkMode ? "deep" : "quick",
-          isSwarm: isSwarmMode, // Ensure this value is correct when emitted
+          isSwarm: isSwarmMode,
           swarmIds: selectedSuperiorPersona
             ? selectedSuperiorPersona.map((item) => item.id)
             : [],
           isAutoSwarm: isAutoSwarmContextState,
-          workflowId: selectedWorkflowId,
+          workflowId: selectedWorkflowId, // Make sure this is passed to the socket
         });
 
         // Scroll to bottom
@@ -1372,11 +1364,9 @@ export default function Chat() {
       selectedSuperiorPersona,
       isAutoSwarmContextState,
       smoothScrollToBottom,
-      selectedWorkflowId,
+      selectedWorkflowId, // Added this dependency
     ],
-  ); // Added dependencies
-
-  // retry function
+  ); // retry function
   const lastContent = useRef(null);
   const isRetryTrigger = useRef(false);
   const onRetry = useCallback(() => {
@@ -1533,16 +1523,24 @@ export default function Chat() {
     setDialogOpen(true);
   };
 
+  // Handler for the scroll to bottom button
   const handleScrollToBottomButtonClick = () => {
-    setIsUserScrolling(false); // Indicate that the next scroll is programmatic
-    smoothScrollToBottom(true); // Force scroll to bottom using existing Chat.jsx logic
+    setIsUserScrolling(false);
+    smoothScrollToBottom();
   };
 
+  // API for child components to request scroll to bottom
   const handleChatInputScrollRequest = () => {
     if (conversationCompRef.current) {
       conversationCompRef.current.forceScrollToBottom();
     }
   };
+
+  // Use a ref to avoid passing large conversation objects through props
+  const conversationRef = useRef(conversation);
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
 
   if (isChatLoading) {
     return (
@@ -1572,8 +1570,9 @@ export default function Chat() {
         currentLoadingMessage={currentLoadingMessage}
         interactionLogs={interactionLogs}
         isChanged={isChanged}
+        loadingMessage={currLoadingStatus}
       />
-      {showScrollButton && ( // Corrected variable name here
+      {showScrollButton && (
         <Button
           onClick={handleScrollToBottomButtonClick}
           className="absolute bottom-16 right-4 z-50"
@@ -1584,6 +1583,10 @@ export default function Chat() {
       <div className="w-full p-2 sticky bottom-0 bg-black mb-2 flex items-center justify-center">
         <div className="max-w-4xl w-full mx-auto">
           <ChatInput
+            // Only pass a limited subset of conversation for performance
+            // This significantly reduces the props size while maintaining functionality
+            conversationProp={conversationRef}
+            conversationCount={conversation.length} // Pass just the count for reference
             isReconnectionNeeded={isReconnectionNeeded}
             input={prompt}
             setInput={setPrompt}
@@ -1599,13 +1602,7 @@ export default function Chat() {
             setIsReconnecting={setIsReconnecting}
             setIsReconnected={setIsReconnected}
             isReconnected={isReconnected}
-            onScrollToBottomRequest={handleChatInputScrollRequest} // Pass the handler
-            // isSearchOn={isSearchOn}
-            // setIsSearchOn={setIsSearchOn}
-            // isDocumentOn={isDocumentOn}
-            // setIsDocumentOn={setIsDocumentOn}
-            // isVectorBaseOn={isVectorBaseOn}
-            // setIsVectorBaseOn={setIsVectorBaseOn}
+            onScrollToBottomRequest={handleChatInputScrollRequest}
           />
         </div>
       </div>
@@ -1634,6 +1631,7 @@ export default function Chat() {
   );
 }
 
+export default memo(Chat);
 // Helper function for workflow compilation
 function compileWorkflow(
   isDocumentOn,

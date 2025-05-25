@@ -1,6 +1,15 @@
 "use client";
 
-import { Delete, Loader, MoreHorizontal, Trash } from "lucide-react";
+import {
+  Codesandbox,
+  Delete,
+  Loader,
+  MoreHorizontal,
+  Search,
+  SquareDashed,
+  Trash,
+  X,
+} from "lucide-react";
 
 import {
   DropdownMenu,
@@ -15,15 +24,30 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 import { _useSidebar } from "../../../../context/SidebarContext";
 import { useWorkflow } from "../../../../context/WorkflowContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 
 export function NavMain({ items, isClickedWorkflows }) {
   const { id } = useParams();
   const { isMobile } = useSidebar();
-  const { workflowList, selectWorkflow, selectedWorkflowId } = useWorkflow();
+  const {
+    workflowList,
+    selectWorkflow,
+    selectedWorkflowId,
+    getSelectedWorkflow,
+  } = useWorkflow();
   const navigate = useNavigate();
   const {
     chatHistory,
@@ -31,6 +55,23 @@ export function NavMain({ items, isClickedWorkflows }) {
     currentActiveChat,
     setCurrentActiveChat,
   } = _useSidebar();
+  const [isHovered, setIsHovered] = useState(false);
+  const [isWorkflowMoreInfoDialogOpen, setIsWorkflowMoreInfoDialogOpen] =
+    useState();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter workflows based on search query
+  const filteredWorkflows =
+    searchQuery.trim() === ""
+      ? workflowList
+      : workflowList.filter(
+          (workflow) =>
+            workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (workflow.description &&
+              workflow.description
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase())),
+        );
 
   return (
     <SidebarGroup>
@@ -71,41 +112,79 @@ export function NavMain({ items, isClickedWorkflows }) {
               </div>
             );
           })}
+        {isClickedWorkflows &&
+          (selectedWorkflowId !== null || selectedWorkflowId > 0) && (
+            <div
+              onClick={() => selectWorkflow(null)}
+              className="flex items-center gap-2 p-2 mx-2 border-red-500 border text-sm text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer transition-colors duration-200"
+            >
+              <X className="w-4 h-4" />
+              Remove Workflow
+            </div>
+          )}
         {isClickedWorkflows && (
           <div className="grid grid-cols-1 gap-3 p-2">
-            {workflowList.map((workflow) => (
-              <div
+            {/* Search input */}
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search workflows..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 text-sm rounded-md py-2 pl-8 pr-2 text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {filteredWorkflows.map((workflow) => (
+              <motion.div
+                layout
                 key={workflow.id}
                 onClick={() => selectWorkflow(workflow.id)}
-                className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                initial={false}
+                animate={{ height: isHovered ? "auto" : "auto" }}
+                className={`p-2 overflow-hidden border rounded-lg cursor-pointer flex flex-col gap-2 transition-all duration-300 ${
                   selectedWorkflowId === workflow.id
                     ? "bg-[#283044] border-blue-500 shadow-md shadow-blue-500/20"
                     : "border-slate-700 hover:bg-[#232a3a] hover:border-slate-600"
                 }`}
               >
-                <div className="font-medium text-lg truncate">
-                  {workflow.name}
-                </div>
-                <div className="flex items-center mt-2">
-                  <div className="flex -space-x-2">
-                    {/* Persona avatars - showing up to 3 */}
-                    {[...Array(Math.min(3, workflow.personaList.length))].map(
-                      (_, i) => (
-                        <div
-                          key={i}
-                          className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs border-2 border-[#283044]"
-                        >
-                          {i < 2 ? "P" : "+"}
-                        </div>
-                      ),
-                    )}
+                <div className="flex gap-2">
+                  <SquareDashed />
+                  <div>
+                    <div className="font-medium text-sm truncate text-wrap">
+                      {workflow.name}
+                    </div>
+                    <div className="flex items-center">
+                      <div className="text-xs text-slate-400 ">
+                        {workflow.personaList.length}{" "}
+                        {workflow.personaList.length > 1
+                          ? "personas"
+                          : "persona"}{" "}
+                        | {workflow.workflow.length} Workflow Steps
+                      </div>
+                    </div>
+                    <div
+                      onClick={() => {
+                        setIsWorkflowMoreInfoDialogOpen(true);
+                      }}
+                      className="border-l text-sm hover:underline mt-3"
+                    >
+                      show Details
+                    </div>
                   </div>
-                  <div className="text-sm text-slate-400 ml-3">
-                    {workflow.personaList.length}{" "}
-                    {workflow.personaList.length > 1 ? "personas" : "persona"}
-                  </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
 
             {workflowList.length === 0 && (
@@ -113,7 +192,102 @@ export function NavMain({ items, isClickedWorkflows }) {
                 No saved workflows found
               </div>
             )}
+
+            {workflowList.length > 0 && filteredWorkflows.length === 0 && (
+              <div className="col-span-full p-4 border border-dashed border-slate-700 rounded-lg text-center text-slate-400">
+                No workflows match your search
+              </div>
+            )}
           </div>
+        )}
+        {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
+          <Dialog
+            open={isWorkflowMoreInfoDialogOpen}
+            onOpenChange={setIsWorkflowMoreInfoDialogOpen}
+          >
+            <DialogContent className="bg-[#1e2535] text-white border border-slate-700  w-[40%] h-fit max-h-[60%] overflow-y-scroll">
+              <DialogHeader>
+                <DialogTitle>Workflow Details</DialogTitle>
+                <div>
+                  <div className="bg-slate-800 text-white p-6 max-w-3xl mx-auto rounded">
+                    <h2 className="text-xl font-medium mb-1">
+                      {getSelectedWorkflow().name}
+                    </h2>
+                    <p className="text-slate-300 text-sm mb-4">
+                      {getSelectedWorkflow().description}
+                    </p>
+
+                    <p className="py-2 font-semibold">Workflow</p>
+                    <div className="relative">
+                      {/* Vertical connecting line */}
+                      <div className="absolute left-1 top-3 bottom-0 w-px bg-slate-600 opacity-50"></div>
+                      <div className="space-y-6">
+                        {getSelectedWorkflow().workflow.map((step, index) => (
+                          <div
+                            key={index}
+                            className={`relative transition-all duration-500 ease-out h-fit`}
+                            style={{ transitionDelay: `${index * 200}ms` }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="text-slate-300 mt-0.5 z-10 bg-slate-800 rounded-full">
+                                •
+                              </span>
+                              <p className="text-slate-100">{step}</p>
+                            </div>
+
+                            {/* Simple connector */}
+                            {index <
+                              getSelectedWorkflow().workflow.length - 1 && (
+                              <div className="absolute left-1 top-5 h-6">
+                                <div className="w-px h-full bg-slate-600 opacity-50"></div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mt-6 space-y-4">
+                      {getSelectedWorkflow() &&
+                      Object.keys(getSelectedWorkflow()).includes(
+                        "personaList",
+                      ) &&
+                      getSelectedWorkflow().personaList.length > 0 ? (
+                        <div>
+                          <p className="py-2 font-semibold mb-2">Agents</p>
+                          <ul className="space-y-2">
+                            {getSelectedWorkflow().personaList.map(
+                              (agent, index) => (
+                                <li
+                                  key={agent.id}
+                                  className="border border-slate-500 p-4 flex gap-2 rounded-md"
+                                >
+                                  {/* index */}
+                                  <p className="">{index}</p>
+                                  <div className="border-l-2 border-slate-500 pl-2">
+                                    <h4 className="font-semibold text-slate-100">
+                                      {agent.name}
+                                    </h4>
+                                    <p className="text-slate-300">
+                                      {agent.description}
+                                    </p>
+                                  </div>
+                                </li>
+                              ),
+                            )}
+                          </ul>
+                        </div>
+                      ) : (
+                        <p className="text-slate-300 mt-4">
+                          No agents available for this workflow.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
         )}
       </SidebarMenu>
     </SidebarGroup>

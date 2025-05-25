@@ -13,11 +13,11 @@ export default function JamesLogo() {
     if (domain1 && domain2) {
       if (url && !url.includes(domain1)) {
         console.log("Matched Domain1, setting logo to james-logo.png 232323");
-        setLogoFilePath("/james-logo.png");
+        setLogoFilePath("/logos/james-logo.png");
       }
       if (url && url.includes(domain2)) {
         console.log("Matched Domain2, setting logo to arx-logo.png 232323");
-        setLogoFilePath("/arx-logo.png");
+        setLogoFilePath("/logos/arx-logo.png");
       }
     } else {
       setLogoFilePath("/james-logo.png");

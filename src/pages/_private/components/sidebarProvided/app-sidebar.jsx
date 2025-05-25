@@ -189,7 +189,7 @@ export function AppSidebar({ ...props }) {
 
   const handleWorkflowsClick = async () => {
     try {
-      setIsClickedWorkflows(true);
+      setIsClickedWorkflows((prev) => !prev);
     } catch (error) {
       console.error("Error fetching workflows:", error);
     }
@@ -261,21 +261,11 @@ export function AppSidebar({ ...props }) {
                 <div className="w-6 h-6 flex gap-1 items-center p-1">
                   <Workflow className="w-5 rounded-md  " />
                 </div>
-                <p className="font-bold">Your Workflows</p>
+                <p className="font-bold">
+                  {isClickedWorkflows ? "Your Conversations" : "Your Workflows"}
+                </p>
               </div>
-              {isClickedWorkflows && (
-                <div className="w-6 h-6 flex gap-1 items-center p-1">
-                  <X
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setIsClickedWorkflows(false);
-                    }}
-                    className="w-5 rounded-md  "
-                  />
-                </div>
-              )}
             </div>
-
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

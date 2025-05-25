@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   CircleCheck,
+  CircleFadingPlus,
   CircleUserRound,
   DatabaseZap,
   DiamondPlus,
@@ -21,11 +22,13 @@ import {
   Flame,
   Globe,
   Layers2,
+  Loader2,
   LoaderCircle,
   MonitorUp,
   Paperclip,
   RotateCcw,
   Sparkles,
+  SquareDashed,
   SquarePlus,
   Star,
   Target,
@@ -34,7 +37,7 @@ import {
   X,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
 import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
@@ -89,9 +92,13 @@ import { Button } from "../ui/button";
 import { useDomain } from "@/context/WhichDomainContext";
 import { getPromptEnhancerApi } from "@/services/n8n-apis/_core/getPromptEnhancer.api";
 import { useWorkflow } from "../../context/WorkflowContext";
+import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUserSavedWorflow";
+// Add this import for debounce function
+import { debounce } from "lodash";
 const maxRows = 30;
 
 function ChatInput({
+  conversationProp = [],
   isReconnectionNeeded = false,
   setIsReconnectionNeeded = () => {},
   input,
@@ -108,11 +115,7 @@ function ChatInput({
   setIsReconnected,
   onScrollToBottomRequest, // Add new prop
 }) {
-  // global states
   const { isPublicDomain, domainState } = useDomain();
-  useEffect(() => {
-    console.log(domainState, "domainState");
-  }, [domainState]);
   const { id } = useParams();
   const { pathname } = useLocation();
   const {
@@ -144,23 +147,6 @@ function ChatInput({
   } = useUser();
   const { sidebarStack } = useStackSidebar();
   const isMobile = useIsMobile();
-  useEffect(() => {
-    console.log(
-      selectedSuperiorPersona,
-      "selectedSuipe",
-      isSuperiorPersonaAttached,
-      "isSuperiorPersonaAttached",
-      isAutoSwarmContextState,
-      "isAutoSwarmContextState",
-      isSwarmMode,
-      "isSwarmMode",
-    );
-  }, [
-    isSuperiorPersonaAttached,
-    selectedSuperiorPersona,
-    isAutoSwarmContextState,
-    isSwarmMode,
-  ]);
   // component states
   const [fetchSuperiorPersona, setFetchSuperiorPersona] = useState(null);
   const [rows, setRows] = useState(1);
@@ -174,23 +160,119 @@ function ChatInput({
   const [prevUnenchancedPrompt, setPrevUnenchancedPrompt] = useState("");
   // Add a ref to track if input is being set by enhancer API
   const isEnhancerApiUpdateRef = useRef(false);
-  const { selectedWorkflowId, workflowList, setWorkflowModalOpen } =
-    useWorkflow();
+  // Add the missing scroll container ref
+  const scrollContainerRef = useRef(null);
+
+  // Get only the necessary workflow states from context
+  const {
+    selectedWorkflowId,
+    workflowList,
+    setWorkflowList,
+    getSelectedWorkflow,
+    setSelectedWorkflowId,
+  } = useWorkflow();
+
+  // Move remaining workflow states here to prevent unnecessary rerenders
+  const [workflowPrompt, setWorkflowPrompt] = useState("");
+  const [isWorkflowCreatorLoading, setIsWorkflowCreatorLoading] =
+    useState(false);
+  const [recentlyCreatedWorkflowResponse, setRecentlyCreatedWorkflowResponse] =
+    useState({});
   const [hovered, setHovered] = useState(false);
-  const workflowName = workflowList.find(
-    (w) => w.id === selectedWorkflowId,
-  )?.name;
+  const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
+  const { user } = useUser();
 
-  const selectedWorkflow = workflowList.find(
-    (w) => w.id === selectedWorkflowId,
-  );
+  // Memoize the heavy function to prevent recreation on each render
+  const handleCreateNewWorkflow = useCallback(async () => {
+    try {
+      const conversation = conversationProp.current;
+      if (
+        !user ||
+        !user.id ||
+        !conversationProp.current ||
+        conversationProp.current.length === 0
+      ) {
+        console.log(
+          !user || !user.id || !conversation || conversation.length === 0,
+          "User or conversation is not available",
+        );
+        toast({
+          title: "Error",
+          description:
+            "Please ensure you have a conversation,  and personas selected before creating a new workflow.",
+          variant: "destructive",
+        });
+        return;
+      }
+      console.log("Creating new workflow with conversation:", conversation);
+      setIsWorkflowCreatorLoading(true);
+      let nextId = 1;
+      const agents = conversation
+        .reduce((acc, msg) => {
+          if (msg.role !== "ai") return acc;
 
-  // prompt enhancer
-  async function enchancePrompt() {
+          const simulationBlocks = msg.message.filter(
+            (b) => b.type === "simulation",
+          );
+          simulationBlocks.forEach((block) => {
+            block.items.forEach((item) => {
+              acc.push({
+                id: nextId++,
+                name: item.title,
+                description: item.goal ?? "",
+              });
+            });
+          });
+          return acc;
+        }, [])
+        .slice(0, 80);
+      const allUserPrompt = conversation.reduce((acc, curr) => {
+        if (curr.role === "human") {
+          acc.push(curr.message);
+          return acc;
+        }
+        return acc;
+      }, []);
+      console.log("Creating new workflow with conversation3:", conversation);
+
+      const newWorkflow = {
+        userInput: allUserPrompt,
+        agents: agents,
+        userPrompt: workflowPrompt,
+        userId: user.id,
+      };
+      console.log(newWorkflow, "New Workflow Data");
+      const resp = await createUserSavedWorflow(newWorkflow);
+      setRecentlyCreatedWorkflowResponse(resp.data);
+      setWorkflowList((prev) => [
+        ...prev,
+        {
+          ...resp.data,
+        },
+      ]);
+      console.log("Creating new workflow with data:", newWorkflow);
+    } catch (error) {
+      console.error("Error creating new workflow:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create new workflow",
+        variant: "destructive",
+      });
+    } finally {
+      setIsWorkflowCreatorLoading(false);
+    }
+  }, [conversationProp.current, user.id, workflowPrompt, toast]);
+
+  useEffect(() => {
+    console.log("Workflow List Updated:", workflowList);
+  }, [workflowList]);
+
+  // Memoize the prompt enhancer function
+  const enchancePrompt = useCallback(async () => {
     try {
       setPrevUnenchancedPrompt(input);
       setIsPromptEnhancerLoading(true);
-      console.log(isPromptEnchanced);
+
       if (!input || input.length < 5) {
         throw new Error("Please enter a valid prompt.");
       } else if (isPromptEnchanced) {
@@ -199,11 +281,10 @@ function ChatInput({
           description: `Please enter a new prompt to enhance`,
           variant: "destructive",
         });
-
         return;
       }
+
       const getPromptEnhanced = await getPromptEnhancerApi(input);
-      // Mark that the next setInput is from enhancer API
       isEnhancerApiUpdateRef.current = true;
       setInput(getPromptEnhanced);
       setIsPromptEnhanced(true);
@@ -217,9 +298,10 @@ function ChatInput({
     } finally {
       setIsPromptEnhancerLoading(false);
     }
-  }
-  function onUndoPromptEnhance() {
-    // Mark that the next setInput is from undo (not user typing)
+  }, [input, isPromptEnchanced, toast]);
+
+  // Memoize the undo function
+  const onUndoPromptEnhance = useCallback(() => {
     isEnhancerApiUpdateRef.current = true;
     setInput(prevUnenchancedPrompt);
     setIsPromptEnhanced(false);
@@ -229,81 +311,101 @@ function ChatInput({
       description: `The prompt has been reverted to its original state.`,
       variant: "default",
     });
-  }
+  }, [prevUnenchancedPrompt, toast]);
 
-  // Only set isPromptEnchanced to false if user changes input (not API)
-  useEffect(() => {
-    if (isEnhancerApiUpdateRef.current) {
-      isEnhancerApiUpdateRef.current = false;
-      return;
-    }
-    if (isPromptEnchanced) {
-      setIsPromptEnhanced(false);
-    }
-  }, [input]);
-  const handleChange = (event) => {
-    const textareaLineHeight = 24;
-    const previousRows = event.target.rows;
-    event.target.rows = 1; // reset number of rows in textarea
+  // Create a debounced version of handleChange
+  const debouncedHandleChange = useCallback(
+    debounce((value, rows) => {
+      setInput(value);
+      setRows(rows);
+    }, 10), // Small delay to batch updates
+    [],
+  );
 
-    const currentRows = Math.floor(
-      event.target.scrollHeight / textareaLineHeight,
-    );
-    if (input.length < 5) {
-      setRows(1);
-    }
-    if (currentRows === previousRows) {
-      event.target.rows = currentRows;
-    }
-    if (currentRows >= maxRows) {
-      event.target.rows = maxRows;
-      event.target.scrollTop = event.target.scrollHeight;
-    }
-    setInput(event.target.value);
-    setRows(currentRows < maxRows ? currentRows : maxRows);
-  };
+  const handleChange = useCallback(
+    (event) => {
+      const textareaLineHeight = 24;
+      const previousRows = event.target.rows;
+      event.target.rows = 1; // reset number of rows in textarea
 
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      if (input.length > 4999) {
-        toast({
-          title: "Please Make Your Input Prompt Shorter.",
-          description: `Input length exceeded 5000 Character! Current length: ${input.length}`,
-          variant: "destructive",
-        });
-        return;
+      const currentRows = Math.floor(
+        event.target.scrollHeight / textareaLineHeight,
+      );
+
+      const newRows = currentRows < maxRows ? currentRows : maxRows;
+
+      // Set rows immediately for a responsive feel
+      if (event.target.value.length < 5) {
+        event.target.rows = 1;
+      } else if (currentRows === previousRows) {
+        event.target.rows = currentRows;
+      } else if (currentRows >= maxRows) {
+        event.target.rows = maxRows;
+        event.target.scrollTop = event.target.scrollHeight;
+      } else {
+        event.target.rows = newRows;
       }
-      if (input.length > 0 && !isLoading) {
-        setRows(1); // Reset rows to 1 when submitting
-        handleSubmit();
+
+      // Debounce the state updates to avoid triggering re-renders too frequently
+      debouncedHandleChange(event.target.value, newRows);
+    },
+    [debouncedHandleChange],
+  );
+  const getVoiceAgentUrl = useCallback(
+    (baseUrl) => {
+      if (!baseUrl) return "";
+
+      if (files.length === 0) {
+        return id && id !== undefined ? `${baseUrl}?namespace=${id}` : baseUrl;
       }
-    } else if (event.key === "Enter" && event.shiftKey) {
-      event.preventDefault();
-      const cursorPosition = event.target.selectionStart;
-      const textBeforeCursor = input.substring(0, cursorPosition);
-      const textAfterCursor = input.substring(cursorPosition);
-      setInput(textBeforeCursor + "\n" + textAfterCursor);
-      setRows(rows + 1);
-    }
-  };
 
-  // trigger from voice command
+      return `${baseUrl}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
+        .slice(0, 20)
+        .map((file) => file.name)
+        .join("||||")}&namespace=${id || ""}`;
+    },
+    [files, fileCount, memorizedFiles, id],
+  );
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        if (input.length > 4999) {
+          toast({
+            title: "Please Make Your Input Prompt Shorter.",
+            description: `Input length exceeded 5000 Character! Current length: ${input.length}`,
+            variant: "destructive",
+          });
+          return;
+        }
+        if (input.length > 0 && !isLoading) {
+          setRows(1); // Reset rows to 1 when submitting
+          handleSubmit();
+        }
+      } else if (event.key === "Enter" && event.shiftKey) {
+        event.preventDefault();
+        const cursorPosition = event.target.selectionStart;
+        const textBeforeCursor = input.substring(0, cursorPosition);
+        const textAfterCursor = input.substring(cursorPosition);
+        setInput(textBeforeCursor + "\n" + textAfterCursor);
+        setRows(rows + 1);
+      }
+    },
+    [input, isLoading, handleSubmit, rows, toast],
+  );
 
-  // file scroller
-  const scrollContainerRef = useRef(null);
-
-  const scrollLeft = () => {
+  // Optimize scroll handlers
+  const scrollLeft = useCallback(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft -= 300; // Adjust scroll distance as needed
+      scrollContainerRef.current.scrollLeft -= 300;
     }
-  };
+  }, []);
 
-  const scrollRight = () => {
+  const scrollRight = useCallback(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft += 300; // Adjust scroll distance as needed
+      scrollContainerRef.current.scrollLeft += 300;
     }
-  };
+  }, []);
 
   // clean up on route change
   useEffect(() => {
@@ -334,6 +436,33 @@ function ChatInput({
     }
   }, [isPublicDomain]);
 
+  // Memoize modal controls
+  const handleWorkflowModalChange = useCallback(
+    (value) => {
+      if (value == false && isWorkflowCreatorLoading == true) {
+        toast({
+          title: "Please Wait While ARX Create Workflow...",
+          variant: "destructive",
+        });
+      } else {
+        setWorkflowModalOpen(value);
+      }
+    },
+    [isWorkflowCreatorLoading, toast],
+  );
+
+  // Optimize SwarmMode toggle with useCallback
+  const toggleSwarmMode = useCallback(() => {
+    setIsSwarmMode((prev) => {
+      const newState = !prev;
+      console.log("ChatInput - Toggling isSwarmMode to:", newState);
+      return newState;
+    });
+    setIsToolBoxOpen((prev) => !prev);
+  }, []);
+
+  // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
+
   return (
     <div className="flex w-full flex-col animate-fade-in ">
       {isReconnectionNeeded && (
@@ -341,7 +470,7 @@ function ChatInput({
           <div className="flex gap-2 text-black max-w-lg">
             <Unplug />
             <div className="flex items-center justify-center flex-col text-[16px]">
-              <p>Connection Timeout! Please Reconnect</p>
+              <p>Connection lost. Please reconnect.</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -466,13 +595,32 @@ function ChatInput({
       </motion.div>
 
       <div
-        className={`rounded-2xl p-2 hide-scrollbar
+        className={`rounded-2xl p-2 hide-scrollbar bg-gray-900 trans
                          ${
                            isSwarmMode
-                             ? "border-2 bg-gray-900 border-blue-500 glow-outline-soft"
-                             : "border bg-gray-900 border-gray-400"
+                             ? "border-2  border-blue-500 glow-outline-soft"
+                             : "border  border-gray-400"
                          }`}
       >
+        {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
+          <div className="flex items-center gap-2  rounded-md justify-between mb-2 p-2 w-fit bg-slate-800">
+            <SquareDashed className="w-5 h-5" />
+            <div className="flex items-center gap-2">
+              <span className=" text-white text-xs">
+                {getSelectedWorkflow()?.name || "No Workflow Selected"}
+                <p className="text-slate-400">Workflow</p>
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-slate-800 rounded-full hover:bg-slate-700 text-white"
+              onClick={() => setSelectedWorkflowId(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
         <Textarea
           value={input}
           onChange={handleChange}
@@ -484,6 +632,7 @@ function ChatInput({
           placeholder="Type a message"
           id="aiInputTextArea"
         />
+
         <div className="flex justify-between">
           <div className="flex gap-1 items-center justify-center  ">
             <div className="flex gap-2 rounded-md">
@@ -515,6 +664,58 @@ function ChatInput({
                 </TooltipProvider>
               </div>
             )}
+
+            {/* Favorite - Now represents workflow */}
+            <TooltipProvider>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild className={`${pathname == "/dashboard" && "hidden"}`}>
+                  <div
+                    onMouseEnter={() => setHovered(true)}
+                    onMouseLeave={() => setHovered(false)}
+                    onClick={() => setWorkflowModalOpen(true)}
+                    className={`relative flex items-center justify-end cursor-pointer px-2 py-1 rounded-md hover:bg-gray-800 `}
+                  >
+                    {/* Star (z-10 above text, on right) */}
+                    <div className="z-10">
+                      <CircleFadingPlus
+                        className={`w-5 h-5 ${
+                          selectedWorkflowId ? "text-white " : "text-white"
+                        } drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
+                      />
+                    </div>
+
+                    {/* Mask container for text reveal on left of star
+                                        <div
+                                            className="relative overflow-hidden"
+                                            style={{
+                                                width: hovered && workflowName ? 100 : 0,
+                                                height: 20,
+                                            }}
+                                        >
+                                            <AnimatePresence>
+                                                {hovered && selectedWorkflowId && workflowName && (
+                                                    <motion.span
+                                                        key="workflow-name"
+                                                        initial={{ x: 60, opacity: 0 }}
+                                                        animate={{ x: 0, opacity: 1 }}
+                                                        exit={{ x: 60, opacity: 0 }}
+                                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                                        className="absolute right-0 top-0 text-sm text-slate-300 whitespace-nowrap z-0 pr-2"
+                                                    >
+                                                        {workflowName.length > 13
+                                                            ? workflowName.slice(0, 10) + "..."
+                                                            : workflowName}
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                        </div> */}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm text-center ">
+                  <p>Transform This Conversationg Into Workflow</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             {/* chat mode */}
             <div
@@ -675,7 +876,7 @@ function ChatInput({
           <div className="flex gap-1 items-center">
             <TooltipProvider>
               <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild  className={`${pathname == "/dashboard" && "hidden"}`}>
                   <div
                     onClick={onScrollToBottomRequest}
                     className="p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer"
@@ -685,59 +886,6 @@ function ChatInput({
                 </TooltipTrigger>
                 <TooltipContent className="max-w-sm text-center">
                   <p>Scroll to Bottom</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            {/* Favorite - Now represents workflow */}
-            <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <div
-                    onMouseEnter={() => setHovered(true)}
-                    onMouseLeave={() => setHovered(false)}
-                    onClick={() => setWorkflowModalOpen(true)}
-                    className={`relative flex items-center justify-end cursor-pointer px-2 py-1 rounded-md hover:bg-gray-800 ${!isSwarmMode && "hidden"}`}
-                  >
-                    {/* Star (z-10 above text, on right) */}
-                    <div className="z-10">
-                      <Star
-                        className={`w-5 h-5 ${
-                          selectedWorkflowId
-                            ? "text-white fill-white"
-                            : "text-white"
-                        } drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
-                      />
-                    </div>
-
-                    {/* Mask container for text reveal on left of star */}
-                    <div
-                      className="relative overflow-hidden"
-                      style={{
-                        width: hovered && workflowName ? 100 : 0,
-                        height: 20,
-                      }}
-                    >
-                      <AnimatePresence>
-                        {hovered && selectedWorkflowId && workflowName && (
-                          <motion.span
-                            key="workflow-name"
-                            initial={{ x: 60, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: 60, opacity: 0 }}
-                            transition={{ duration: 0.6, ease: "easeOut" }}
-                            className="absolute right-0 top-0 text-sm text-slate-300 whitespace-nowrap z-0 pr-2"
-                          >
-                            {workflowName.length > 13
-                              ? workflowName.slice(0, 10) + "..."
-                              : workflowName}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-sm text-center">
-                  <p>Set Workflow</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -773,17 +921,7 @@ function ChatInput({
             {
               <div className="flex gap-2 items-center">
                 <div
-                  onClick={() => {
-                    setIsSwarmMode((prev) => {
-                      const newState = !prev;
-                      console.log(
-                        "ChatInput - Toggling isSwarmMode to:",
-                        newState,
-                      );
-                      return newState;
-                    });
-                    setIsToolBoxOpen((prev) => !prev);
-                  }}
+                  onClick={toggleSwarmMode}
                   className=" rounded-md px-2 cursor-pointer flex gap-2"
                 >
                   {/* default */}
@@ -835,90 +973,85 @@ function ChatInput({
                     </TooltipProvider>
                   </DrawerTrigger>
                   <DrawerContent className="bg-slate-600 flex flex-col gap-2">
-                    <div
-                      onClick={() => {
-                        let url = import.meta.env.VITE_OPENAI_REALTIME_URL;
-                        url =
-                          files.length > 0
-                            ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-                                .slice(0, 20)
-                                .map((file) => file.name)
-                                .join("||||")}&namespace=${id || ""}`
-                            : id && id != undefined
-                              ? `${import.meta.env.VITE_OPENAI_REALTIME_URL}?namespace=${id}`
-                              : import.meta.env.VITE_OPENAI_REALTIME_URL;
-
-                        window.open(url, "_blank");
-                      }}
-                      className="flex flex-col justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-start w-full mt-2"
-                    >
-                      {/* left */}
-                      <div className="flex gap-2">
-                        {/* image */}
-                        <div className="flex items-center h-fit px-2 py-1 rounded-md bg-green-400 w-fit">
-                          <img
-                            src="/small-log.png"
-                            alt="Stream Realtime API"
-                            className="w-6 h-6 m-1 rounded-md"
-                          />
-                        </div>
-                        {/* content */}
-                        <div className="flex flex-col leading-5">
-                          <p className="font-semibold text-white">
-                            {isPublicDomain
-                              ? "ARX Beta Voice Agent"
-                              : "ARX Next Voice Agent (Highly Recommended)"}
-                          </p>
-                          <p className="text-slate-300">
-                            ARX Next Can Access Voice • Most Superior And Fast •
-                            Automation Features
-                          </p>
-                          <div className="flex gap-1 mt-2">
-                            <div className="bg-slate-800 rounded-md p-2">
-                              <AudioWaveform className="text-white" />
-                            </div>
+                    <DrawerHeader>
+                      <DrawerTitle>Voice Technology Options</DrawerTitle>
+                      <DrawerDescription>
+                        Choose a voice agent for your conversation
+                      </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="px-4 flex flex-col gap-2">
+                      <div
+                        onClick={() => {
+                          const url = getVoiceAgentUrl(
+                            import.meta.env.VITE_OPENAI_REALTIME_URL,
+                          );
+                          window.open(url, "_blank");
+                        }}
+                        className="flex flex-col justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-start w-full mt-2"
+                      >
+                        {/* left */}
+                        <div className="flex gap-2">
+                          {/* image */}
+                          <div className="flex items-center h-fit px-2 py-1 rounded-md bg-green-400 w-fit">
+                            <img
+                              src="/small-log.png"
+                              alt="Stream Realtime API"
+                              className="w-6 h-6 m-1 rounded-md"
+                            />
+                          </div>
+                          {/* content */}
+                          <div className="flex flex-col leading-5">
+                            <p className="font-semibold text-white">
+                              {isPublicDomain
+                                ? "ARX Beta Voice Agent"
+                                : "ARX Next Voice Agent (Highly Recommended)"}
+                            </p>
+                            <p className="text-slate-300">
+                              ARX Next Can Access Voice • Most Superior And Fast
+                              • Automation Features
+                            </p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <div
-                      onClick={() => {
-                        window.open(
-                          import.meta.env.VITE_GEMINI_REALTIME_URL,
-                          "_blank",
-                        );
-                      }}
-                      className="flex flex-col gap-2  justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-start w-full"
-                    >
-                      {/* left */}
-                      <div className="flex gap-2">
-                        {/* image */}
-                        <div className="flex items-center h-fit px-2 py-1 rounded-md bg-red-400">
-                          <img
-                            src="/small-log.png"
-                            alt="Stream Realtime API"
-                            className="w-6 h-6 m-1 rounded-md"
-                          />
-                        </div>
-                        {/* content */}
-                        <div className="flex flex-col leading-5">
-                          <p className="font-semibold text-white">
-                            ARX Purle Voice Agent (Coming Soon)
-                          </p>
-                          <p className="text-slate-300">
-                            ARX Pulse Can Access Voice ,Screen And Camara
-                            Sharing • Full Version Coming Soon
-                          </p>
-                          {/* right */}
-                          <div className="flex gap-1 mt-2">
-                            <div className="bg-slate-800 rounded-md p-2">
-                              <AudioWaveform className="text-white" />
-                            </div>
-                            <div className="bg-slate-800 rounded-md p-2">
-                              <Camera className="text-white" />
-                            </div>
-                            <div className="bg-slate-800 rounded-md p-2">
-                              <MonitorUp className="text-white" />
+                      <div
+                        onClick={() => {
+                          window.open(
+                            import.meta.env.VITE_GEMINI_REALTIME_URL,
+                            "_blank",
+                          );
+                        }}
+                        className="flex flex-col gap-2  justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-start w-full"
+                      >
+                        {/* left */}
+                        <div className="flex gap-2">
+                          {/* image */}
+                          <div className="flex items-center h-fit px-2 py-1 rounded-md bg-red-400">
+                            <img
+                              src="/small-log.png"
+                              alt="Stream Realtime API"
+                              className="w-6 h-6 m-1 rounded-md"
+                            />
+                          </div>
+                          {/* content */}
+                          <div className="flex flex-col leading-5">
+                            <p className="font-semibold text-white">
+                              ARX Purle Voice Agent (Coming Soon)
+                            </p>
+                            <p className="text-slate-300">
+                              ARX Pulse Can Access Voice ,Screen And Camara
+                              Sharing • Full Version Coming Soon
+                            </p>
+                            {/* right */}
+                            <div className="flex gap-1 mt-2">
+                              <div className="bg-slate-800 rounded-md p-2">
+                                <AudioWaveform className="text-white" />
+                              </div>
+                              <div className="bg-slate-800 rounded-md p-2">
+                                <Camera className="text-white" />
+                              </div>
+                              <div className="bg-slate-800 rounded-md p-2">
+                                <MonitorUp className="text-white" />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -946,11 +1079,17 @@ function ChatInput({
                   </TooltipProvider>
                 </DialogTrigger>
                 <DialogContent className="max-w-5xl bg-slate-700">
-                  <p className="font-semibold text-white text-2xl">
-                    Select Suitable Voice Agent
-                  </p>
+                  <DialogHeader>
+                    <DialogTitle className="font-semibold text-white text-2xl">
+                      Select Suitable Voice Agent
+                    </DialogTitle>
+                    <DialogDescription>
+                      Choose a voice agent to enhance your conversation
+                      experience
+                    </DialogDescription>
+                  </DialogHeader>
 
-                  <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer  transition-all ">
+                  <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer transition-all">
                     <div
                       onClick={() => {
                         let url = domainState
@@ -1233,7 +1372,6 @@ function ChatInput({
                 <DialogTrigger>
                   <div
                     onClick={() => {
-                      console.log(fetchSuperiorPersona, "fetchSuperiorPersona");
                       if (fetchSuperiorPersona) fetchSuperiorPersona();
                     }}
                   >
@@ -1243,6 +1381,12 @@ function ChatInput({
                   </div>
                 </DialogTrigger>
                 <DialogContent className="max-w-5xl h-[80%] bg-slate-700 p-0 border-2 border-slate-500 overflow-y-scroll">
+                  <DialogHeader>
+                    <DialogTitle>Superior Persona Management</DialogTitle>
+                    <DialogDescription>
+                      Select and manage superior personas for your conversation
+                    </DialogDescription>
+                  </DialogHeader>
                   <GroupSuperiorPersonaSection
                     onFetchSuperiorPersona={setFetchSuperiorPersona}
                   />
@@ -1278,6 +1422,124 @@ function ChatInput({
           )}
         </AnimatePresence>
       </div>
+      <Dialog open={workflowModalOpen} onOpenChange={handleWorkflowModalChange}>
+        <DialogContent className="bg-[#1e2535] text-white border border-slate-700  w-[40%] h-fit max-h-[60%] overflow-y-scroll">
+          {/* header */}
+          <div>
+            <h1 className="font-semibold text-lg">Create Workflow</h1>
+            <p className="font-thin text-slate-400">
+              Turn this chat into a workflow. AI will review the messages and
+              build a new one for you.
+            </p>
+          </div>
+          <hr />
+          <div className="font-thin text-slate-300">
+            Enter Any Special Request <strong>(optional)</strong>
+          </div>
+          <Textarea
+            className="w-full mb-4"
+            placeholder="Enter workflow prompt here..."
+            value={workflowPrompt}
+            onChange={(e) => setWorkflowPrompt(e.target.value)}
+          />
+          <Button
+            onClick={handleCreateNewWorkflow}
+            className="w-full text-white"
+          >
+            {isWorkflowCreatorLoading ? (
+              <div className="flex gap-2 items-center">
+                <Loader2 className="animate-spin w-5 h-5 mr-2 inline-block" />
+                <p>Creating Workflow . . .</p>
+              </div>
+            ) : (
+              <div>Create Workflow</div>
+            )}
+          </Button>
+          {recentlyCreatedWorkflowResponse &&
+            Object.keys(recentlyCreatedWorkflowResponse).length > 0 && (
+              <div>
+                <div className="bg-slate-800 text-white p-6 max-w-3xl mx-auto rounded">
+                  <h2 className="text-xl font-medium mb-1">
+                    {recentlyCreatedWorkflowResponse.name}
+                  </h2>
+                  <p className="text-slate-300 text-sm mb-4">
+                    {recentlyCreatedWorkflowResponse.description}
+                  </p>
+
+                  <p className="py-2 font-semibold">Workflow</p>
+                  <div className="relative">
+                    {/* Vertical connecting line */}
+                    <div className="absolute left-1 top-3 bottom-0 w-px bg-slate-600 opacity-50"></div>
+                    <div className="space-y-6">
+                      {recentlyCreatedWorkflowResponse.workflow.map(
+                        (step, index) => (
+                          <div
+                            key={index}
+                            className={`relative transition-all duration-500 ease-out h-fit`}
+                            style={{ transitionDelay: `${index * 200}ms` }}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="text-slate-300 mt-0.5 z-10 bg-slate-800 rounded-full">
+                                •
+                              </span>
+                              <p className="text-slate-100">{step}</p>
+                            </div>
+
+                            {/* Simple connector */}
+                            {index <
+                              recentlyCreatedWorkflowResponse.workflow.length -
+                                1 && (
+                              <div className="absolute left-1 top-5 h-6">
+                                <div className="w-px h-full bg-slate-600 opacity-50"></div>
+                              </div>
+                            )}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-4">
+                    {recentlyCreatedWorkflowResponse &&
+                    Object.keys(recentlyCreatedWorkflowResponse).includes(
+                      "personaList",
+                    ) &&
+                    recentlyCreatedWorkflowResponse.personaList.length > 0 ? (
+                      <div>
+                        <p className="py-2 font-semibold mb-2">Agents</p>
+                        <ul className="space-y-2">
+                          {recentlyCreatedWorkflowResponse.personaList.map(
+                            (agent, index) => (
+                              <li
+                                key={agent.id}
+                                className="border border-slate-500 p-4 flex gap-2 rounded-md"
+                              >
+                                {/* index */}
+                                <p className="">{index}</p>
+                                <div className="border-l-2 border-slate-500 pl-2">
+                                  <h4 className="font-semibold text-slate-100">
+                                    {agent.name}
+                                  </h4>
+                                  <p className="text-slate-300">
+                                    {agent.description}
+                                  </p>
+                                </div>
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="text-slate-300 mt-4">
+                        No agents available for this workflow.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

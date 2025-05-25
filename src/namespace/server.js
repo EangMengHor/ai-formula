@@ -64,11 +64,11 @@ export const getUserPersonalProfileOnStatusUrl = `${backendUrl}/api/personalProf
 export const toggleUserPersonalProfileOnStatusUrl = `${backendUrl}/api/personalProfileOn/toggleUserPersonalProfileOnStatus`;
 
 // user saved workflow APIs
-export const createUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/createUserSavedWorkflow`;
+// n8n
+export const createUserSavedWorkflowUrl = `${url}/create-new-workflow`;
 export const getUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/getUserSavedWorkflow`;
 
 // user personal knowledge APIs
 export const generatePresignedUrl = `${backendUrl}/api/personalKnowledge/generatePresignedUrl`;
 export const uploadPersonalKnowledgeUrl = `${backendUrl}/api/personalKnowledge/upload`;
 export const getUserPersonalKnowledgeFilesUrl = `${backendUrl}/api/personalKnowledge/files`;
-

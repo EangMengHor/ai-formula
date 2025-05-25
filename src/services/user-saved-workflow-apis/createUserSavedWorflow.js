@@ -1,9 +1,10 @@
 import axios from "axios";
 import { response } from "../../lib/utils";
-import { createUserSavedWorkflowUrl } from "../../namespace/server";
+import { createUserSavedWorkflowUrl } from "@/namespace/server";
 
 export default async function createUserSavedWorflow(workflowData) {
   try {
+    console.log("Creating user saved workflow with data:", workflowData);
     const _res = await axios.post(createUserSavedWorkflowUrl, workflowData);
     console.log("User saved workflow response:", _res.data);
     console.log(_res.data);
