@@ -1,32 +1,28 @@
 import { useEffect, useState } from "react";
-const domain1 = import.meta.env.VITE_DOMAIN1;
-const domain2 = import.meta.env.VITE_DOMAIN2;
+import { useDomain } from "../../../../../context/WhichDomainContext";
+
 export default function JamesLogo() {
-  const [logoFilePath, setLogoFilePath] = useState("./arx-logo.png");
-  const url = window.location.href;
-  // const url = domain2
+  const [logoFilePath, setLogoFilePath] = useState("/logos/arx-logo.png");
+  const { domainState } = useDomain();
 
   useEffect(() => {
-    console.log("Current URL: 232323", url);
-    console.log("Domain1: 232323", domain1);
-    console.log("Domain2: 232323", domain2);
-    if (domain1 && domain2) {
-      if (url && !url.includes(domain1)) {
-        console.log("Matched Domain1, setting logo to james-logo.png 232323");
-        setLogoFilePath("/logos/james-logo.png");
-      }
-      if (url && url.includes(domain2)) {
-        console.log("Matched Domain2, setting logo to arx-logo.png 232323");
-        setLogoFilePath("/logos/arx-logo.png");
-      }
+    console.log("Domain State in JamesLogo: ", domainState);
+
+    if (!domainState) {
+      // We're on domain1
+      console.log("Domain1 detected, setting logo to james-logo.png");
+      setLogoFilePath("/logos/james-logo.png");
     } else {
-      setLogoFilePath("/james-logo.png");
+      // We're on domain2 or local
+      console.log("Domain2 or local detected, setting logo to arx-logo.png");
+      setLogoFilePath("/logos/arx-logo.png");
     }
-  }, [url, domain1, domain2]);
+  }, [domainState]);
 
   useEffect(() => {
     console.log("Logo File Path: 232323", logoFilePath);
   }, [logoFilePath]);
+
   return (
     <div>
       <img
