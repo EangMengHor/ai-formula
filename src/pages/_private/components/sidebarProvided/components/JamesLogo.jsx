@@ -8,7 +8,7 @@ export default function JamesLogo() {
   useEffect(() => {
     console.log("Domain State in JamesLogo: ", domainState);
 
-    if (!domainState) {
+    if (domainState) {
       // We're on domain1
       console.log("Domain1 detected, setting logo to james-logo.png");
       setLogoFilePath("/logos/james-logo.png");
