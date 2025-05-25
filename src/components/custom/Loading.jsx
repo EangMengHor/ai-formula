@@ -3,29 +3,29 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useAnimation } from "framer-motion";
 
-const quotes = [
-  "Please hold on while we prepare...",
-  "Optimizing your experience...",
-  "Finalizing configurations...",
-  "Ensuring precision and quality...",
-  "Refining the process for excellence...",
-  "Engineering solutions in progress...",
-  "Delivering a seamless experience...",
-  "Innovation is taking shape...",
-  "Advancing towards completion...",
-  "Crafting a sophisticated solution...",
-  "Unveiling the next phase...",
-  "Your patience is valued...",
-  "Enhancing the experience for you...",
-  "Polishing the final details...",
-  "Shaping the future with care...",
-  "Building a reliable foundation...",
-  "Excellence is worth the wait...",
-  "Progressing with diligence...",
-  "Creating something exceptional...",
-  "Almost there, thank you for waiting...",
-];
-
+// const quotes = [
+//   "Please hold on while we prepare...",
+//   "Optimizing your experience...",
+//   "Finalizing configurations...",
+//   "Ensuring precision and quality...",
+//   "Refining the process for excellence...",
+//   "Engineering solutions in progress...",
+//   "Delivering a seamless experience...",
+//   "Innovation is taking shape...",
+//   "Advancing towards completion...",
+//   "Crafting a sophisticated solution...",
+//   "Unveiling the next phase...",
+//   "Your patience is valued...",
+//   "Enhancing the experience for you...",
+//   "Polishing the final details...",
+//   "Shaping the future with care...",
+//   "Building a reliable foundation...",
+//   "Excellence is worth the wait...",
+//   "Progressing with diligence...",
+//   "Creating something exceptional...",
+//   "Almost there, thank you for waiting...",
+// ];
+const quotes = [];
 // Function to generate perfect hexagon points
 const generateHexagonPoints = () => {
   const size = 40; // Size from center to corner
@@ -42,7 +42,9 @@ const generateHexagonPoints = () => {
   return points.join(" ");
 };
 
-export default function LoadingAnimation({ currentQuote: propQuote }) {
+export default function LoadingAnimation(
+  { currentQuote: propQuote } = { currentQuote: "Loading..." },
+) {
   const [currentQuote, setCurrentQuote] = useState(0);
   const [displayedQuote, setDisplayedQuote] = useState(null);
   const rotationControls = useAnimation();
@@ -50,26 +52,13 @@ export default function LoadingAnimation({ currentQuote: propQuote }) {
   const mounted = useRef(false);
 
   useEffect(() => {
-    let timeout;
+    // Update the displayed quote when propQuote changes
     if (propQuote) {
       setDisplayedQuote(propQuote);
-      timeout = setTimeout(() => {
-        setDisplayedQuote(null);
-      }, 3000); // Show the prop quote for 3 seconds
+    } else {
+      setDisplayedQuote(quotes[currentQuote]);
     }
-
-    return () => clearTimeout(timeout);
-  }, [propQuote]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!displayedQuote) {
-        setCurrentQuote((prev) => (prev + 1) % quotes.length);
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [displayedQuote]);
+  }, [propQuote, currentQuote]);
 
   // Handle the variable speed rotation and size animation
   useEffect(() => {
@@ -111,7 +100,7 @@ export default function LoadingAnimation({ currentQuote: propQuote }) {
   const hexagonPoints = generateHexagonPoints();
 
   return (
-    <div className="flex items-center justify-center space-x-4">
+    <div className="flex items-center justify-center space-x-4 mt-5 w-full">
       {/* Hexagon animation with dynamic speed and size */}
       <div className="relative w-10 h-10 flex items-center justify-center">
         <motion.div className="w-full h-full" animate={rotationControls}>
@@ -168,16 +157,16 @@ export default function LoadingAnimation({ currentQuote: propQuote }) {
       </div>
 
       {/* Animated quote section - side by side */}
-      <div className="h-10 flex items-center">
+      <div className="h-10 w-full flex items-center">
         <motion.p
           key={displayedQuote || currentQuote}
-          className="text-gray-400 text-sm"
+          className="text-gray-200 text-md text-wrap  max-w-2xl font-semibold animate-pulse"
           initial={{ opacity: 0, x: -5 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 5 }}
           transition={{ duration: 0.3 }}
         >
-          {displayedQuote || quotes[currentQuote]}
+          {displayedQuote || quotes[currentQuote] || "Thinking"} . . .
         </motion.p>
       </div>
     </div>

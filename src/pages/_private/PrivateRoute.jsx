@@ -79,7 +79,7 @@ export default function PrivateRoute() {
               </h3>
             </div>
             <img
-              src="/public/meshBg.png"
+              src="/logos/meshBg.png"
               alt="meshBg"
               className="h-60 border border-white rounded-md mt-5 "
             />

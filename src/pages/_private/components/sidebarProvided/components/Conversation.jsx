@@ -51,9 +51,11 @@ const Conversation = forwardRef(
       currentLoadingMessage,
       interactionLogs,
       isChanged,
+      loadingMessage = "Thinking . . .",
     },
     ref,
   ) => {
+    console.log(loadingMessage, "loadingMessage");
     const [pdfFileName, setpPdfFileName] = useState("");
     const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
     const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
@@ -632,7 +634,9 @@ ${block.content}
 
         {isNextChatLoading && (
           <div className="flex mb-[60%] items-center space-x-2 text-blue-400">
-            <LoadingAnimation currentQuote={currentLoadingMessage} />
+            <LoadingAnimation
+              currentQuote={loadingMessage || "Thinking . . ."}
+            />
           </div>
         )}
 
