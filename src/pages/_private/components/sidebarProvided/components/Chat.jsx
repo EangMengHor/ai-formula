@@ -670,7 +670,6 @@ function Chat() {
 
     socket.current.on("error", (data) => {
       console.log(data, "error");
-      setIsNextChatLoading(false);
       if (!data?.isBreakage) {
         toast({
           title: "Error",

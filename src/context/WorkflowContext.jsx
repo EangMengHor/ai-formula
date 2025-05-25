@@ -81,7 +81,11 @@ export const WorkflowProvider = ({ children }) => {
 
   // Memoized function to get the selected workflow
   const getSelectedWorkflow = useMemo(
-    () => () => workflowList.find((w) => w.id === selectedWorkflowId),
+    () => () => workflowList.find((w) => w.id === selectedWorkflowId) || {
+        name:"No Workflow Selected",
+        personaList: [],
+        workflow
+    },
     [workflowList, selectedWorkflowId],
   );
 

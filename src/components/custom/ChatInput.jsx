@@ -668,7 +668,7 @@ function ChatInput({
             {/* Favorite - Now represents workflow */}
             <TooltipProvider>
               <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild className={`${pathname == "/dashboard" && "hidden"}`}>
                   <div
                     onMouseEnter={() => setHovered(true)}
                     onMouseLeave={() => setHovered(false)}
@@ -712,7 +712,7 @@ function ChatInput({
                   </div>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-sm text-center ">
-                  <p>Set Workflow</p>
+                  <p>Transform This Conversationg Into Workflow</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -876,7 +876,7 @@ function ChatInput({
           <div className="flex gap-1 items-center">
             <TooltipProvider>
               <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild  className={`${pathname == "/dashboard" && "hidden"}`}>
                   <div
                     onClick={onScrollToBottomRequest}
                     className="p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer"
