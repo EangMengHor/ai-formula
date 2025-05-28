@@ -612,6 +612,11 @@ function Chat() {
 
     socket.current.on("reconnect", () => {
       console.log("Successfully reconnected to socket server");
+      toast({
+        title: "Reconnected",
+        description: "Successfully reconnected to the socket server.",
+        variant: "success",
+      });
     });
 
     socket.current.on("reconnect_error", (error) => {
@@ -660,7 +665,12 @@ function Chat() {
       if (socket.current.recovered) {
         setIsReconnected(true);
       }
-
+      toast({
+        title: "Disconnected",
+        description:
+          "Bad Internet Issue, check your internet and refresh the page.",
+        variant: "destructive",
+      });
       console.log("Disconnected from socket server");
     });
 
