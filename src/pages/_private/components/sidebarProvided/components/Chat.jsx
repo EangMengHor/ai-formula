@@ -1,13 +1,17 @@
-import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
+import { useParams } from "react-router-dom";
+import { FileDown, LoaderCircle, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { useToast } from "../../../../../hooks/use-toast";
 import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
-import { useParams } from "react-router-dom";
 import { parseContent, sanitizeFileName } from "../../../../../lib/utils";
 import ChatInput from "../../../../../components/custom/ChatInput";
-import "katex/dist/katex.min.css";
 import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
-import { FileDown, LoaderCircle } from "lucide-react";
 import "../../../../_private/components/sidebarProvided/components/Chat.css";
 import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_core/getUploadedDocumentHis.api";
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
@@ -20,7 +24,6 @@ import ChatSimulation from "../../../../../components/custom/AiInteraction/ChatS
 import polling from "../../../../../lib/polling";
 import { pollInteractionLogs } from "../../../../../services/n8n-apis/_core/pollInteractionLogs.api";
 import { useStackSidebar } from "../../../../../context/StackSidebarContext";
-import { io } from "socket.io-client";
 import {
   Dialog,
   DialogContent,
@@ -28,12 +31,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
 import { Mermaid } from "../../../../../components/custom/Mermaid";
-import ReactMarkdown from "react-markdown";
-import remarkMath from "remark-math";
-import remarkGfm from "remark-gfm";
-import rehypeKatex from "rehype-katex";
 import LoadingAnimation from "@/components/custom/Loading";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,8 +43,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { downloadDocument } from "@/lib/downloadModule";
-
-// Import the components needed for deep thinking mode
 import ExecutionTimeline from "./ExecutionTimeline";
 import { StreamingResponse } from "./StreamingRendered";
 import Conversation from "./Conversation";
@@ -58,11 +54,23 @@ import { useWorkflow } from "@/context/WorkflowContext";
 const fileType = ["pdf"];
 
 function Chat() {
-  const socket = useRef(null); // Use useRef for socket
-  console.log(socket, "socket");
-  const conversationCompRef = useRef(null); // Ref for Conversation component
+  // --- Refs ---
+  const conversationCompRef = useRef(null);
+  const bottomRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const latestUpdatedStatus = useRef([]);
+  const dataFetchedRef = useRef(false);
+  const pollChatOutputRef = useRef(null);
+  const pollChatStatusRef = useRef(null);
+  const pollInteractionLogsRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
+  const streamTimeoutRef = useRef(null);
+  const isAutoScrolling = useRef(false);
+  const userScrollTimeoutRef = useRef(null);
+  const lastContent = useRef(null);
+  const isRetryTrigger = useRef(false);
 
-  // Context
+  // --- Context ---
   const { id } = useParams();
   const { toast } = useToast();
   const {
@@ -78,10 +86,6 @@ function Chat() {
   } = useFilesUploadMetadata();
   const { selectedWorkflowId } = useWorkflow();
   const {
-    isDocumentOn,
-    setIsDocumentOn,
-    isSearchOn,
-    setIsSearchOn,
     isVectorBaseOn,
     setIsVectorBaseOn,
     isSuperiorPersonaAttached,
@@ -98,58 +102,37 @@ function Chat() {
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
 
-  // Local state
+  // --- State ---
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [fallBackPrompt, setFallBackPrompt] = useState("");
   const [conversation, setConversation] = useState([]);
-
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isChanged, setIsChanged] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false); // Correctly declared here
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const [chatIdentifer, setChatIdentifer] = useState(null);
   const [interactionLogs, setInteractionLogs] = useState([]);
   const [isShowInteractionLogs, setIsShowInteractionLogs] = useState(false);
   const [streamingResponse, setStreamingResponse] = useState("");
   const [isShowAgenticBlock, setIsShowAgenticBlock] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
-  // Dialog states
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState("");
   const [dialogType, setDialogType] = useState("visual");
   const [dialogTitle, setDialogTitle] = useState("");
-  const [isUserScrolling, setIsUserScrolling] = useState(false); // Add state for user scroll tracking
-
-  // socket reconnection
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [socketId, setSocketId] = useState("");
   const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isReconnected, setIsReconnected] = useState(false);
-  // Refs
-  const bottomRef = useRef(null);
-  const chatContainerRef = useRef(null);
-  const latestUpdatedStatus = useRef([]);
-  const dataFetchedRef = useRef(false);
-  const pollChatOutputRef = useRef(null);
-  const pollChatStatusRef = useRef(null);
-  const pollInteractionLogsRef = useRef(null);
-  const scrollTimeoutRef = useRef(null);
-  const streamTimeoutRef = useRef(null); // For deep thinking streaming timeout
-  const isAutoScrolling = useRef(false); // Add ref to track programmatic scrolling
-  const userScrollTimeoutRef = useRef(null); // Ref for user scroll detection timeout
-  const previousSocketIdRef = useRef(socketId); // Store previous ID in a ref instead of using state
-
-  // error
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const currentStepRef = useRef(null); // For tracking current step in deep thinking
-
   const [pdfFileName, setpPdfFileName] = useState("");
-
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
-
   const [currLoadingStatus, setCurrLoadingStatus] = useState("Thinking");
+
+  // --- Memoized/Callback Functions ---
   const memoizedRenderMermaidChart = useCallback((content) => {
     if (!content || typeof content !== "string") {
       console.error("Invalid mermaid content:", content);
@@ -186,7 +169,7 @@ function Chat() {
       return "graph TD\nA[Error] --> B[Diagram processing failed]";
     }
   }, []);
-  // Memoize functions to prevent Conversation from re-rendering on every text input change
+
   const memoizedHandleBlockSidebar = useCallback(
     (block, type, header = "") => {
       setSidebarStack(() => [
@@ -395,7 +378,8 @@ function Chat() {
     },
     [memoizedRenderMermaidChart, pdfFileName, setpPdfFileName],
   );
-  // Effect: Load fallback prompt from localStorage
+
+  // --- Effects ---
   useEffect(() => {
     async function getPurpose() {
       const localItem = localStorage.getItem("prompt");
@@ -409,7 +393,6 @@ function Chat() {
     getPurpose();
   }, [id]);
 
-  // Effect: Remove fallback prompt from localStorage
   useEffect(() => {
     if (localStorage.getItem("prompt")) {
       localStorage.removeItem("prompt");
@@ -418,7 +401,6 @@ function Chat() {
     }
   }, [id]);
 
-  // Effect: Handle fallback prompt submission
   useEffect(() => {
     console.log(fallBackPrompt);
     if (fallBackPrompt.length > 4999) {
@@ -434,7 +416,6 @@ function Chat() {
     }
   }, [fallBackPrompt]);
 
-  // Effect: Fetch conversation and document history
   useEffect(() => {
     async function fetchConversations() {
       try {
@@ -509,12 +490,10 @@ function Chat() {
     }
   }, [isChatLoading, id, toast]);
 
-  // Effect: Log conversation and chat identifier
   useEffect(() => {
     console.log(chatIdentifer, conversation, "conversation ksdkfl2389040");
   }, [conversation, chatIdentifer]);
 
-  // Effect: Start polling interaction logs
   useEffect(() => {
     if (isShowAgenticBlock && isSuperiorPersonaAttached) {
       console.log("interaction polling started lsdfs9820923");
@@ -523,7 +502,6 @@ function Chat() {
     }
   }, [isShowAgenticBlock, isSuperiorPersonaAttached]);
 
-  // Effect: Clear polling on component unmount
   useEffect(() => {
     return () => {
       clearPolling();
@@ -536,7 +514,6 @@ function Chat() {
     };
   }, []);
 
-  // Monitor streaming status for deep thinking and finalize after inactivity
   useEffect(() => {
     // Find the latest deep thinking conversation item that is streaming
     const deepThinkingItem = conversation.find(
@@ -575,260 +552,9 @@ function Chat() {
     };
   }, [conversation]);
 
-  // Socket Connection and Event Handling
-  useEffect(() => {
-    socket.current = io(import.meta.env.VITE_SOCKET_URL, {
-      // -------- transport -----------
-      // allow polling for the first handshake, then auto-upgrade to WS
-      transports: ["polling", "websocket"],
-      // -------- reconnection -------
-      reconnection: true,
-      reconnectionAttempts: 20, // try ~4 min total (20×12 s)
-      reconnectionDelay: 12_000, // first retry 12 s after drop
-      reconnectionDelayMax: 15_000, // later retries back off to 15 s max
-      path: "/socket.io", // custom path for the socket server
-      // -------- optional -----------
-      timeout: 20_000, // give the open() call up to 20 s
-      connectionStateRecovery: {
-        maxDisconnectionDuration: 60 * 60 * 1000,
-        skipMiddlewares: true,
-      },
-    });
-    // Log when ping is sent to server
-    socket.current.io.engine.on("ping", () => {
-      console.log("[↔️ CLIENT] Ping received from server");
-    });
+  const scrollToBottom = useCallback(() => {    }, []);
 
-    socket.current.io.engine.on("pong", (latency) => {
-      console.log(latency, "latency");
-      console.log(
-        `[↔️ CLIENT] Pong sent back to server (latency: ${latency} ms)`,
-      );
-    });
-
-    socket.current.on("reconnect_attempt", (attempt) => {
-      console.log(`Reconnection attempt #${attempt}`);
-    });
-
-    socket.current.on("reconnect", () => {
-      console.log("Successfully reconnected to socket server");
-      toast({
-        title: "Reconnected",
-        description: "Successfully reconnected to the socket server.",
-        variant: "success",
-      });
-    });
-
-    socket.current.on("reconnect_error", (error) => {
-      console.error("Reconnection error:", error);
-    });
-
-    socket.current.on("reconnect_failed", () => {
-      console.error("Reconnection failed after maximum attempts");
-    });
-    socket.current.on("connect", () => {
-      const currentSocketId = socket.current.id;
-      console.log(`Socket connected: ${currentSocketId}`);
-      console.log(
-        previousSocketIdRef.current && socket.current.connected,
-        socket.current.connected,
-        previousSocketIdRef.current,
-        "isReconnecting",
-      );
-
-      // Check if we have a previous socket ID (not the first connection)
-      if (
-        previousSocketIdRef.current &&
-        previousSocketIdRef.current !== currentSocketId
-      ) {
-        console.log(
-          `Socket reconnected: Previous=${previousSocketIdRef.current}, New=${currentSocketId}`,
-        );
-        setIsReconnectionNeeded(true);
-      }
-
-      // Update the ref with current socket ID
-      previousSocketIdRef.current = currentSocketId;
-
-      // Also update state (for UI display purposes)
-      setSocketId(currentSocketId);
-
-      console.log("socket.recovered =", socket.current.recovered);
-    });
-
-    if (socket.current.recovered) {
-      setIsReconnecting(true);
-      setIsReconnected(true);
-    }
-
-    socket.current.on("disconnect", () => {
-      if (socket.current.recovered) {
-        setIsReconnected(true);
-      }
-      toast({
-        title: "Disconnected",
-        description:
-          "Bad Internet Issue, check your internet and refresh the page.",
-        variant: "destructive",
-      });
-      console.log("Disconnected from socket server");
-    });
-
-    socket.current.on("event", (event) => {
-      handleSocketEvent(event);
-    });
-
-    socket.current.on("error", (data) => {
-      console.log(data, "error");
-      if (!data?.isBreakage) {
-        toast({
-          title: "Error",
-          description: data.message,
-          variant: "destructive",
-        });
-      } else {
-        setIsError(true);
-        setErrorMessage(data.message);
-      }
-    });
-
-    return () => {
-      socket.current?.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    console.log(socket.current.connected, "isconnected");
-  }, [socket]);
-
-  const smoothScrollToBottom = useCallback(() => {
-    // Prevent auto-scroll if the user is manually scrolling up or if an auto-scroll is already happening
-    if (isUserScrolling || isAutoScrolling.current) {
-      console.log(
-        `Auto-scroll skipped: isUserScrolling=${isUserScrolling}, isAutoScrolling=${isAutoScrolling.current}`,
-      );
-      return;
-    }
-
-    const container = bottomRef.current?.parentElement;
-    if (container) {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      // Check if already near the bottom before initiating scroll
-      // This prevents unnecessary scrolls if already at the end.
-      if (scrollHeight - scrollTop - clientHeight < 150) {
-        // Only scroll if already close to the bottom
-        console.log("Auto-scrolling initiated...");
-        isAutoScrolling.current = true; // Set flag before starting scroll
-
-        bottomRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
-        });
-
-        // Reset the flag after a delay.
-        // This timeout helps prevent the scroll listener from immediately
-        // thinking the programmatic scroll is a user scroll.
-        // Adjust duration based on observed scroll behavior.
-        setTimeout(() => {
-          isAutoScrolling.current = false;
-          console.log("Auto-scrolling flag reset.");
-          // Optional: Check if still at bottom after scroll finished
-          const {
-            scrollTop: newScrollTop,
-            scrollHeight: newScrollHeight,
-            clientHeight: newClientHeight,
-          } = container;
-          if (newScrollHeight - newScrollTop - newClientHeight > 10) {
-            // If not at the bottom anymore (e.g., more content arrived during scroll),
-            // you might want to trigger another scroll, but be cautious of loops.
-            // smoothScrollToBottom(); // Example: Re-trigger if needed
-          } else {
-            // If we ended up at the bottom, ensure the user scrolling flag is false
-            if (isUserScrolling) {
-              setIsUserScrolling(false);
-            }
-          }
-        }, 800); // Increased timeout to better cover smooth scroll duration
-      } else {
-        console.log("Auto-scroll skipped: Not near bottom.");
-      }
-    } else {
-      // Fallback if container isn't found
-      bottomRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }
-  }, [isUserScrolling]); // Dependency: only re-create if isUserScrolling changes
-
-  useEffect(() => {
-    console.log(socketId, "socketId");
-  }, [socketId]);
-
-  //
-  // Updated smoothScrollToBottom
-  useEffect(() => {
-    const container = bottomRef.current?.parentElement; // Assuming the parent is the scrollable container
-    if (!container) return;
-
-    const handleScroll = () => {
-      if (isAutoScrolling.current) {
-        // Ignore scroll events triggered by our own smoothScrollToBottom
-        return;
-      }
-
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150; // Threshold to consider "at bottom"
-
-      if (!isNearBottom) {
-        // User scrolled up away from the bottom
-        if (!isUserScrolling) {
-          console.log("User scrolling detected.");
-          setIsUserScrolling(true);
-        }
-        // Set a timeout to potentially reset if user stops scrolling up,
-        // but it's generally safer to only reset when they scroll back down.
-        userScrollTimeoutRef.current = setTimeout(() => {
-          // Optional: Reset isUserScrolling if paused for a while?
-          // setIsUserScrolling(false);
-        }, 300); // Adjust timeout as needed
-      } else {
-        // User is near the bottom (scrolled down or was already there)
-        if (isUserScrolling) {
-          console.log("User scrolled back to bottom.");
-          setIsUserScrolling(false);
-        }
-      }
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-    };
-    // Rerun if isUserScrolling changes to ensure the correct state is captured
-  }, [isUserScrolling]);
-
-  useEffect(() => {
-    async function a() {
-      if (conversation.length > 0) {
-      }
-    }
-    a();
-  }, [conversation]);
-  // Handle socket events (streaming messages) - improved with consistent finalResponse handling
-  /********************************************************************
-   * Helpers (plain‑JS, no external deps)
-   ********************************************************************/
-
-  /* 1️⃣  Make a fresh AI message shell */
+  // --- Helper Functions ---
   const newAiMessage = (kind = "quick") => ({
     role: "ai",
     type: kind, // "simulation" | "quick" | "deepThink"
@@ -839,7 +565,6 @@ function Chat() {
     steps: [], // deep‑think only
   });
 
-  /* 2️⃣  Append a text chunk to an existing streaming message */
   const appendChunk = (msg, chunk) => {
     msg.tempContent += chunk;
     msg.isStreaming = true;
@@ -850,18 +575,14 @@ function Chat() {
         : parseHistoryAIContent(msg.tempContent);
   };
 
-  /* 3️⃣  Mark a streaming message finished */
   const completeStreaming = (msg) => {
     msg.isStreaming = false;
     msg.isComplete = true;
     delete msg.tempContent;
   };
 
-  /********************************************************************
-   * Main socket handler   –  paste this as one block
-   ********************************************************************/
   const handleSocketEvent = async (event) => {
-    if (event.type == "loadingStatus") {
+    if (event.type === "loadingStatus") {
       console.log(event, "loadingStatus");
       setCurrLoadingStatus(event.status || "Thinking . . .");
       return;
@@ -872,11 +593,9 @@ function Chat() {
     if (event.type === "swarmId") {
       const { output } = await getPersonaById(event.swarmId);
       const simItems = parseContent(output).flatMap((d) => d.items);
-
       setConversation((prev) => {
         const conv = [...prev];
         let last = conv[conv.length - 1];
-
         if (!last || last.type !== "simulation") {
           last = newAiMessage("simulation");
           conv.push(last);
@@ -886,7 +605,6 @@ function Chat() {
       });
       return;
     }
-
     /* ─────────────────────────────────────────────────────── */
     /* 2. “finalResponse” chunks                               */
     /* ─────────────────────────────────────────────────────── */
@@ -894,21 +612,16 @@ function Chat() {
       setConversation((prev) => {
         const conv = [...prev];
         let last = conv[conv.length - 1];
-
-        // ensure a streaming container exists
         if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
-          // If you know the real mode, replace "quick" with it
           last = newAiMessage("quick");
           conv.push(last);
         }
         appendChunk(last, event.content);
         return conv;
       });
-
       setIsNextChatLoading(true);
       return;
     }
-
     /* ─────────────────────────────────────────────────────── */
     /* 3. “finish” → close the streaming message               */
     /* ─────────────────────────────────────────────────────── */
@@ -916,7 +629,6 @@ function Chat() {
       setConversation((prev) => {
         const conv = [...prev];
         const last = conv[conv.length - 1];
-
         if (last && (last.type === "quick" || last.type === "deepThink")) {
           completeStreaming(last);
           if (last.type === "deepThink") {
@@ -925,13 +637,11 @@ function Chat() {
         }
         return conv;
       });
-
       setIsNextChatLoading(false);
       setIsShowAgenticBlock(false);
       setCurrLoadingStatus("");
       return;
     }
-
     /* ─────────────────────────────────────────────────────── */
     /* 4. Deep‑think sub‑events (only if last message is deep) */
     /* ─────────────────────────────────────────────────────── */
@@ -939,9 +649,7 @@ function Chat() {
       const conv = [...prev];
       const last = conv[conv.length - 1];
       if (!last || last.type !== "deepThink") return prev;
-
       const steps = last.steps || (last.steps = []);
-
       switch (event.type) {
         case "searchUrls":
           console.log(event, "searchUrls");
@@ -949,11 +657,9 @@ function Chat() {
         case "defineGoal":
           steps.push({ type: "defineGoal", text: "" });
           break;
-
         case "thinking":
           steps.push({ type: "thinking", text: "" });
           break;
-
         case "stepAgent":
           steps.push({
             type: "stepAgent",
@@ -962,33 +668,28 @@ function Chat() {
             isLoadingSearch: false,
           });
           break;
-
         case "stepAgentGoal":
           if (steps.length) {
             const s = steps[steps.length - 1];
             if (s.type === "stepAgent") s.goal += event.content || "";
           }
           break;
-
         case "knowledge":
           if (steps.length) {
             const s = steps[steps.length - 1];
             if (s.type === "stepAgent") s.isLoadingKnowledge = true;
           }
           break;
-
         case "search":
           if (steps.length) {
             const s = steps[steps.length - 1];
             if (s.type === "stepAgent") s.isLoadingSearch = true;
           }
           break;
-
         case "reEvaluating":
           steps.push({ type: "reEvaluating", text: "" });
           break;
-
-        default: // generic text append
+        default:
           if (event.content && steps.length) {
             const s = steps[steps.length - 1];
             if (s) s.text = (s.text || "") + event.content;
@@ -998,7 +699,6 @@ function Chat() {
     });
   };
 
-  // Process streaming content into blocks - completely rewritten for robustness
   const processStreamingContent = (content, forceComplete = false) => {
     if (!content) return [];
 
@@ -1260,14 +960,10 @@ function Chat() {
       ];
     }
   };
-
-  // Function: Handle prompt submission
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
-      console.log(prompt.length, "prompt");
-      if (prompt.length === 0) {
-        return;
-      }
+      if (!prompt.trim()) return;
+
       if (prompt.length > 4999) {
         toast({
           title: "Error",
@@ -1276,94 +972,139 @@ function Chat() {
         });
         return;
       }
+
       if (isError) {
         setIsError(false);
         setErrorMessage("");
       }
-      // Set loading state
+
       setIsNextChatLoading(true);
       const prevPrompt = prompt;
+      setPrompt("");
+
+      const payload = {
+        prompt,
+        sessionId: id,
+        mode: isDeepThinkMode ? "deep" : "quick",
+        isSwarm: isSwarmMode,
+        swarmIds: selectedSuperiorPersona?.map((p) => p.id) || [],
+        isAutoSwarm: isAutoSwarmContextState,
+        workflowId: selectedWorkflowId,
+      };
+
+      // Reset state
+      setStreamingResponse("");
+      setIsShowAgenticBlock(true);
+      setConversation((prev) => [
+        ...prev,
+        { message: prompt, role: "human", isRetry },
+        {
+          role: "ai",
+          type: isDeepThinkMode ? "deepThink" : "quick",
+          ...(isDeepThinkMode
+            ? {
+                steps: [],
+                markdownBuffer: "",
+                isComplete: false,
+                isStreaming: false,
+                isLoading: true,
+              }
+            : {
+                message: [],
+                streamingContent: "",
+                isComplete: false,
+                isLoading: true,
+              }),
+        },
+      ]);
+
+      let activityTimeout = null;
+      let lastMessageTime = Date.now();
+
+      const checkInactivity = () => {
+        if (Date.now() - lastMessageTime > 20000) {
+          console.warn("⚠️ Stream inactive for 20s");
+          setIsError(true);
+          setErrorMessage("The connection is too slow or has stalled.");
+        }
+      };
 
       try {
-        setPrompt("");
-
-        // Add human message to conversation
-        setConversation((prev) => [
-          ...prev,
+        const response = await fetch(
+          `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
           {
-            message: prompt,
-            role: "human",
-            isRetry: isRetry,
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
           },
-        ]);
-
-        // Reset streaming response
-        setStreamingResponse("");
-
-        // Add AI message placeholder based on mode
-        if (isDeepThinkMode) {
-          // Add a placeholder for deep thinking response
-          setConversation((prev) => [
-            ...prev,
-            {
-              role: "ai",
-              type: "deepThink",
-              steps: [], // Will hold the execution steps
-              markdownBuffer: "", // Will hold the final markdown response
-              isComplete: false,
-              isStreaming: false,
-              isLoading: true,
-            },
-          ]);
-        } else {
-          // Add a placeholder for quick response
-          setConversation((prev) => [
-            ...prev,
-            {
-              role: "ai",
-              type: "quick",
-              message: [],
-              streamingContent: "",
-              isComplete: false,
-              isLoading: true,
-            },
-          ]);
-        }
-        // Log relevant context information for debugging
-        console.log(
-          "handleSubmit - isSwarmMode:",
-          isSwarmMode,
-          "isAutoSwarm:",
-          isAutoSwarmContextState,
-          "selectedWorkflowId:",
-          selectedWorkflowId,
         );
 
-        // Send message to the server with appropriate mode
-        setIsShowAgenticBlock(true);
-        socket.current.emit("chat", {
-          prompt,
-          sessionId: id,
-          mode: isDeepThinkMode ? "deep" : "quick",
-          isSwarm: isSwarmMode,
-          swarmIds: selectedSuperiorPersona
-            ? selectedSuperiorPersona.map((item) => item.id)
-            : [],
-          isAutoSwarm: isAutoSwarmContextState,
-          workflowId: selectedWorkflowId, // Make sure this is passed to the socket
-        });
+        if (!response.ok)
+          throw new Error("Failed to connect to streaming endpoint");
 
-        // Scroll to bottom
-        setTimeout(() => {
-          smoothScrollToBottom();
-        }, 100);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+
+        // Start inactivity check
+        activityTimeout = setInterval(checkInactivity, 5000);
+
+        const processStream = async () => {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop();
+
+            for (const part of parts) {
+              if (!part.trim()) continue;
+
+              const lines = part.split("\n");
+              let eventType = "message";
+              let dataStr = "";
+
+              for (const line of lines) {
+                if (line.startsWith("event:"))
+                  eventType = line.replace("event:", "").trim();
+                else if (line.startsWith("data:"))
+                  dataStr += line.replace("data:", "").trim();
+              }
+
+              lastMessageTime = Date.now();
+
+              let data = {};
+              try {
+                data = JSON.parse(dataStr);
+              } catch {
+                data = { content: dataStr };
+              }
+
+              handleSocketEvent({ type: eventType, ...data });
+
+              if (eventType === "end") {
+                clearInterval(activityTimeout);
+                return;
+              }
+            }
+          }
+        };
+
+        await processStream();
       } catch (error) {
+        console.error("❌ SSE error:", error);
         toast({
-          title: "Error",
+          title: "Streaming error",
           description: error.message,
           variant: "destructive",
         });
         setPrompt(prevPrompt);
+        setIsError(true);
+        setErrorMessage(error.message);
+      } finally {
+        clearInterval(activityTimeout);
+        setIsNextChatLoading(false);
       }
     },
     [
@@ -1373,12 +1114,11 @@ function Chat() {
       isSwarmMode,
       selectedSuperiorPersona,
       isAutoSwarmContextState,
-      smoothScrollToBottom,
-      selectedWorkflowId, // Added this dependency
+      selectedWorkflowId,
+      isError,
     ],
-  ); // retry function
-  const lastContent = useRef(null);
-  const isRetryTrigger = useRef(false);
+  );
+
   const onRetry = useCallback(() => {
     const lastHumanMessage = conversation
       .filter((item) => item.role === "human")
@@ -1396,7 +1136,6 @@ function Chat() {
     console.log(lastHumanMessage, "last human message");
   }, [conversation]);
 
-  // useEffect: this is depended to onRetry function: when react removes the last message from the conversation we need to add new item as retry
   useEffect(() => {
     if (isError && isRetryTrigger.current) {
       isRetryTrigger.current = false;
@@ -1411,12 +1150,10 @@ function Chat() {
     }
   }, [conversation]);
 
-  // Function: Poll chat output (keeping for compatibility)
   async function _pollChatOutput(id) {
     return await pollChatOutput(id);
   }
 
-  // Function: Start polling chat output
   const startPollingChatOutput = (chatId) => {
     if (
       pollChatOutputRef.current &&
@@ -1458,7 +1195,6 @@ function Chat() {
     )();
   };
 
-  // Function: Start polling chat status
   const startPollingStatus = () => {
     if (
       pollChatStatusRef.current &&
@@ -1479,11 +1215,6 @@ function Chat() {
     )();
   };
 
-  useEffect(() => {
-    console.log(conversation);
-  }, [conversation]);
-
-  // Function: Start polling interaction logs
   const startPollingInteractionLogs = () => {
     if (
       pollInteractionLogsRef.current &&
@@ -1511,7 +1242,6 @@ function Chat() {
     )();
   };
 
-  // Function: Clear polling
   function clearPolling() {
     pollChatOutputRef.current?.stopPolling();
     pollInteractionLogsRef.current?.stopPolling();
@@ -1525,7 +1255,6 @@ function Chat() {
     setInteractionLogs([]);
   }
 
-  // Function: Open dialog for document/visual content
   const openDialog = (type, content, title) => {
     setDialogType(type);
     setDialogContent(content);
@@ -1533,25 +1262,23 @@ function Chat() {
     setDialogOpen(true);
   };
 
-  // Handler for the scroll to bottom button
   const handleScrollToBottomButtonClick = () => {
     setIsUserScrolling(false);
-    smoothScrollToBottom();
+    scrollToBottom();
   };
 
-  // API for child components to request scroll to bottom
   const handleChatInputScrollRequest = () => {
     if (conversationCompRef.current) {
       conversationCompRef.current.forceScrollToBottom();
     }
   };
 
-  // Use a ref to avoid passing large conversation objects through props
   const conversationRef = useRef(conversation);
   useEffect(() => {
     conversationRef.current = conversation;
   }, [conversation]);
 
+  // --- UI Render ---
   if (isChatLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center gap-2">
@@ -1563,10 +1290,9 @@ function Chat() {
 
   return (
     <div className="flex flex-col h-full w-full relative">
-      {" "}
-      {/* Added relative for positioning context */}
+      {/* ...existing code... */}
       <Conversation
-        ref={conversationCompRef} // Pass the ref here
+        ref={conversationCompRef}
         conversation={conversation}
         isNextChatLoading={isNextChatLoading}
         isShowInteractionLogs={isShowInteractionLogs}
@@ -1593,10 +1319,8 @@ function Chat() {
       <div className="w-full p-2 sticky bottom-0 bg-black mb-2 flex items-center justify-center">
         <div className="max-w-4xl w-full mx-auto">
           <ChatInput
-            // Only pass a limited subset of conversation for performance
-            // This significantly reduces the props size while maintaining functionality
             conversationProp={conversationRef}
-            conversationCount={conversation.length} // Pass just the count for reference
+            conversationCount={conversation.length}
             isReconnectionNeeded={isReconnectionNeeded}
             input={prompt}
             setInput={setPrompt}
@@ -1642,7 +1366,8 @@ function Chat() {
 }
 
 export default memo(Chat);
-// Helper function for workflow compilation
+
+// --- Helper: Workflow Compilation ---
 function compileWorkflow(
   isDocumentOn,
   isSearchOn,

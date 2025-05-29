@@ -1,10 +1,4 @@
-import React, {
-  memo,
-  useEffect,
-  useImperativeHandle,
-  forwardRef,
-  useState,
-} from "react";
+import React, { memo, useEffect, forwardRef, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
@@ -55,51 +49,37 @@ const Conversation = forwardRef(
     },
     ref,
   ) => {
-    console.log(loadingMessage, "loadingMessage");
     const [pdfFileName, setpPdfFileName] = useState("");
     const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
     const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const [currentContent, setCurrentContent] = useState("No PDF data found");
     const [currDialogIndexOpen, setCurrDialogIndexOpen] = useState(-1);
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
     const { toast } = useToast();
 
     console.log(conversation, "interactionLogs");
 
+    // Detect user scroll to prevent auto-scroll when user is reading older messages
     useEffect(() => {
-      if (
-        bottomRef.current &&
-        conversation[conversation.length - 1]?.role !== "ai"
-      ) {
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-        scrollTimeoutRef.current = setTimeout(() => {
-          bottomRef.current.scrollIntoView({ behavior: "smooth" });
-        }, 50);
-      }
-      return () => {
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
+      const container = chatContainerRef.current;
+      if (!container) return;
+
+      const handleScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        // If user is not at the bottom, set isUserScrolling true
+        if (scrollHeight - scrollTop - clientHeight > 100) {
+          setIsUserScrolling(true);
+        } else {
+          setIsUserScrolling(false);
         }
       };
-    }, [conversation, isNextChatLoading, bottomRef, scrollTimeoutRef]);
 
-    // Expose a method to force scroll to bottom
-    useImperativeHandle(ref, () => ({
-      forceScrollToBottom() {
-        if (bottomRef.current) {
-          if (scrollTimeoutRef.current) {
-            clearTimeout(scrollTimeoutRef.current);
-          }
-          // Scroll immediately and smoothly
-          bottomRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "end",
-          });
-        }
-      },
-    }));
+      container.addEventListener("scroll", handleScroll, { passive: true });
+      return () => {
+        container.removeEventListener("scroll", handleScroll);
+      };
+    }, [chatContainerRef]);
 
     const sanitizeFileName = (name) => {
       return name.replace(/[/\\?%*:|"<>]/g, "-").trim();
@@ -465,183 +445,201 @@ ${block.content}
             "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('./Frame2.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
+          height: "100vh", // Ensure full viewport height
+          minHeight: "100vh",
         }}
-        className={`flex-1 overflow-y-auto font-figtree p-4 pt-8 space-y-2 w-full ${sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"} mx-auto`}
+        className={`h-screen flex flex-col ${
+          sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"
+        } mx-auto`}
       >
-        {conversation.map((item, index) => {
-          if (item.role === "human") {
-            return (
-              <div className="flex flex-col items-end w-full justify-end">
+        <div
+          className={`flex-1 overflow-y-auto font-figtree p-4 pt-8 space-y-2 w-full`}
+          ref={chatContainerRef}
+        >
+          {conversation.map((item, index) => {
+            if (item.role === "human") {
+              return (
+                <div className="flex flex-col items-end w-full justify-end">
+                  <div
+                    ref={
+                      index === conversation.length - 1
+                        ? chatContainerRef
+                        : null
+                    }
+                    className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap"
+                  >
+                    {item.message
+                      ? item.message.replaceAll(
+                          "Provided Document : No document provided",
+                          "",
+                        )
+                      : "{Message Not found}"}
+                  </div>
+                  {item.isRetry && (
+                    <div className="flex gap-1 items-center text-slate-500">
+                      <RotateCcw className="w-4 h-4  " />
+                      <p>Retried</p>
+                    </div>
+                  )}
+                </div>
+              );
+            } else if (item.type === "deepThink") {
+              return (
                 <div
+                  key={`ai-deep-${index}`}
+                  className="text-slate-300 rounded shadow space-y-4"
+                >
+                  {item?.steps && item.steps.length > 0 && (
+                    <ExecutionTimeline
+                      steps={item.steps || []}
+                      isComplete={item.isComplete}
+                      isLoading={item.isLoading}
+                      newStepIndex={
+                        item.steps && item.steps.length > 0
+                          ? item.steps.length - 1
+                          : null
+                      }
+                    />
+                  )}
+
+                  {item.markdownBuffer && (
+                    <div className="final-response p-4 border border-gray-800 rounded-lg bg-gray-900 shadow-lg w-full items-center">
+                      <h2 className="text-xl font-bold mb-4 flex items-center">
+                        Final Response
+                        {item.isStreaming && (
+                          <span className="ml-2 inline-flex">
+                            <span className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5"></span>
+                            <span
+                              className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5"
+                              style={{ animationDelay: "0.2s" }}
+                            ></span>
+                            <span
+                              className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5"
+                              style={{ animationDelay: "0.4s" }}
+                            ></span>
+                          </span>
+                        )}
+                      </h2>
+                      <div className="text-stream flex w-full items-center justify-center">
+                        <div className="prose prose-invert max-w-3xl">
+                          <StreamingResponse content={item.markdownBuffer} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {Array.isArray(item.message) &&
+                    item.message.map((block, blockIdx) => {
+                      const isLastBlock =
+                        blockIdx === item.message.length - 1 &&
+                        (!isNextChatLoading ||
+                          conversation.length !== index + 1);
+                      const currContent = extractContentFromBlocks(
+                        item.message,
+                      );
+
+                      if (block.type === "simulation") {
+                        return (
+                          <ChatSimulation
+                            key={`simulation-${blockIdx}`}
+                            personas={block.items}
+                            isLoading={false}
+                          />
+                        );
+                      } else if (block.type === "text") {
+                        return renderTextBlock(
+                          block,
+                          blockIdx,
+                          isLastBlock,
+                          currContent,
+                          true,
+                        );
+                      } else if (block.type === "mermaid") {
+                        return renderMermaidBlock(block, blockIdx);
+                      } else if (block.type === "document") {
+                        return renderDocumentBlock(block, blockIdx);
+                      } else if (block.type === "visual") {
+                        return renderVisualBlock(block, blockIdx);
+                      }
+                      return null;
+                    })}
+                </div>
+              );
+            } else {
+              // For other AI responses
+              return (
+                <div
+                  key={`ai-${index}`}
+                  className="text-slate-300 rounded shadow space-y-4"
                   ref={
                     index === conversation.length - 1 ? chatContainerRef : null
                   }
-                  className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap"
                 >
-                  {item.message
-                    ? item.message.replaceAll(
-                        "Provided Document : No document provided",
-                        "",
-                      )
-                    : "{Message Not found}"}
+                  {item.workflow && item.workflow.length > 0 && (
+                    <PollStatus
+                      workflow={item.workflow}
+                      updated={item.updated || []}
+                      isActive={isChanged}
+                      isOpen={true}
+                      sessionId={id}
+                      isCompleted={item?.message}
+                    />
+                  )}
+
+                  {Array.isArray(item.message) &&
+                    item.message.map((block, blockIdx) => {
+                      const isLastBlock =
+                        blockIdx === item.message.length - 1 &&
+                        (!isNextChatLoading ||
+                          conversation.length !== index + 1);
+                      const currContent = extractContentFromBlocks(
+                        item.message,
+                      );
+
+                      if (block.type === "text") {
+                        return renderTextBlock(
+                          block,
+                          blockIdx,
+                          isLastBlock,
+                          currContent,
+                        );
+                      } else if (block.type === "mermaid") {
+                        return renderMermaidBlock(block, blockIdx);
+                      } else if (block.type === "simulation") {
+                        return (
+                          <ChatSimulation
+                            key={`simulation-${blockIdx}`}
+                            personas={block.items}
+                            isLoading={
+                              conversation.length === index + 1 &&
+                              isNextChatLoading
+                            }
+                          />
+                        );
+                      } else if (block.type === "document") {
+                        return renderDocumentBlock(block, blockIdx);
+                      } else if (block.type === "visual") {
+                        return renderVisualBlock(block, blockIdx);
+                      }
+                      return null;
+                    })}
                 </div>
-                {item.isRetry && (
-                  <div className="flex gap-1 items-center text-slate-500">
-                    <RotateCcw className="w-4 h-4  " />
-                    <p>Retried</p>
-                  </div>
-                )}
-              </div>
-            );
-          } else if (item.type === "deepThink") {
-            return (
-              <div
-                key={`ai-deep-${index}`}
-                className="text-slate-300 rounded shadow space-y-4"
-              >
-                {item?.steps && item.steps.length > 0 && (
-                  <ExecutionTimeline
-                    steps={item.steps || []}
-                    isComplete={item.isComplete}
-                    isLoading={item.isLoading}
-                    newStepIndex={
-                      item.steps && item.steps.length > 0
-                        ? item.steps.length - 1
-                        : null
-                    }
-                  />
-                )}
+              );
+            }
+          })}
 
-                {item.markdownBuffer && (
-                  <div className="final-response p-4 border border-gray-800 rounded-lg bg-gray-900 shadow-lg w-full items-center">
-                    <h2 className="text-xl font-bold mb-4 flex items-center">
-                      Final Response
-                      {item.isStreaming && (
-                        <span className="ml-2 inline-flex">
-                          <span className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5"></span>
-                          <span
-                            className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5"
-                            style={{ animationDelay: "0.2s" }}
-                          ></span>
-                          <span
-                            className="h-2 w-2 bg-purple-600 rounded-full animate-pulse mx-0.5"
-                            style={{ animationDelay: "0.4s" }}
-                          ></span>
-                        </span>
-                      )}
-                    </h2>
-                    <div className="text-stream flex w-full items-center justify-center">
-                      <div className="prose prose-invert max-w-3xl">
-                        <StreamingResponse content={item.markdownBuffer} />
-                      </div>
-                    </div>
-                  </div>
-                )}
+          {isNextChatLoading && (
+            <div className="flex h-fit items-center space-x-2 text-blue-400">
+              <LoadingAnimation
+                currentQuote={loadingMessage || "Thinking . . ."}
+              />
+            </div>
+          )}
 
-                {Array.isArray(item.message) &&
-                  item.message.map((block, blockIdx) => {
-                    const isLastBlock =
-                      blockIdx === item.message.length - 1 &&
-                      (!isNextChatLoading || conversation.length !== index + 1);
-                    const currContent = extractContentFromBlocks(item.message);
-
-                    if (block.type === "simulation") {
-                      return (
-                        <ChatSimulation
-                          key={`simulation-${blockIdx}`}
-                          personas={block.items}
-                          isLoading={false}
-                        />
-                      );
-                    } else if (block.type === "text") {
-                      return renderTextBlock(
-                        block,
-                        blockIdx,
-                        isLastBlock,
-                        currContent,
-                        true,
-                      );
-                    } else if (block.type === "mermaid") {
-                      return renderMermaidBlock(block, blockIdx);
-                    } else if (block.type === "document") {
-                      return renderDocumentBlock(block, blockIdx);
-                    } else if (block.type === "visual") {
-                      return renderVisualBlock(block, blockIdx);
-                    }
-                    return null;
-                  })}
-              </div>
-            );
-          } else {
-            // For other AI responses
-            return (
-              <div
-                key={`ai-${index}`}
-                className="text-slate-300 rounded shadow space-y-4"
-                ref={
-                  index === conversation.length - 1 ? chatContainerRef : null
-                }
-              >
-                {item.workflow && item.workflow.length > 0 && (
-                  <PollStatus
-                    workflow={item.workflow}
-                    updated={item.updated || []}
-                    isActive={isChanged}
-                    isOpen={true}
-                    sessionId={id}
-                    isCompleted={item?.message}
-                  />
-                )}
-
-                {Array.isArray(item.message) &&
-                  item.message.map((block, blockIdx) => {
-                    const isLastBlock =
-                      blockIdx === item.message.length - 1 &&
-                      (!isNextChatLoading || conversation.length !== index + 1);
-                    const currContent = extractContentFromBlocks(item.message);
-
-                    if (block.type === "text") {
-                      return renderTextBlock(
-                        block,
-                        blockIdx,
-                        isLastBlock,
-                        currContent,
-                      );
-                    } else if (block.type === "mermaid") {
-                      return renderMermaidBlock(block, blockIdx);
-                    } else if (block.type === "simulation") {
-                      return (
-                        <ChatSimulation
-                          key={`simulation-${blockIdx}`}
-                          personas={block.items}
-                          isLoading={
-                            conversation.length === index + 1 &&
-                            isNextChatLoading
-                          }
-                        />
-                      );
-                    } else if (block.type === "document") {
-                      return renderDocumentBlock(block, blockIdx);
-                    } else if (block.type === "visual") {
-                      return renderVisualBlock(block, blockIdx);
-                    }
-                    return null;
-                  })}
-              </div>
-            );
-          }
-        })}
-
-        {isNextChatLoading && (
-          <div className="flex mb-[60%] items-center space-x-2 text-blue-400">
-            <LoadingAnimation
-              currentQuote={loadingMessage || "Thinking . . ."}
-            />
-          </div>
-        )}
-
-        <div ref={scrollTimeoutRef} className="h-1 w-full" />
-        <div ref={bottomRef} className="h-1 w-full" />
+          {/* Fix: Only bottomRef should be used here */}
+          {/* <div ref={scrollTimeoutRef} className="h-1 w-full" /> */}
+          <div ref={bottomRef} className="h-1 w-full" />
+        </div>
       </div>
     );
   },

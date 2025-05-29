@@ -113,7 +113,6 @@ function ChatInput({
   setIsReconnecting,
   isReconnected = false,
   setIsReconnected,
-  onScrollToBottomRequest, // Add new prop
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
@@ -668,7 +667,10 @@ function ChatInput({
             {/* Favorite - Now represents workflow */}
             <TooltipProvider>
               <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild className={`${pathname == "/dashboard" && "hidden"}`}>
+                <TooltipTrigger
+                  asChild
+                  className={`${pathname == "/dashboard" && "hidden"}`}
+                >
                   <div
                     onMouseEnter={() => setHovered(true)}
                     onMouseLeave={() => setHovered(false)}
@@ -876,11 +878,11 @@ function ChatInput({
           <div className="flex gap-1 items-center">
             <TooltipProvider>
               <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild  className={`${pathname == "/dashboard" && "hidden"}`}>
-                  <div
-                    onClick={onScrollToBottomRequest}
-                    className="p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer"
-                  >
+                <TooltipTrigger
+                  asChild
+                  className={`${pathname == "/dashboard" && "hidden"}`}
+                >
+                  <div className="p-2 mr-2 rounded-md hover:bg-gray-800 cursor-pointer">
                     <ChevronDown className="w-5 h-5 text-slate-500 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10" />
                   </div>
                 </TooltipTrigger>
