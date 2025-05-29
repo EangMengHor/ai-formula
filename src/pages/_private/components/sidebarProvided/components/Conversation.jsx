@@ -445,8 +445,6 @@ ${block.content}
             "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('./Frame2.png')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          height: "100vh", // Ensure full viewport height
-          minHeight: "100vh",
         }}
         className={`h-screen flex flex-col ${
           sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"
