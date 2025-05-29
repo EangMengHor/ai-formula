@@ -446,9 +446,7 @@ ${block.content}
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
-        className={`flex flex-col ${
-          sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"
-        } mx-auto`}
+        className={`flex-1 overflow-y-auto font-figtree p-4 pt-8 space-y-2 w-full ${sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"} mx-auto`}
       >
         <div
           className={`flex-1 overflow-y-auto font-figtree p-4 pt-8 space-y-2 w-full`}
