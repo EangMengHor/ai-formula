@@ -446,7 +446,7 @@ ${block.content}
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
-        className={`h-screen flex flex-col ${
+        className={`flex flex-col ${
           sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"
         } mx-auto`}
       >
