@@ -16,6 +16,9 @@ import {
   Copy,
   Check,
   Download,
+  CalendarCheck,
+  Clock,
+  Book,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -437,7 +440,7 @@ ${block.content}
         </Dialog>
       </div>
     );
-
+    console.log(conversation, "conversation123");
     return (
       <div
         style={{
@@ -543,6 +546,7 @@ ${block.content}
                           />
                         );
                       } else if (block.type === "text") {
+                        console.log(block, "block in deep think");
                         return renderTextBlock(
                           block,
                           blockIdx,
@@ -556,12 +560,45 @@ ${block.content}
                         return renderDocumentBlock(block, blockIdx);
                       } else if (block.type === "visual") {
                         return renderVisualBlock(block, blockIdx);
+                      } else if (block.type == "automationDaily") {
+                        return (
+                          <div
+                            key={`automation-${blockIdx}`}
+                            className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap space-y-2"
+                          >
+                            <h2 className="text-lg font-semibold mb-2">
+                              {block.name}
+                            </h2>
+                            <div className="items-center flex gap-2">
+                              <CalendarCheck className="w-4 h-4" />
+                              <p>Task</p>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                              {block.task}
+                            </p>
+                            <div className="items-center flex gap-2">
+                              <Clock className="w-4 h-4" />
+                              <p>Trigger Time</p>
+                            </div>
+                            <p className="text-sm text-slate-400 mt-2">
+                              {block.time}
+                            </p>
+                            <div className="items-center flex gap-2">
+                              <Book className="w-4 h-4" />
+                              <p>Output Format</p>
+                            </div>
+                            <p className="text-sm text-slate-400 mt-2">
+                              {block.outputFormat}
+                            </p>
+                          </div>
+                        );
                       }
                       return null;
                     })}
                 </div>
               );
             } else {
+              console.log(item.type, "item type");
               // For other AI responses
               return (
                 <div
@@ -616,6 +653,38 @@ ${block.content}
                         return renderDocumentBlock(block, blockIdx);
                       } else if (block.type === "visual") {
                         return renderVisualBlock(block, blockIdx);
+                      } else if (block.type == "automationDaily") {
+                        return (
+                          <div
+                            key={`automation-${blockIdx}`}
+                            className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap space-y-2"
+                          >
+                            <h2 className="text-lg font-semibold mb-2">
+                              {block.name}
+                            </h2>
+                            <div className="items-center flex gap-2">
+                              <CalendarCheck className="w-4 h-4" />
+                              <p>Task</p>
+                            </div>
+                            <p className="text-sm text-slate-400">
+                              {block.task}
+                            </p>
+                            <div className="items-center flex gap-2">
+                              <Clock className="w-4 h-4" />
+                              <p>Trigger Time</p>
+                            </div>
+                            <p className="text-sm text-slate-400 mt-2">
+                              {block.time}
+                            </p>
+                            <div className="items-center flex gap-2">
+                              <Book className="w-4 h-4" />
+                              <p>Output Format</p>
+                            </div>
+                            <p className="text-sm text-slate-400 mt-2">
+                              {block.outputFormat}
+                            </p>
+                          </div>
+                        );
                       }
                       return null;
                     })}
@@ -623,7 +692,14 @@ ${block.content}
               );
             }
           })}
-
+          {/* {
+    "type": "automationDaily",
+    "name": "Daily Google Stock Analysis",
+    "task": "Automated daily analysis of Alphabet Inc. (GOOGL) stock, integrating real-time price movement, trading volume, technical indicators (moving averages, RSI, MACD), news sentiment, and comparative performance versus key technology sector peers. The automation synthesizes actionable insights, risk metrics, and concise summary charts for immediate decision support. All frameworks and advanced formulas for market analysis, sentiment quantification, and volatility assessment are directly applied to the latest available data each day.",
+    "time": "16:00 UTC daily (you will have next report after 1 hour)",
+    "outputFormat": "1. Executive Summary of Google Stock Performance\n2. Price Movement and Volume Analysis\n3. Technical Indicators Breakdown (Moving Averages, RSI, MACD)\n4. Real-Time News Sentiment Impact\n5. Comparative Analysis with Tech Sector Peers\n6. Actionable Insights and Risk Metrics\n7. Visual Charts and Data Tables\n8. Strategic Recommendations",
+    "isComplete": true
+} */}
           {isNextChatLoading && (
             <div className="flex h-fit items-center space-x-2 text-blue-400">
               <LoadingAnimation

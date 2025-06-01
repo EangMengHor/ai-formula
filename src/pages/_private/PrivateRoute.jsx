@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 
 export default function PrivateRoute() {
   const { hasPersonalProfile, loading } = useGetUserProfileStatus();
-  const { user, setUser } = useUser();
+  const { user, setUser, isUserBanned, logout } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const location = useLocation();
@@ -67,6 +67,40 @@ export default function PrivateRoute() {
       setDialogOpen(false);
     }
   }, [hasPersonalProfile, loading, isMounted]);
+
+  if (isUserBanned) {
+    return (
+      <div className="flex items-center justify-center h-screen w-screen bg-slate-900 ">
+        {/* card */}
+
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-4 text-blue-500">
+            You Are Banned
+          </h2>
+          <p className="text-gray-300 mb-4">
+            Due To Constant Violation Of Our Terms And Conditions, And
+            Exploitation Of The Platform , You Have Been Banned From Using The
+            Platform.
+          </p>
+
+          <p className="text-gray-400 mb-6">
+            Please Contant ARX Team For Further Assistance. After Settlement
+            Please Login Again
+          </p>
+          <Button
+            onClick={() => {
+              //   clearAllStates();
+              logout();
+              navigate("/login");
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Logout
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

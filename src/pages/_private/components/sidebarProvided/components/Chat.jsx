@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, memo } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { FileDown, LoaderCircle, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -50,10 +50,15 @@ import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
 import { useWorkflow } from "@/context/WorkflowContext";
+import { refreshApi } from "@/services/n8n-apis/_auth/refresh.api";
+import { set } from "lodash";
 
 const fileType = ["pdf"];
 
 function Chat() {
+  // exploitation
+  const [isSessionExploited, setIsSessionExploited] = useState(false);
+
   // --- Refs ---
   const conversationCompRef = useRef(null);
   const bottomRef = useRef(null);
@@ -99,9 +104,12 @@ function Chat() {
     currActiveIntraction,
     setCurrActiveIntraction,
     isDeepThinkMode,
+    isUserBanned,
+    setIsUserBanned,
+    refreshAccessToken,
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
-
+  const navigate = useNavigate();
   // --- State ---
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [fallBackPrompt, setFallBackPrompt] = useState("");
@@ -131,6 +139,11 @@ function Chat() {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
   const [currLoadingStatus, setCurrLoadingStatus] = useState("Thinking");
+
+  useEffect(() => {
+    setIsNextChatLoading(false);
+    isSessionExploited && setIsSessionExploited(false);
+  }, [id]);
 
   // --- Memoized/Callback Functions ---
   const memoizedRenderMermaidChart = useCallback((content) => {
@@ -552,7 +565,7 @@ function Chat() {
     };
   }, [conversation]);
 
-  const scrollToBottom = useCallback(() => {    }, []);
+  const scrollToBottom = useCallback(() => {}, []);
 
   // --- Helper Functions ---
   const newAiMessage = (kind = "quick") => ({
@@ -641,6 +654,23 @@ function Chat() {
       setIsShowAgenticBlock(false);
       setCurrLoadingStatus("");
       return;
+    }
+
+    if (event.type === "error") {
+      console.error("Error event received:", event);
+      setIsError(true);
+      setErrorMessage(event.message || "An error occurred during the chat.");
+      setIsNextChatLoading(false);
+      setIsChatLoading(false);
+    }
+
+    if (event.type == "exploitationFlag") {
+      console.log(event, "Exploitation Flag");
+      if (event.userBan) {
+        setIsUserBanned(true);
+      } else if (event.sessionBan) {
+        setIsSessionExploited(true);
+      }
     }
     /* ─────────────────────────────────────────────────────── */
     /* 4. Deep‑think sub‑events (only if last message is deep) */
@@ -862,6 +892,30 @@ function Chat() {
         }
       }
 
+      const automationPattern = /<automationCard>([\s\S]*?)<\/automationCard>/g;
+      while ((match = automationPattern.exec(maskedContent)) !== null) {
+        const inner = match[1];
+        const name =
+          (/<name>([\s\S]*?)<\/name>/i.exec(inner) || [])[1]?.trim() || "";
+        const task =
+          (/<task>([\s\S]*?)<\/task>/i.exec(inner) || [])[1]?.trim() || "";
+        const time =
+          (/<time>([\s\S]*?)<\/time>/i.exec(inner) || [])[1]?.trim() || "";
+        const outputFormat =
+          (/<outputFormat>([\s\S]*?)<\/outputFormat>/i.exec(inner) ||
+            [])[1]?.trim() || "";
+        otherBlocks.push({
+          type: "automationDaily",
+          name,
+          task,
+          time,
+          outputFormat,
+          isComplete: true,
+          start: match.index,
+          end: match.index + match[0].length,
+        });
+      }
+
       // Combine all blocks and sort by position
       const allBlocks = [...documentBlocks, ...otherBlocks].sort(
         (a, b) => a.start - b.start,
@@ -960,6 +1014,52 @@ function Chat() {
       ];
     }
   };
+
+  async function SSEChatCall(payload) {
+    try {
+      let response = await fetch(
+        `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        },
+      );
+
+      console.log("SSEChatCall response:", response);
+
+      // If unauthorized or forbidden, try refreshing token and retrying once
+      if (response.status === 401 || response.status === 403) {
+        console.warn("❗ Unauthorized or forbidden, refreshing token");
+        await refreshAccessToken();
+        await new Promise((r) => setTimeout(r, 500)); // 100ms delay
+
+        // Retry the request once after token refresh
+        response = await fetch(
+          `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(payload),
+          },
+        );
+      }
+
+      if (!response.ok || response.status >= 400) {
+        const errorText = await response.json();
+        console.log("SSEChatCall error:", errorText.errors);
+        throw new Error(`${errorText.errors}`);
+      }
+
+      return response;
+    } catch (error) {
+      console.error("Error in SSEChatCall:", error);
+      throw new Error(error.message || "Unknown SSEChatCall error");
+    }
+  }
+
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
       if (!prompt.trim()) return;
@@ -1030,17 +1130,8 @@ function Chat() {
       };
 
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
-        );
-
-        if (!response.ok)
-          throw new Error("Failed to connect to streaming endpoint");
+        let response;
+        response = await SSEChatCall(payload);
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
@@ -1093,6 +1184,17 @@ function Chat() {
 
         await processStream();
       } catch (error) {
+        if (String(error).includes("User is blocked")) {
+          setIsUserBanned(true);
+          toast({
+            title: "User Blocked",
+            description:
+              "You have been blocked from using this feature or platform",
+            variant: "destructive",
+          });
+          return;
+        }
+
         console.error("❌ SSE error:", error);
         toast({
           title: "Streaming error",
@@ -1288,6 +1390,31 @@ function Chat() {
     );
   }
 
+  if (isSessionExploited) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        {/* card */}
+
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-4 text-blue-500">
+            Chat Thread Exploited
+          </h2>
+          <p className="text-gray-300 mb-4">
+            You have exhausted the Limit of Exploitation Of This Chat Thread.
+            Please create a new session to continue your work.
+          </p>
+          <Button
+            onClick={() => {
+              navigate("/dashboard");
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Create New Chat
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col h-full w-full relative">
       {/* ...existing code... */}

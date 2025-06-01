@@ -330,17 +330,19 @@ export default function Login() {
     setIsLoading(true);
     try {
       const response = await login(email, password);
-
+      console.log(response, "response");
       if (response.success) {
         // Reset failed attempts on successful login
         setFailedAttempts(0);
-
-        localStorage.setItem("id", response.data.id);
-        localStorage.setItem("email", response.data.email);
+        const id = response.data.data.user.id;
+        const email = response.data.data.user.email;
+        console.log(response.data.data);
+        localStorage.setItem("id", id);
+        localStorage.setItem("email", email);
 
         setUser({
-          id: response.data.id,
-          email: response.data.email,
+          id: id,
+          email: email,
           isAuthenticated: true,
         });
 
@@ -457,33 +459,7 @@ export default function Login() {
                     placeholder="••••••••"
                   />
                 </motion.div>
-                <motion.div
-                  variants={itemVariants}
-                  className="flex items-center justify-between mb-6"
-                >
-                  <div className="flex items-center">
-                    <input
-                      id="remember-me"
-                      name="remember-me"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-slate-100 focus:ring-slate-600"
-                    />
-                    <label
-                      htmlFor="remember-me"
-                      className="ml-2 block text-sm text-slate-400"
-                    >
-                      Remember me
-                    </label>
-                  </div>
-                  <div className="text-sm">
-                    <a
-                      href="#"
-                      className="font-medium text-blue-400 hover:text-blue-300"
-                    >
-                      Forgot password?
-                    </a>
-                  </div>
-                </motion.div>
+               
               </>
             )}
 

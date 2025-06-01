@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Book, CalendarCheck, Clock, Loader2 } from "lucide-react";
 import PropTypes from "prop-types";
 import { Mermaid } from "@/components/custom/Mermaid";
 import remarkMath from "remark-math";
@@ -15,6 +15,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
+import { motion } from "framer-motion";
 
 export function StreamingResponse({ content }) {
   const [blocks, setBlocks] = useState([]);
@@ -58,6 +59,8 @@ export function StreamingResponse({ content }) {
     let currentName = "";
     let isCollecting = false;
     let isCollectingName = false;
+    let isCollectingTag = ""; // "name" | "task" | "time" | "outputFormat"
+    const dataBuffer = { name: "", task: "", time: "", outputFormat: "" };
     let blockStartIndex = 0;
     let blockId = "";
 
@@ -65,6 +68,63 @@ export function StreamingResponse({ content }) {
     let i = 0;
     while (i < text.length) {
       const remainingText = text.substring(i);
+
+      // --- automationCard start ---
+      if (remainingText.startsWith("<automationCard>")) {
+        currentType = "automationDaily";
+        isCollecting = true;
+        isCollectingTag = ""; // waiting for first tag
+        blockStartIndex = i;
+        blockId = `automation-${blockStartIndex}`;
+        i += "<automationCard>".length;
+        continue;
+      }
+      // name/task/time/outputFormat tags inside automationCard
+      if (
+        isCollecting &&
+        !isCollectingTag &&
+        remainingText.match(/^<(name|task|time|outputFormat)>/)
+      ) {
+        const tag = remainingText.match(/^<(name|task|time|outputFormat)>/)[1];
+        isCollectingTag = tag;
+        dataBuffer[tag] = "";
+        i += tag.length + 2;
+        continue;
+      }
+      if (
+        isCollecting &&
+        isCollectingTag &&
+        remainingText.startsWith(`</${isCollectingTag}>`)
+      ) {
+        isCollectingTag = "";
+        i += isCollectingTag.length + 3;
+        continue;
+      }
+      // automationCard end
+      if (remainingText.startsWith("</automationCard>")) {
+        // push one block
+        blocksMap.set(blockId, {
+          id: blockId,
+          type: "automationDaily",
+          name: dataBuffer.name.trim(),
+          task: dataBuffer.task.trim(),
+          time: dataBuffer.time.trim(),
+          outputFormat: dataBuffer.outputFormat.trim(),
+          isComplete: true,
+        });
+        // reset
+        currentType = "text";
+        isCollecting = false;
+        blockId = "";
+        i += "</automationCard>".length;
+        continue;
+      }
+      // collect inside tag
+      if (isCollecting && isCollectingTag) {
+        dataBuffer[isCollectingTag] += text[i];
+        i++;
+        continue;
+      }
 
       // Check for visual block start
       if (remainingText.startsWith("<visual>")) {
@@ -172,6 +232,37 @@ export function StreamingResponse({ content }) {
         continue;
       }
 
+      // --- new: automationCard full‐block parse ---
+      if (remainingText.startsWith("<automationCard>")) {
+        // find closing tag
+        const closeIdx = text.indexOf("</automationCard>", i);
+        if (closeIdx !== -1) {
+          const raw = text.substring(i, closeIdx + 17); // 17 = length of "</automationCard>"
+          const inner = raw.slice(16, raw.length - 17); // strip tags
+          const name =
+            (/<name>([\s\S]*?)<\/name>/i.exec(inner) || [])[1]?.trim() || "";
+          const task =
+            (/<task>([\s\S]*?)<\/task>/i.exec(inner) || [])[1]?.trim() || "";
+          const time =
+            (/<time>([\s\S]*?)<\/time>/i.exec(inner) || [])[1]?.trim() || "";
+          const outputFormat =
+            (/<outputFormat>([\s\S]*?)<\/outputFormat>/i.exec(inner) ||
+              [])[1]?.trim() || "";
+          blocksMap.set(`automation-${i}`, {
+            id: `automation-${i}`,
+            type: "automationDaily",
+            name,
+            task,
+            time,
+            outputFormat,
+            isComplete: true,
+          });
+          i = closeIdx + 17;
+          continue;
+        }
+      }
+      // --- end new logic ---
+
       // Collect characters
       if (isCollectingName) {
         currentName += text[i];
@@ -236,6 +327,7 @@ export function StreamingResponse({ content }) {
 
   return (
     <div className="space-y-4">
+      {console.log("Rendering blocks:", blocks)}
       {blocks.map((block) => (
         <div key={block.id}>
           {block.type === "text" && (
@@ -301,6 +393,37 @@ export function StreamingResponse({ content }) {
                 </>
               )}
             </div>
+          )}
+          {block.type === "automationDaily" && (
+            <motion.div
+              key={`automation-${blockIdx}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap space-y-2"
+            >
+              <h2 className="text-lg font-semibold mb-2">{block.name}</h2>
+
+              <div className="items-center flex gap-2">
+                <CalendarCheck className="w-4 h-4" />
+                <p>Task</p>
+              </div>
+              <p className="text-sm text-slate-400">{block.task}</p>
+
+              <div className="items-center flex gap-2">
+                <Clock className="w-4 h-4" />
+                <p>Trigger Time</p>
+              </div>
+              <p className="text-sm text-slate-400 mt-2">{block.time}</p>
+
+              <div className="items-center flex gap-2">
+                <Book className="w-4 h-4" />
+                <p>Output Format</p>
+              </div>
+              <p className="text-sm text-slate-400 mt-2">
+                {block.outputFormat}
+              </p>
+            </motion.div>
           )}
         </div>
       ))}

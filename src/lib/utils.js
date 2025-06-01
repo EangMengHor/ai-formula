@@ -105,8 +105,9 @@ export function parseContent(input) {
   }
 
   const sections = [];
+  // Updated regex to include automationCard blocks
   const combinedRegex =
-    /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<document>([\s\S]*?)<\/document>)|(<visual>([\s\S]*?)<\/visual>)/g;
+    /(```mermaid([\s\S]*?)```)|(<\|agent\|([\s\S]*?)<\|end\|>)|(<document>([\s\S]*?)<\/document>)|(<visual>([\s\S]*?)<\/visual>)|(<automationCard>([\s\S]*?)<\/automationCard>)/g;
   let lastIndex = 0;
   let match;
 
@@ -121,7 +122,24 @@ export function parseContent(input) {
     }
 
     // Check which type of block it is
-    if (match[0].startsWith("```mermaid")) {
+    if (match[0].startsWith("<automationCard>")) {
+      const automationContent = match[9];
+      // Extract fields using regex
+      const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(automationContent);
+      const taskMatch = /<task>([\s\S]*?)<\/task>/i.exec(automationContent);
+      const timeMatch = /<time>([\s\S]*?)<\/time>/i.exec(automationContent);
+      const outputFormatMatch =
+        /<outputFormat>([\s\S]*?)<\/outputFormat>/i.exec(automationContent);
+
+      sections.push({
+        type: "automationDaily",
+        name: nameMatch ? nameMatch[1].trim() : "",
+        task: taskMatch ? taskMatch[1].trim() : "",
+        time: timeMatch ? timeMatch[1].trim() : "",
+        outputFormat: outputFormatMatch ? outputFormatMatch[1].trim() : "",
+        isComplete: true,
+      });
+    } else if (match[0].startsWith("```mermaid")) {
       sections.push({
         type: "mermaid",
         content: match[2].trim(),
@@ -189,7 +207,9 @@ export function parseContent(input) {
   }
 
   // Remove sections with empty content
-  const validSections = sections.filter((item) => item.content?.trim() !== "");
+  const validSections = sections.filter(
+    (item) => item.content?.trim() !== "" || item.type === "automationDaily",
+  );
 
   // Build the final array:
   // - All persona sections are merged into a single simulation object.
@@ -524,10 +544,85 @@ export function parseStreamingContent(chunk, previousState = {}) {
   // Initialize or use existing buffers from previous state
   const buffer = previousState.buffer || "";
   const completeBuffer = buffer + chunk;
+
+  // Direct string detection for automation card pattern in the exact format seen
+  if (
+    completeBuffer.includes("<automationCard>") &&
+    completeBuffer.includes("</automationCard>")
+  ) {
+    // Extract the full card text - find start and end positions
+    const startPos = completeBuffer.indexOf("<automationCard>");
+    const endPos = completeBuffer.indexOf("</automationCard>") + 17; // 17 is length of closing tag
+
+    if (startPos !== -1 && endPos !== -1 && endPos > startPos) {
+      const sections = [];
+
+      // Add any text before the card
+      if (startPos > 0) {
+        const textBefore = completeBuffer.substring(0, startPos).trim();
+        if (textBefore) {
+          sections.push({
+            type: "text",
+            content: textBefore,
+            isComplete: true,
+          });
+        }
+      }
+
+      // Extract the card content
+      const cardText = completeBuffer.substring(startPos + 15, endPos - 17);
+
+      // Extract all required fields using simple string searches
+      const nameMatch = cardText.match(/<name>([\s\S]*?)<\/name>/i);
+      const taskMatch = cardText.match(/<task>([\s\S]*?)<\/task>/i);
+      const timeMatch = cardText.match(/<time>([\s\S]*?)<\/time>/i);
+      const outputFormatMatch = cardText.match(
+        /<outputFormat>([\s\S]*?)<\/outputFormat>/i,
+      );
+
+      sections.push({
+        type: "automationDaily",
+        name: nameMatch ? nameMatch[1].trim() : "",
+        task: taskMatch ? taskMatch[1].trim() : "",
+        time: timeMatch ? timeMatch[1].trim() : "",
+        outputFormat: outputFormatMatch ? outputFormatMatch[1].trim() : "",
+        isComplete: true,
+      });
+
+      // Add any text after the card
+      if (endPos < completeBuffer.length) {
+        const textAfter = completeBuffer.substring(endPos).trim();
+        if (textAfter) {
+          sections.push({
+            type: "text",
+            content: textAfter,
+            isComplete: true,
+          });
+        }
+      }
+
+      // Return the parsed sections
+      return {
+        sections,
+        buffer: "", // Clear buffer since we've processed this card
+        openDocTags: 0,
+        closeDocTags: 0,
+        insideDocument: false,
+      };
+    }
+  }
+
+  // Continue with existing processing...
   const openDocTags =
     (previousState.openDocTags || 0) + countTags(chunk, "<document>");
   const closeDocTags =
     (previousState.closeDocTags || 0) + countTags(chunk, "</document>");
+
+  // Count automation card tags to detect them as early as possible
+  const openAutomationTags = countTags(completeBuffer, "<automationCard>");
+  const closeAutomationTags = countTags(completeBuffer, "</automationCard>");
+  const hasPartialAutomation =
+    openAutomationTags > 0 && openAutomationTags === closeAutomationTags;
 
   // Check if we're inside a document block (more open tags than close tags)
   const insideDocument = openDocTags > closeDocTags;
@@ -541,6 +636,61 @@ export function parseStreamingContent(chunk, previousState = {}) {
       closeDocTags,
       insideDocument,
     };
+  }
+
+  // Check if we have automation cards in a complete form - prioritize parsing them
+  if (hasPartialAutomation) {
+    const automationCardRegex = /<automationCard>([\s\S]*?)<\/automationCard>/g;
+    let match;
+    const sections = [];
+    let lastIndex = 0;
+
+    // Extract any complete automation cards
+    while ((match = automationCardRegex.exec(completeBuffer)) !== null) {
+      // Add text before if any
+      if (match.index > lastIndex) {
+        const textContent = completeBuffer
+          .substring(lastIndex, match.index)
+          .trim();
+        if (textContent) {
+          sections.push({
+            type: "text",
+            content: textContent,
+            isComplete: true,
+          });
+        }
+      }
+
+      const automationContent = match[1];
+      const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(automationContent);
+      const taskMatch = /<task>([\s\S]*?)<\/task>/i.exec(automationContent);
+      const timeMatch = /<time>([\s\S]*?)<\/time>/i.exec(automationContent);
+      const outputFormatMatch =
+        /<outputFormat>([\s\S]*?)<\/outputFormat>/i.exec(automationContent);
+
+      sections.push({
+        type: "automationDaily",
+        name: nameMatch ? nameMatch[1].trim() : "",
+        task: taskMatch ? taskMatch[1].trim() : "",
+        time: timeMatch ? timeMatch[1].trim() : "",
+        outputFormat: outputFormatMatch ? outputFormatMatch[1].trim() : "",
+        isComplete: true,
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Return any sections we've found, with remaining buffer
+    if (sections.length > 0) {
+      const remainingBuffer = completeBuffer.substring(lastIndex);
+      return {
+        sections,
+        buffer: remainingBuffer,
+        openDocTags,
+        closeDocTags,
+        insideDocument: false,
+      };
+    }
   }
 
   // If we have a balanced number of tags or a complete chunk, try to parse it
@@ -558,19 +708,20 @@ export function parseStreamingContent(chunk, previousState = {}) {
     };
   }
 
-  // If no document tags, check for complete visual blocks
+  // If no document tags, check for complete visual, mermaid, agent, and automationCard blocks
   if (openDocTags === 0 && closeDocTags === 0) {
-    // No document blocks, so parse for standalone visual, mermaid, and other blocks
+    // Updated regex to include automationCard blocks
     const visualRegex = /<visual>([\s\S]*?)<\/visual>/g;
     const mermaidRegex = /```mermaid([\s\S]*?)```/g;
     const agentRegex = /<\|agent\|([\s\S]*?)<\|end\|>/g;
+    const automationCardRegex = /<automationCard>([\s\S]*?)<\/automationCard>/g;
 
     let lastIndex = 0;
     const sections = [];
     let match;
 
-    // Check for complete visual blocks
-    while ((match = visualRegex.exec(completeBuffer)) !== null) {
+    // Check for complete automationCard blocks
+    while ((match = automationCardRegex.exec(completeBuffer)) !== null) {
       // Add text before if any
       if (match.index > lastIndex) {
         const textContent = completeBuffer
@@ -585,7 +736,40 @@ export function parseStreamingContent(chunk, previousState = {}) {
         }
       }
 
-      // Process the visual block
+      const automationContent = match[1];
+      const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(automationContent);
+      const taskMatch = /<task>([\s\S]*?)<\/task>/i.exec(automationContent);
+      const timeMatch = /<time>([\s\S]*?)<\/time>/i.exec(automationContent);
+      const outputFormatMatch =
+        /<outputFormat>([\s\S]*?)<\/outputFormat>/i.exec(automationContent);
+
+      sections.push({
+        type: "automationDaily",
+        name: nameMatch ? nameMatch[1].trim() : "",
+        task: taskMatch ? taskMatch[1].trim() : "",
+        time: timeMatch ? timeMatch[1].trim() : "",
+        outputFormat: outputFormatMatch ? outputFormatMatch[1].trim() : "",
+        isComplete: true,
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Check for complete visual blocks
+    while ((match = visualRegex.exec(completeBuffer)) !== null) {
+      if (match.index > lastIndex) {
+        const textContent = completeBuffer
+          .substring(lastIndex, match.index)
+          .trim();
+        if (textContent) {
+          sections.push({
+            type: "text",
+            content: textContent,
+            isComplete: true,
+          });
+        }
+      }
+
       const visualContent = match[1];
       const nameMatch = /<name>([\s\S]*?)<\/name>/.exec(visualContent);
 
@@ -608,7 +792,6 @@ export function parseStreamingContent(chunk, previousState = {}) {
 
     // Check for complete mermaid blocks
     while ((match = mermaidRegex.exec(completeBuffer)) !== null) {
-      // Add text before if any
       if (match.index > lastIndex) {
         const textContent = completeBuffer
           .substring(lastIndex, match.index)
@@ -633,7 +816,6 @@ export function parseStreamingContent(chunk, previousState = {}) {
 
     // Check for complete agent blocks
     while ((match = agentRegex.exec(completeBuffer)) !== null) {
-      // Add text before if any
       if (match.index > lastIndex) {
         const textContent = completeBuffer
           .substring(lastIndex, match.index)

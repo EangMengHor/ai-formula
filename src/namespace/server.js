@@ -5,7 +5,9 @@ const migrate = "https://backend.jamesscott.tech/webhook-test";
 console.log(url);
 
 // chat interface
-export const login = `${url}/login`;
+export const login = `${backendUrl}/api/auth/login`;
+export const logoutUrl = `${backendUrl}/api/auth/logout`;
+export const refreshAccessTokenUrl = `${backendUrl}/api/auth/refresh`;
 export const signup = `${url}/create-new-user`;
 export const getChatSessionHistory = `${url}/get-chat-sessions-history`;
 export const getChatSession = `${url}/create-new-chat`;
@@ -72,3 +74,4 @@ export const getUserSavedWorkflowUrl = `${backendUrl}/api/userSavedWorkflow/getU
 export const generatePresignedUrl = `${backendUrl}/api/personalKnowledge/generatePresignedUrl`;
 export const uploadPersonalKnowledgeUrl = `${backendUrl}/api/personalKnowledge/upload`;
 export const getUserPersonalKnowledgeFilesUrl = `${backendUrl}/api/personalKnowledge/files`;
+

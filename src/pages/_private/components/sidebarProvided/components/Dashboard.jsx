@@ -14,14 +14,23 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AnimatedBadge from "../../../../../components/custom/AnimatedBadge";
+import { refreshAccessTokenUrl } from "@/namespace/server";
 
 function Dashboard() {
   const [value, setValue] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, refreshAccessToken } = useUser();
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { appendToChatHistory } = _useSidebar();
+
+  useEffect(() => {
+    async function refreshSession() {
+      await refreshAccessToken();
+    }
+    refreshSession();
+  }, []);
+
   async function handleSubmit() {
     setIsChatLoading(true);
     try {
