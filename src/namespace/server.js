@@ -75,3 +75,4 @@ export const generatePresignedUrl = `${backendUrl}/api/personalKnowledge/generat
 export const uploadPersonalKnowledgeUrl = `${backendUrl}/api/personalKnowledge/upload`;
 export const getUserPersonalKnowledgeFilesUrl = `${backendUrl}/api/personalKnowledge/files`;
 
+export const getJobDataByIdUrl = `${import.meta.env.VITE_SOCKET_URL}/api/automation/getJobById`;

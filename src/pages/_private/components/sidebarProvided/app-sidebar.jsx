@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  CalendarHeart,
   Compass,
   Ellipsis,
   GalleryVerticalEnd,
@@ -234,6 +235,24 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">Workshop</p>
               </div>
             </div>
+
+            <div
+              hidden={isPublicDomain}
+              onClick={() => {
+                navigate("/workshop");
+              }}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <Layers className="w-5 rounded-md  " />
+                </div>
+                <p className="font-bold">Workshop</p>
+              </div>
+            </div>
+
             <div
               onClick={() => {
                 navigate("/addToPersonalKnowledgeBase");
@@ -264,6 +283,21 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">
                   {isClickedWorkflows ? "Your Conversations" : "Your Workflows"}
                 </p>
+              </div>
+            </div>
+            <div
+              onClick={() => {
+                navigate("/your-automations");
+              }}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <CalendarHeart className="w-5 rounded-md  " />
+                </div>
+                <p className="font-bold">Your Automations</p>
               </div>
             </div>
           </SidebarMenuItem>

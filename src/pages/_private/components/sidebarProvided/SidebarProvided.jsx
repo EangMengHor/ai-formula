@@ -25,6 +25,8 @@ import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { variants } from "../../../../lib/config";
 import Workshop from "./components/Workshop";
+import AutomationPage from "@/pages/_automations/AutomationPage";
+import AutomationJobDetails from "@/pages/_automations/AutomationJobsDetails";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -56,6 +58,10 @@ export default function Page() {
             {pathname === "/dashboard" && <Dashboard />}
             {pathname.startsWith("/chat/") && <Chat />}
             {pathname.startsWith("/workshop") && <Workshop />}
+            {pathname.startsWith("/your-automations") && <AutomationPage />}
+            {pathname.startsWith("/automationJobs/") && (
+              <AutomationJobDetails />
+            )}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}

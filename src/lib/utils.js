@@ -334,6 +334,19 @@ export const getFavicon = (urls) => {
     }
   });
 };
+export function convertUrlsToMarkdown(citations) {
+  if (!Array.isArray(citations)) return "";
+
+  return citations
+    .map((item, index) => {
+      const title = item.title?.trim() || `Source ${index + 1}`;
+      const url = item.url?.trim();
+      if (!url) return "";
+      return `- [${title}](${url})`;
+    })
+    .filter(Boolean)
+    .join("\n");
+}
 
 export class LayoutEngine {
   constructor(config) {

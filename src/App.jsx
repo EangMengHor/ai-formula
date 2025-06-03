@@ -43,6 +43,8 @@ import UserManualLayout from "./pages/_userManual/UserManualLayout";
 import DetailPage from "./pages/_userManual/components/DetailPage";
 import PersonalProfileForm from "./components/custom/arxPersonalProfile/arxPersonalProfile";
 import AddToPersonalKnowledgeBase from "./pages/_addToPersonalKnowledge/AddToPersonalKnowledge";
+import AutomationPage from "./pages/_automations/AutomationPage";
+import AutomationJobDetails from "./pages/_automations/AutomationJobsDetails";
 
 export default function App() {
   const location = useLocation();
@@ -76,6 +78,11 @@ export default function App() {
             <Route index path="/dashboard" element={<Dashboard />} />
             {/* <Route path="/chat/:id" element={<Chat />} /> */}
             <Route path="/chat/:id" element={<Chat />} />
+            <Route path="/your-automations" element={<AutomationPage />} />
+            <Route
+              path="/automationJobs/:id"
+              element={<AutomationJobDetails />}
+            />
           </Route>
           <Route
             path="/createPersonalProfileForm"
