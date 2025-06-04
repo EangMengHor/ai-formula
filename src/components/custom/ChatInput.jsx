@@ -95,6 +95,8 @@ import { useWorkflow } from "../../context/WorkflowContext";
 import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUserSavedWorflow";
 // Add this import for debounce function
 import { debounce } from "lodash";
+import SelectedCollectionsDisplay from "./SelectedCollectionsDisplay";
+import InternalKnowledgeDialog from "./InternalKnowledgeDialog";
 const maxRows = 30;
 
 function ChatInput({
@@ -638,6 +640,8 @@ function ChatInput({
             </Button>
           </div>
         )}
+        <SelectedCollectionsDisplay />
+
         <Textarea
           value={input}
           onChange={handleChange}
@@ -830,7 +834,7 @@ function ChatInput({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-
+            <InternalKnowledgeDialog />
             <div
               className={` ${isSwarmMode && !isPublicDomain ? "flex" : "hidden"} gap-2 rounded-md`}
             >

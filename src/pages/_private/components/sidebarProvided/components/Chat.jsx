@@ -52,6 +52,7 @@ import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
 import { useWorkflow } from "@/context/WorkflowContext";
 import { refreshApi } from "@/services/n8n-apis/_auth/refresh.api";
 import { set } from "lodash";
+import { useCollection } from "../../../../../context/CollectionContext";
 
 const fileType = ["pdf"];
 
@@ -110,6 +111,7 @@ function Chat() {
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
+  const { selectedCollectionIds } = useCollection();
   // --- State ---
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [fallBackPrompt, setFallBackPrompt] = useState("");
@@ -601,7 +603,7 @@ function Chat() {
       return;
     }
     /* ─────────────────────────────────────────────────────── */
-    /* 1. “swarmId” → update or create the simulation message  */
+    /* 1. "swarmId" → update or create the simulation message  */
     /* ─────────────────────────────────────────────────────── */
     if (event.type === "swarmId") {
       const { output } = await getPersonaById(event.swarmId);
@@ -619,7 +621,7 @@ function Chat() {
       return;
     }
     /* ─────────────────────────────────────────────────────── */
-    /* 2. “finalResponse” chunks                               */
+    /* 2. "finalResponse" chunks                               */
     /* ─────────────────────────────────────────────────────── */
     if (event.type === "finalResponse" && event.content) {
       setConversation((prev) => {
@@ -636,7 +638,7 @@ function Chat() {
       return;
     }
     /* ─────────────────────────────────────────────────────── */
-    /* 3. “finish” → close the streaming message               */
+    /* 3. "finish" → close the streaming message               */
     /* ─────────────────────────────────────────────────────── */
     if (event.type === "finish") {
       setConversation((prev) => {
@@ -1090,6 +1092,7 @@ function Chat() {
         swarmIds: selectedSuperiorPersona?.map((p) => p.id) || [],
         isAutoSwarm: isAutoSwarmContextState,
         workflowId: selectedWorkflowId,
+        collectionIds: selectedCollectionIds,
       };
 
       // Reset state
@@ -1218,6 +1221,7 @@ function Chat() {
       isAutoSwarmContextState,
       selectedWorkflowId,
       isError,
+      selectedCollectionIds,
     ],
   );
 
