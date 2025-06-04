@@ -183,22 +183,39 @@ function ChatInput({
 
   // Memoize the heavy function to prevent recreation on each render
   const handleCreateNewWorkflow = useCallback(async () => {
+    // Debug: Log all relevant variables before try
+    console.log("handleCreateNewWorkflow called");
+    console.log("user:", user);
+    console.log("user.id:", user && user.id);
+    console.log("conversationProp:", conversationProp);
+    console.log(
+      "conversationProp.current:",
+      conversationProp && conversationProp.current,
+    );
+    console.log("workflowPrompt:", workflowPrompt);
+
     try {
-      const conversation = conversationProp.current;
-      if (
-        !user ||
-        !user.id ||
-        !conversationProp.current ||
-        conversationProp.current.length === 0
-      ) {
+      // Use default values if missing
+      const conversation =
+        conversationProp && Array.isArray(conversationProp.current)
+          ? conversationProp.current
+          : [];
+      const safeUser = user || {};
+      const safeUserId = safeUser.id || "unknown-user";
+      const safeWorkflowPrompt =
+        typeof workflowPrompt === "string" ? workflowPrompt : "";
+
+      if (!safeUserId || conversation.length === 0) {
         console.log(
-          !user || !user.id || !conversation || conversation.length === 0,
-          "User or conversation is not available",
+          "!safeUserId:",
+          !safeUserId,
+          "conversation.length === 0:",
+          conversation.length === 0,
         );
         toast({
           title: "Error",
           description:
-            "Please ensure you have a conversation,  and personas selected before creating a new workflow.",
+            "Please ensure you have a conversation, and personas selected before creating a new workflow.",
           variant: "destructive",
         });
         return;
@@ -208,39 +225,39 @@ function ChatInput({
       let nextId = 1;
       const agents = conversation
         .reduce((acc, msg) => {
-          if (msg.role !== "ai") return acc;
-
-          const simulationBlocks = msg.message.filter(
-            (b) => b.type === "simulation",
-          );
+          if (!msg || msg.role !== "ai" || !msg.message) return acc;
+          const simulationBlocks = Array.isArray(msg.message)
+            ? msg.message.filter((b) => b && b.type === "simulation")
+            : [];
           simulationBlocks.forEach((block) => {
-            block.items.forEach((item) => {
-              acc.push({
-                id: nextId++,
-                name: item.title,
-                description: item.goal ?? "",
+            if (block && Array.isArray(block.items)) {
+              block.items.forEach((item) => {
+                acc.push({
+                  id: nextId++,
+                  name: item?.title || "Untitled",
+                  description: item?.goal ?? "",
+                });
               });
-            });
+            }
           });
           return acc;
         }, [])
         .slice(0, 80);
       const allUserPrompt = conversation.reduce((acc, curr) => {
-        if (curr.role === "human") {
+        if (curr && curr.role === "human" && curr.message) {
           acc.push(curr.message);
           return acc;
         }
         return acc;
       }, []);
-      console.log("Creating new workflow with conversation3:", conversation);
-
+      // Debug: Log constructed workflow object
       const newWorkflow = {
         userInput: allUserPrompt,
         agents: agents,
-        userPrompt: workflowPrompt,
-        userId: user.id,
+        userPrompt: safeWorkflowPrompt,
+        userId: safeUserId,
       };
-      console.log(newWorkflow, "New Workflow Data");
+      console.log("Prepared newWorkflow:", newWorkflow);
       const resp = await createUserSavedWorflow(newWorkflow);
       setRecentlyCreatedWorkflowResponse(resp.data);
       setWorkflowList((prev) => [
@@ -249,18 +266,19 @@ function ChatInput({
           ...resp.data,
         },
       ]);
-      console.log("Creating new workflow with data:", newWorkflow);
+      console.log("Workflow creation response:", resp);
     } catch (error) {
+      // Improved error logging
       console.error("Error creating new workflow:", error);
       toast({
         title: "Error",
-        description: "Failed to create new workflow",
+        description: `Failed to create new workflow: ${error && error.stack ? error.stack : error}`,
         variant: "destructive",
       });
     } finally {
       setIsWorkflowCreatorLoading(false);
     }
-  }, [conversationProp.current, user.id, workflowPrompt, toast]);
+  }, [conversationProp, user, workflowPrompt, toast]);
 
   useEffect(() => {
     console.log("Workflow List Updated:", workflowList);
