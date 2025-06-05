@@ -68,7 +68,7 @@ export const toggleUserPersonalProfileOnStatusUrl = `${backendUrl}/api/personalP
 
 // Personal knowledge collections
 export const getUserPersonalKnowledgeCollectionUrl = `${backendUrl}/api/personalKnowledge/collection/:userId`;
-
+export const createNewCollectionUrl = `${backendUrl}/api/personalKnowledge/createUserPersonalKnowledge`;
 // user saved workflow APIs
 // n8n
 export const createUserSavedWorkflowUrl = `${url}/create-new-workflow`;
@@ -83,3 +83,6 @@ export const getJobDataByIdUrl = `${import.meta.env.VITE_SOCKET_URL}/api/automat
 
 // is file password correct
 export const isFilePasswordCorrectUrl = `${url}/isFilePasswordCorrect`;
+
+
+// personal knowledge base

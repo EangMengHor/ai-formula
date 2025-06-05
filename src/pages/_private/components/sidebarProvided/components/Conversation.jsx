@@ -1,4 +1,4 @@
-import React, { memo, useEffect, forwardRef, useState, useRef } from "react";
+import React, { memo, forwardRef, useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
@@ -38,9 +38,6 @@ const Conversation = forwardRef(
       conversation,
       isNextChatLoading,
       isShowInteractionLogs,
-      chatContainerRef,
-      bottomRef,
-      scrollTimeoutRef,
       sidebarStack,
       id,
       handleBlockSidebar,
@@ -49,6 +46,8 @@ const Conversation = forwardRef(
       interactionLogs,
       isChanged,
       loadingMessage = "Thinking . . .",
+      chatContainerRef, // This comes from Chat.jsx
+      endRef, // This comes from Chat.jsx
     },
     ref,
   ) => {
@@ -58,36 +57,25 @@ const Conversation = forwardRef(
     const [isCopied, setIsCopied] = useState(false);
     const [currentContent, setCurrentContent] = useState("No PDF data found");
     const [currDialogIndexOpen, setCurrDialogIndexOpen] = useState(-1);
-    const [isUserScrolling, setIsUserScrolling] = useState(false);
     const { toast } = useToast();
-
-    console.log(conversation, "interactionLogs");
-
-    // Detect user scroll to prevent auto-scroll when user is reading older messages
-    useEffect(() => {
-      const container = chatContainerRef.current;
-      if (!container) return;
-
-      const handleScroll = () => {
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        // If user is not at the bottom, set isUserScrolling true
-        if (scrollHeight - scrollTop - clientHeight > 100) {
-          setIsUserScrolling(true);
-        } else {
-          setIsUserScrolling(false);
-        }
-      };
-
-      container.addEventListener("scroll", handleScroll, { passive: true });
-      return () => {
-        container.removeEventListener("scroll", handleScroll);
-      };
-    }, [chatContainerRef]);
 
     const sanitizeFileName = (name) => {
       return name.replace(/[/\\?%*:|"<>]/g, "-").trim();
     };
-
+    // In your Chat.jsx
+    // Remove this useEffect - it's not needed here:
+    // useEffect(() => {
+    //   if (chatContainerRef.current) {
+    //     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+    //     console.log("Scroll metrics:", {
+    //       scrollTop,
+    //       scrollHeight,
+    //       clientHeight,
+    //       distanceFromBottom: scrollHeight - scrollTop - clientHeight,
+    //       showButton: showScrollButton,
+    //     });
+    //   }
+    // }, [showScrollButton]);
     const copyToClipboard = async (content) => {
       try {
         // Extract plain text from markdown
@@ -443,6 +431,7 @@ ${block.content}
     console.log(conversation, "conversation123");
     return (
       <div
+        ref={chatContainerRef}
         style={{
           backgroundImage:
             "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('./Frame2.png')",
@@ -453,20 +442,12 @@ ${block.content}
       >
         <div
           className={`flex-1 overflow-y-auto font-figtree p-4 pt-8 space-y-2 w-full`}
-          ref={chatContainerRef}
         >
           {conversation.map((item, index) => {
             if (item.role === "human") {
               return (
                 <div className="flex flex-col items-end w-full justify-end">
-                  <div
-                    ref={
-                      index === conversation.length - 1
-                        ? chatContainerRef
-                        : null
-                    }
-                    className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap"
-                  >
+                  <div className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap">
                     {item.message
                       ? item.message.replaceAll(
                           "Provided Document : No document provided",
@@ -604,9 +585,6 @@ ${block.content}
                 <div
                   key={`ai-${index}`}
                   className="text-slate-300 rounded shadow space-y-4"
-                  ref={
-                    index === conversation.length - 1 ? chatContainerRef : null
-                  }
                 >
                   {item.workflow && item.workflow.length > 0 && (
                     <PollStatus
@@ -700,6 +678,7 @@ ${block.content}
     "outputFormat": "1. Executive Summary of Google Stock Performance\n2. Price Movement and Volume Analysis\n3. Technical Indicators Breakdown (Moving Averages, RSI, MACD)\n4. Real-Time News Sentiment Impact\n5. Comparative Analysis with Tech Sector Peers\n6. Actionable Insights and Risk Metrics\n7. Visual Charts and Data Tables\n8. Strategic Recommendations",
     "isComplete": true
 } */}
+          <div ref={endRef} />
           {isNextChatLoading && (
             <div className="flex h-fit items-center space-x-2 text-blue-400">
               <LoadingAnimation
@@ -707,10 +686,6 @@ ${block.content}
               />
             </div>
           )}
-
-          {/* Fix: Only bottomRef should be used here */}
-          {/* <div ref={scrollTimeoutRef} className="h-1 w-full" /> */}
-          <div ref={bottomRef} className="h-1 w-full" />
         </div>
       </div>
     );

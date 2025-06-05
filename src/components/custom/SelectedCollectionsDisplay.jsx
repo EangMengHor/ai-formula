@@ -1,6 +1,6 @@
 import React from "react";
 import { useCollection } from "@/context/CollectionContext";
-import { LibraryBig, X } from "lucide-react";
+import { Grid2x2, LibraryBig, X } from "lucide-react";
 import { Button } from "../ui/button";
 
 function SelectedCollectionsDisplay() {
@@ -18,11 +18,11 @@ function SelectedCollectionsDisplay() {
           key={collection.id}
           className="flex items-center gap-2 rounded-md justify-between p-2 w-fit bg-slate-800"
         >
-          <LibraryBig className="w-5 h-5" />
+          <Grid2x2 className="w-5 h-5" />
           <div className="flex items-center gap-2">
             <span className="text-white text-xs">
               {collection.collectionName}
-              <p className="text-slate-400">Collection</p>
+              <p className="text-slate-400">Knowledge Block</p>
             </span>
           </div>
           <Button

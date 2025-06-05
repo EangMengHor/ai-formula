@@ -10,6 +10,7 @@ export function PersonalKnowledgeFileUpload({
   bucketName,
   userId,
   onUploadComplete,
+  collectionId = null,
 }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -124,6 +125,7 @@ export function PersonalKnowledgeFileUpload({
           userId,
           filePath: presignedUrlResult.data.fileName,
           bucketName,
+          collectionId: collectionId,
         });
 
         clearInterval(progressInterval);
