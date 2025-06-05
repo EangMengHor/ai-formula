@@ -52,6 +52,8 @@ import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
 import { useWorkflow } from "@/context/WorkflowContext";
 import { refreshApi } from "@/services/n8n-apis/_auth/refresh.api";
 import { set } from "lodash";
+import { useCollection } from "../../../../../context/CollectionContext";
+import { useScrollToBottom } from "@/hooks/scrollToBottom";
 
 const fileType = ["pdf"];
 
@@ -61,18 +63,12 @@ function Chat() {
 
   // --- Refs ---
   const conversationCompRef = useRef(null);
-  const bottomRef = useRef(null);
-  const chatContainerRef = useRef(null);
   const latestUpdatedStatus = useRef([]);
   const dataFetchedRef = useRef(false);
   const pollChatOutputRef = useRef(null);
   const pollChatStatusRef = useRef(null);
   const pollInteractionLogsRef = useRef(null);
-  const scrollTimeoutRef = useRef(null);
   const streamTimeoutRef = useRef(null);
-  const isAutoScrolling = useRef(false);
-  const userScrollTimeoutRef = useRef(null);
-  const lastContent = useRef(null);
   const isRetryTrigger = useRef(false);
 
   // --- Context ---
@@ -110,6 +106,7 @@ function Chat() {
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
+  const { selectedCollectionIds } = useCollection();
   // --- State ---
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [fallBackPrompt, setFallBackPrompt] = useState("");
@@ -117,7 +114,6 @@ function Chat() {
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isChanged, setIsChanged] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
   const [chatIdentifer, setChatIdentifer] = useState(null);
   const [interactionLogs, setInteractionLogs] = useState([]);
   const [isShowInteractionLogs, setIsShowInteractionLogs] = useState(false);
@@ -128,8 +124,6 @@ function Chat() {
   const [dialogContent, setDialogContent] = useState("");
   const [dialogType, setDialogType] = useState("visual");
   const [dialogTitle, setDialogTitle] = useState("");
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
-  const [socketId, setSocketId] = useState("");
   const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isReconnected, setIsReconnected] = useState(false);
@@ -137,8 +131,13 @@ function Chat() {
   const [errorMessage, setErrorMessage] = useState("");
   const [pdfFileName, setpPdfFileName] = useState("");
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
-  const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
   const [currLoadingStatus, setCurrLoadingStatus] = useState("Thinking");
+  const chatContainerRef = useRef(null);
+
+  // Use the hook properly
+  const { showScrollButton, scrollToBottom, endRef } =
+    useScrollToBottom(chatContainerRef);
+
 
   useEffect(() => {
     setIsNextChatLoading(false);
@@ -518,9 +517,6 @@ function Chat() {
   useEffect(() => {
     return () => {
       clearPolling();
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
       if (streamTimeoutRef.current) {
         clearTimeout(streamTimeoutRef.current);
       }
@@ -565,8 +561,6 @@ function Chat() {
     };
   }, [conversation]);
 
-  const scrollToBottom = useCallback(() => {}, []);
-
   // --- Helper Functions ---
   const newAiMessage = (kind = "quick") => ({
     role: "ai",
@@ -601,7 +595,7 @@ function Chat() {
       return;
     }
     /* ─────────────────────────────────────────────────────── */
-    /* 1. “swarmId” → update or create the simulation message  */
+    /* 1. "swarmId" → update or create the simulation message  */
     /* ─────────────────────────────────────────────────────── */
     if (event.type === "swarmId") {
       const { output } = await getPersonaById(event.swarmId);
@@ -619,7 +613,7 @@ function Chat() {
       return;
     }
     /* ─────────────────────────────────────────────────────── */
-    /* 2. “finalResponse” chunks                               */
+    /* 2. "finalResponse" chunks                               */
     /* ─────────────────────────────────────────────────────── */
     if (event.type === "finalResponse" && event.content) {
       setConversation((prev) => {
@@ -636,7 +630,7 @@ function Chat() {
       return;
     }
     /* ─────────────────────────────────────────────────────── */
-    /* 3. “finish” → close the streaming message               */
+    /* 3. "finish" → close the streaming message               */
     /* ─────────────────────────────────────────────────────── */
     if (event.type === "finish") {
       setConversation((prev) => {
@@ -1064,6 +1058,8 @@ function Chat() {
     async (prompt, isRetry = false) => {
       if (!prompt.trim()) return;
 
+      // Remove onScrollDown() call - the hook will handle auto-scrolling
+
       if (prompt.length > 4999) {
         toast({
           title: "Error",
@@ -1090,6 +1086,7 @@ function Chat() {
         swarmIds: selectedSuperiorPersona?.map((p) => p.id) || [],
         isAutoSwarm: isAutoSwarmContextState,
         workflowId: selectedWorkflowId,
+        collectionIds: selectedCollectionIds,
       };
 
       // Reset state
@@ -1218,6 +1215,7 @@ function Chat() {
       isAutoSwarmContextState,
       selectedWorkflowId,
       isError,
+      selectedCollectionIds,
     ],
   );
 
@@ -1364,17 +1362,6 @@ function Chat() {
     setDialogOpen(true);
   };
 
-  const handleScrollToBottomButtonClick = () => {
-    setIsUserScrolling(false);
-    scrollToBottom();
-  };
-
-  const handleChatInputScrollRequest = () => {
-    if (conversationCompRef.current) {
-      conversationCompRef.current.forceScrollToBottom();
-    }
-  };
-
   const conversationRef = useRef(conversation);
   useEffect(() => {
     conversationRef.current = conversation;
@@ -1417,15 +1404,10 @@ function Chat() {
   }
   return (
     <div className="flex flex-col h-full w-full relative">
-      {/* ...existing code... */}
       <Conversation
-        ref={conversationCompRef}
         conversation={conversation}
         isNextChatLoading={isNextChatLoading}
         isShowInteractionLogs={isShowInteractionLogs}
-        chatContainerRef={chatContainerRef}
-        bottomRef={bottomRef}
-        scrollTimeoutRef={scrollTimeoutRef}
         sidebarStack={sidebarStack}
         id={id}
         handleBlockSidebar={memoizedHandleBlockSidebar}
@@ -1434,17 +1416,13 @@ function Chat() {
         interactionLogs={interactionLogs}
         isChanged={isChanged}
         loadingMessage={currLoadingStatus}
+        chatContainerRef={chatContainerRef}
+        endRef={endRef}
       />
-      {showScrollButton && (
-        <Button
-          onClick={handleScrollToBottomButtonClick}
-          className="absolute bottom-16 right-4 z-50"
-        >
-          Scroll to Bottom
-        </Button>
-      )}
-      <div className="w-full p-2 sticky bottom-0 bg-black mb-2 flex items-center justify-center">
-        <div className="max-w-4xl w-full mx-auto">
+
+      
+      <div className="w-full p-2 sticky bottom-0  mb-2 flex items-center justify-center">
+        <div className="max-w-4xl bg-black w-full mx-auto">
           <ChatInput
             conversationProp={conversationRef}
             conversationCount={conversation.length}
@@ -1463,31 +1441,10 @@ function Chat() {
             setIsReconnecting={setIsReconnecting}
             setIsReconnected={setIsReconnected}
             isReconnected={isReconnected}
-            onScrollToBottomRequest={handleChatInputScrollRequest}
+            onScrollToBottom={scrollToBottom}
           />
         </div>
       </div>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-4xl w-full">
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-          </DialogHeader>
-          {dialogType === "visual" ? (
-            <div className="p-4 overflow-auto max-h-[70vh]">
-              <Mermaid chart={dialogContent} />
-            </div>
-          ) : (
-            <div className="p-4 whitespace-pre-wrap overflow-auto max-h-[70vh]">
-              <ReactMarkdown
-                remarkPlugins={[remarkMath, remarkGfm]}
-                rehypePlugins={[rehypeKatex]}
-              >
-                {dialogContent}
-              </ReactMarkdown>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

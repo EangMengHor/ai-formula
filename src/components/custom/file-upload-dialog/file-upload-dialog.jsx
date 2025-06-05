@@ -385,11 +385,7 @@ export default function FileUploadDialog() {
           <Paperclip className="w-5 h-5  rounded-md" />
         </div>
       )}
-      {fileCount > 0 && (
-        <div className="absolute top-0 right-0 bg-gray-200 text-gray-800 text-xs rounded-full p-1">
-          {fileCount}
-        </div>
-      )}
+   
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="w-[calc(100vw-10rem)] h-[calc(100vh-10rem)] overflow-scroll p-8 bg-[#1a2332] border-0 ">

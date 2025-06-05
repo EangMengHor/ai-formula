@@ -1,6 +1,7 @@
 const url = import.meta.env.VITE_N8N_API_URL;
 const test = import.meta.env.VITE_N8N_TEST_API_URL;
 const backendUrl = import.meta.env.VITE_SOCKET_URL;
+
 const migrate = "https://backend.jamesscott.tech/webhook-test";
 console.log(url);
 
@@ -65,6 +66,9 @@ export const getUserPersonalProfileUrl = `${backendUrl}/api/personalProfile/getU
 export const getUserPersonalProfileOnStatusUrl = `${backendUrl}/api/personalProfileOn/getUserPersonalProfileOnStatus`;
 export const toggleUserPersonalProfileOnStatusUrl = `${backendUrl}/api/personalProfileOn/toggleUserPersonalProfileOnStatus`;
 
+// Personal knowledge collections
+export const getUserPersonalKnowledgeCollectionUrl = `${backendUrl}/api/personalKnowledge/collection/:userId`;
+export const createNewCollectionUrl = `${backendUrl}/api/personalKnowledge/createUserPersonalKnowledge`;
 // user saved workflow APIs
 // n8n
 export const createUserSavedWorkflowUrl = `${url}/create-new-workflow`;
@@ -76,3 +80,9 @@ export const uploadPersonalKnowledgeUrl = `${backendUrl}/api/personalKnowledge/u
 export const getUserPersonalKnowledgeFilesUrl = `${backendUrl}/api/personalKnowledge/files`;
 
 export const getJobDataByIdUrl = `${import.meta.env.VITE_SOCKET_URL}/api/automation/getJobById`;
+
+// is file password correct
+export const isFilePasswordCorrectUrl = `${url}/isFilePasswordCorrect`;
+
+
+// personal knowledge base

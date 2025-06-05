@@ -12,6 +12,8 @@ import StackSidebarProvider from "./context/StackSidebarContext";
 import { ReactFlowProvider } from "@xyflow/react";
 import { DomainProvider } from "./context/WhichDomainContext";
 import { WorkflowProvider } from "./context/WorkflowContext";
+import { CollectionProvider } from "./context/CollectionContext";
+
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <DomainProvider>
@@ -22,7 +24,9 @@ createRoot(document.getElementById("root")).render(
               <AudioProvider>
                 <ReactFlowProvider>
                   <WorkflowProvider>
-                    <App />
+                    <CollectionProvider>
+                      <App />
+                    </CollectionProvider>
                   </WorkflowProvider>
                 </ReactFlowProvider>
               </AudioProvider>
