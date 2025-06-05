@@ -12,7 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Database, Calendar, CheckCircle2, Circle } from "lucide-react";
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 export default function InternalKnowledgeDialog() {
   const { collectionList, selectedCollectionIds, toggleCollectionSelection } =
     useCollection();
@@ -34,17 +38,24 @@ export default function InternalKnowledgeDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
+        <button
           variant="ghost"
-          className="relative group p-2 sm:p-3 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all duration-200  hover:border-slate-600"
+          className="relative group ml-2  text-slate-300 hover:text-white  px-2 py-1 rounded-md hover:bg-gray-800 transition-all duration-200  hover:border-slate-600"
         >
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="relative">
-              <Database className="w-7 h-7" />
-              {selected > 0 && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-              )}
-            </div>
+          <div className="flex items-center gap-2 sm:gap-3 ">
+            <Tooltip>
+              <TooltipTrigger>
+                <Database
+                  className={`w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Attach Knowledge Block</p>
+              </TooltipContent>
+            </Tooltip>
+            {selected > 0 && (
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            )}
             {/* <p className="font-medium text-sm ">Knowledge</p> */}
             {/* <span className="font-medium text-sm sm:text-base hidden sm:inline">
               Internal Knowledge
@@ -57,7 +68,7 @@ export default function InternalKnowledgeDialog() {
               {selected}/{total}
             </Badge> */}
           </div>
-        </Button>
+        </button>
       </DialogTrigger>
 
       <DialogContent className="w-[95vw] sm:w-[85vw] md:w-[75vw] lg:w-[65vw] xl:w-[55vw] max-w-4xl max-h-[85vh] sm:max-h-[80vh] p-0 bg-slate-800 border-slate-700">

@@ -470,9 +470,9 @@ function ChatInput({
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   console.log(isShowScrollToBottomButtom, "scrolling");
   return (
-    <div className="relative">
+    <div className="relative mb-3">
       {pathname !== "/dashboard" && (
-        <div className="w-full absolute -top-10 flex justify-end items-center mb-2">
+        <div className="w-full absolute -top-14 flex justify-end items-center">
           <div
             onClick={onScrollToBottom}
             className="m-2 rounded-full border p-2 border-slate-600 cursor-pointer hover:bg-slate-700"
@@ -555,15 +555,6 @@ function ChatInput({
           }}
           transition={{ duration: 0.2, ease: "easeInOut" }}
         >
-          {files.length > 3 && (
-            <button
-              onClick={scrollLeft}
-              className="absolute left-0 z-10 px-2 py-1 ml-2 border-2 border-gray-700 bg-gray-700/50 text-white rounded-md hover:bg-gray-600"
-            >
-              <ChevronLeft />
-            </button>
-          )}
-
           <div className="flex gap-2 items-center overflow-x-scroll scroll-smooth hide-scrollbar">
             {files.filter((file) => memorizedFiles.includes(file.name)).length >
               0 &&
@@ -597,15 +588,6 @@ function ChatInput({
                   </div>
                 ))}
           </div>
-
-          {files.length > 3 && (
-            <button
-              onClick={scrollRight}
-              className="absolute right-0 z-10 px-2 py-1 bg-gray-700/50 text-white rounded-md hover:bg-gray-600"
-            >
-              <ChevronRight />
-            </button>
-          )}
         </motion.div>
 
         <div
@@ -673,8 +655,7 @@ function ChatInput({
                       <TooltipContent className="bg-slate-600 p-2 rounded-md">
                         <p className="capitalize">
                           Please First Start The Conversation to get the
-                          Document Upload Section (Start By Saying Hello Or Hi!
-                          )
+                          Document Upload Section (Start By Saying Hello Or Hi!)
                         </p>
                       </TooltipContent>
                     </Tooltip>
