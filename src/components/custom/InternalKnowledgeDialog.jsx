@@ -36,25 +36,26 @@ export default function InternalKnowledgeDialog() {
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className="relative group p-2 sm:p-3 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all duration-200 border border-slate-700/50 hover:border-slate-600"
+          className="relative group p-2 sm:p-3 text-slate-300 hover:text-white hover:bg-slate-800/80 rounded-lg transition-all duration-200  hover:border-slate-600"
         >
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative">
-              <Database className="w-4 h-4" />
+              <Database className="w-7 h-7" />
               {selected > 0 && (
                 <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
               )}
             </div>
-            <span className="font-medium text-sm sm:text-base hidden sm:inline">
+            {/* <p className="font-medium text-sm ">Knowledge</p> */}
+            {/* <span className="font-medium text-sm sm:text-base hidden sm:inline">
               Internal Knowledge
             </span>
-            <span className="font-medium text-sm sm:hidden">Knowledge</span>
-            <Badge
+            <span className="font-medium text-sm sm:hidden">Knowledge</span> */}
+            {/* <Badge
               variant="secondary"
               className="bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 transition-colors text-xs"
             >
               {selected}/{total}
-            </Badge>
+            </Badge> */}
           </div>
         </Button>
       </DialogTrigger>
@@ -64,7 +65,7 @@ export default function InternalKnowledgeDialog() {
           <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-900/50 flex-shrink-0">
             <DialogTitle className="text-lg sm:text-xl lg:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
               <div className="p-1.5 sm:p-2 bg-blue-500/10 rounded-lg">
-                <Database className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-400" />
+                <Database className="w-6 h-6 text-blue-400" />
               </div>
               <span className="hidden sm:inline">Select Collections</span>
               <span className="sm:hidden">Collections</span>

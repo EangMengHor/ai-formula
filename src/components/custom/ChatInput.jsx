@@ -712,6 +712,8 @@ function ChatInput({
               </TooltipProvider>
 
               {/* chat mode */}
+              <InternalKnowledgeDialog />
+
               <div
                 className={`${isSwarmMode ? "hidden" : "flex"} gap-2 rounded-md`}
               >
@@ -804,7 +806,6 @@ function ChatInput({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <InternalKnowledgeDialog />
               <div
                 className={` ${isSwarmMode && !isPublicDomain ? "flex" : "hidden"} gap-2 rounded-md`}
               >
