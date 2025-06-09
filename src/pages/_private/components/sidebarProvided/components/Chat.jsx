@@ -51,9 +51,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
 import { useWorkflow } from "@/context/WorkflowContext";
 import { refreshApi } from "@/services/n8n-apis/_auth/refresh.api";
-import { set } from "lodash";
 import { useCollection } from "../../../../../context/CollectionContext";
 import { useScrollToBottom } from "@/hooks/scrollToBottom";
+import RenderMaterialUniProb from "./RenderMaterialUniProb";
 
 const fileType = ["pdf"];
 
@@ -138,7 +138,6 @@ function Chat() {
   const { showScrollButton, scrollToBottom, endRef } =
     useScrollToBottom(chatContainerRef);
 
-
   useEffect(() => {
     setIsNextChatLoading(false);
     isSessionExploited && setIsSessionExploited(false);
@@ -180,6 +179,20 @@ function Chat() {
       console.error("Error sanitizing Mermaid content:", error);
       return "graph TD\nA[Error] --> B[Diagram processing failed]";
     }
+  }, []);
+
+  const memoizedHandleMaterialSidebar = useCallback((uniProb, title) => {
+    console.log("Handling material sidebar for uniProb:", uniProb, title);
+    setSidebarStack(() => {
+      return [
+        {
+          header: title,
+          component: (
+            <RenderMaterialUniProb uniProbId={uniProb} title={title} />
+          ),
+        },
+      ];
+    });
   }, []);
 
   const memoizedHandleBlockSidebar = useCallback(
@@ -910,6 +923,36 @@ function Chat() {
         });
       }
 
+      // Add showUniProt pattern parsing
+      const showUniProtPattern = /<showUniProt>([\s\S]*?)<\/showUniProt>/g;
+      while ((match = showUniProtPattern.exec(maskedContent)) !== null) {
+        // Only process if not inside a document
+        if (
+          maskedContent.substring(match.index, match.index + 13) ===
+          "<showUniProt>"
+        ) {
+          const uniprotContent = match[1];
+          // Extract name and UniProt ID
+          const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(uniprotContent);
+          let name = nameMatch ? nameMatch[1].trim() : "";
+          let content = uniprotContent;
+
+          // Remove name tag if present to get the UniProt ID
+          if (nameMatch) {
+            content = uniprotContent.replace(nameMatch[0], "").trim();
+          }
+
+          otherBlocks.push({
+            type: "showUniProt",
+            uniProt: content,
+            name: name,
+            isComplete: forceComplete || content.length > 0,
+            start: match.index,
+            end: match.index + match[0].length,
+          });
+        }
+      }
+
       // Combine all blocks and sort by position
       const allBlocks = [...documentBlocks, ...otherBlocks].sort(
         (a, b) => a.start - b.start,
@@ -1057,7 +1100,7 @@ function Chat() {
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
       if (!prompt.trim()) return;
-
+      scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
 
       if (prompt.length > 4999) {
@@ -1355,17 +1398,16 @@ function Chat() {
     setInteractionLogs([]);
   }
 
-  const openDialog = (type, content, title) => {
-    setDialogType(type);
-    setDialogContent(content);
-    setDialogTitle(title);
-    setDialogOpen(true);
-  };
-
   const conversationRef = useRef(conversation);
   useEffect(() => {
     conversationRef.current = conversation;
   }, [conversation]);
+
+  useEffect(() => {
+    if (isChatLoading == false) {
+      scrollToBottom();
+    }
+  }, [isChatLoading]);
 
   // --- UI Render ---
   if (isChatLoading) {
@@ -1412,6 +1454,7 @@ function Chat() {
         id={id}
         handleBlockSidebar={memoizedHandleBlockSidebar}
         renderMermaidChart={memoizedRenderMermaidChart}
+        handleMaterialSidebar={memoizedHandleMaterialSidebar}
         currentLoadingMessage={currentLoadingMessage}
         interactionLogs={interactionLogs}
         isChanged={isChanged}
@@ -1420,7 +1463,6 @@ function Chat() {
         endRef={endRef}
       />
 
-      
       <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
         <div className="max-w-4xl bg-black w-full mx-auto">
           <ChatInput

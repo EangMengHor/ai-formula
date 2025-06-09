@@ -149,9 +149,7 @@ function ChatInput({
     isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
   } = useUser();
-  const { sidebarStack } = useStackSidebar();
   // component states
-  const [fetchSuperiorPersona, setFetchSuperiorPersona] = useState(null);
   const [rows, setRows] = useState(1);
   const [isToolBoxOpen, setIsToolBoxOpen] = useState(false);
   const [isTransribed, setIsTransribed] = useState(false);
@@ -850,7 +848,9 @@ function ChatInput({
             </div>
 
             <div className="flex gap-1 items-center">
-              <div className=" p-2 rounded-md hover:bg-gray-800 cursor-pointer ">
+              <div
+                className={`${isPublicDomain && "hidden"} p-2 rounded-md hover:bg-gray-800 cursor-pointer `}
+              >
                 {isPromptEnchanced ? (
                   <div
                     onClick={onUndoPromptEnhance}

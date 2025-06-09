@@ -120,7 +120,7 @@ export default function CreateKnowledgeBase() {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto py-10">
+    <div className="container  mx-auto py-10">
       <Card className="border-2">
         <CardHeader>
           <div className="flex items-center space-x-2">

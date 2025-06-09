@@ -17,7 +17,7 @@ import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { motion } from "framer-motion";
 
-export function StreamingResponse({ content }) {
+export function StreamingResponse({ content, handleMaterialSidebar }) {
   const [blocks, setBlocks] = useState([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState("");
@@ -51,6 +51,70 @@ export function StreamingResponse({ content }) {
   const processContent = (text) => {
     if (!text) return [];
 
+    // First check for complete showUniProt blocks (streaming-friendly)
+    if (text.includes("<showUniProt>") && text.includes("</showUniProt>")) {
+      const result = [];
+      let lastIndex = 0;
+
+      // Find all complete showUniProt blocks
+      const showUniProtRegex = /<showUniProt>([\s\S]*?)<\/showUniProt>/g;
+      let match;
+
+      while ((match = showUniProtRegex.exec(text)) !== null) {
+        // Add text before this block
+        if (match.index > lastIndex) {
+          const textBefore = text.substring(lastIndex, match.index).trim();
+          if (textBefore) {
+            result.push({
+              id: `text-${lastIndex}`,
+              type: "text",
+              name: "",
+              content: textBefore,
+              isComplete: true,
+            });
+          }
+        }
+
+        // Process the showUniProt content
+        const uniprotContent = match[1];
+        const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(uniprotContent);
+        let name = nameMatch ? nameMatch[1].trim() : "";
+        let uniProtId = uniprotContent;
+
+        // Remove name tag if present to get the UniProt ID
+        if (nameMatch) {
+          uniProtId = uniprotContent.replace(nameMatch[0], "").trim();
+        }
+
+        result.push({
+          id: `uniprot-${match.index}`,
+          type: "showUniProt",
+          name,
+          uniProt: uniProtId,
+          isComplete: true,
+        });
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      // Add remaining text
+      if (lastIndex < text.length) {
+        const remainingText = text.substring(lastIndex).trim();
+        if (remainingText) {
+          result.push({
+            id: `text-${lastIndex}`,
+            type: "text",
+            name: "",
+            content: remainingText,
+            isComplete: true,
+          });
+        }
+      }
+
+      return result;
+    }
+
+    // Process character by character
     const result = [];
     const blocksMap = new Map();
 
@@ -64,10 +128,78 @@ export function StreamingResponse({ content }) {
     let blockStartIndex = 0;
     let blockId = "";
 
-    // Process character by character
     let i = 0;
     while (i < text.length) {
       const remainingText = text.substring(i);
+
+      // --- showUniProt start ---
+      if (remainingText.startsWith("<showUniProt>")) {
+        if (currentContent && currentType === "text") {
+          const textBlock = {
+            id: `text-${blockStartIndex}`,
+            type: "text",
+            name: "",
+            content: currentContent,
+            isComplete: true,
+          };
+          blocksMap.set(textBlock.id, textBlock);
+          currentContent = "";
+        }
+
+        currentType = "showUniProt";
+        isCollecting = true;
+        isCollectingName = true;
+        blockStartIndex = i;
+        blockId = `uniprot-${blockStartIndex}`;
+        i += 13; // Length of "<showUniProt>"
+        continue;
+      }
+
+      // Check for showUniProt block end
+      if (remainingText.startsWith("</showUniProt>")) {
+        if (blockId && blocksMap.has(blockId)) {
+          const block = blocksMap.get(blockId);
+          block.uniProt = currentContent;
+          block.isComplete = true;
+        }
+
+        currentContent = "";
+        currentName = "";
+        currentType = "text";
+        isCollecting = false;
+        blockId = "";
+        blockStartIndex = i + 14; // Length of "</showUniProt>"
+        i += 14;
+        continue;
+      }
+
+      // --- showUniProt full-block parse (fallback for complete blocks) ---
+      if (remainingText.startsWith("<showUniProt>")) {
+        // find closing tag
+        const closeIdx = text.indexOf("</showUniProt>", i);
+        if (closeIdx !== -1) {
+          const raw = text.substring(i, closeIdx + 14); // 14 = length of "</showUniProt>"
+          const inner = raw.slice(13, raw.length - 14); // strip tags
+          const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+          let name = nameMatch ? nameMatch[1].trim() : "";
+          let uniProtContent = inner;
+
+          // Remove name tag if present to get the UniProt ID
+          if (nameMatch) {
+            uniProtContent = inner.replace(nameMatch[0], "").trim();
+          }
+
+          blocksMap.set(`uniprot-${i}`, {
+            id: `uniprot-${i}`,
+            type: "showUniProt",
+            name,
+            uniProt: uniProtContent,
+            isComplete: true,
+          });
+          i = closeIdx + 14;
+          continue;
+        }
+      }
 
       // --- automationCard start ---
       if (remainingText.startsWith("<automationCard>")) {
@@ -189,7 +321,8 @@ export function StreamingResponse({ content }) {
           id: blockId,
           type: currentType,
           name: currentName,
-          content: "",
+          content: currentType === "showUniProt" ? "" : "",
+          uniProt: currentType === "showUniProt" ? "" : undefined,
           isComplete: false,
         };
         blocksMap.set(blockId, specialBlock);
@@ -261,6 +394,7 @@ export function StreamingResponse({ content }) {
           continue;
         }
       }
+
       // --- end new logic ---
 
       // Collect characters
@@ -287,6 +421,7 @@ export function StreamingResponse({ content }) {
       blocksMap.set(textBlock.id, textBlock);
     }
 
+    // Convert map to array and sort
     // Convert map to array, preserving order
     let lastIndex = -1;
     let currentId = "";
@@ -303,8 +438,6 @@ export function StreamingResponse({ content }) {
       }
       result.push(block);
     }
-
-    // Sort blocks by their position in the original text
     result.sort((a, b) => {
       const indexA = Number.parseInt(a.id.split("-")[1] || "0");
       const indexB = Number.parseInt(b.id.split("-")[1] || "0");
@@ -316,6 +449,17 @@ export function StreamingResponse({ content }) {
 
   const openDialog = (block) => {
     if (block.type === "text" || !block.isComplete) return;
+
+    if (block.type === "showUniProt") {
+      // Handle UniProt block click by opening sidebar
+      if (handleMaterialSidebar && block.uniProt) {
+        handleMaterialSidebar(
+          block.uniProt,
+          block.name || "UniProt Protein Structure",
+        );
+      }
+      return;
+    }
 
     setDialogType(block.type);
     setDialogContent(block.content);
@@ -353,7 +497,7 @@ export function StreamingResponse({ content }) {
               ) : (
                 <>
                   <div className="text-xs text-gray-500 mb-2">
-                    (click to expand)
+                    (click to expand)s
                   </div>
                   <Mermaid chart={block.content} />
                 </>
@@ -396,7 +540,6 @@ export function StreamingResponse({ content }) {
           )}
           {block.type === "automationDaily" && (
             <motion.div
-              key={`automation-${blockIdx}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: "easeOut" }}
@@ -424,6 +567,38 @@ export function StreamingResponse({ content }) {
                 {block.outputFormat}
               </p>
             </motion.div>
+          )}
+          {block.type === "showUniProt" && (
+            <div
+              onClick={() => {
+                const uniProtId =
+                  block.uniProt
+                    .match(/<showUniProt>(.*?)<\/showUniProt>/s)?.[1]
+                    ?.trim() || block.uniProt;
+                console.log("passing uni prot", uniProtId, block.uniProt);
+                handleMaterialSidebar(uniProtId, block.name);
+              }}
+              key={`visual-${blockIdx}`}
+              className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${
+                block.isComplete
+                  ? "cursor-pointer hover:bg-slate-800 text-white flex"
+                  : ""
+              }`}
+            >
+              <div
+                className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
+                style={{ maxWidth: "80%" }}
+              >
+                {block.name || "Document"}
+                <p className="text-slate-600 text-sm">Material (Click)</p>
+              </div>
+              <div className="flex-shrink-0 px-3 py-2">
+                <img
+                  src="/materialSvg.png"
+                  className="w-16 h-14 -rotate-6 brightness-150 contrast-125 drop-shadow-lg"
+                />
+              </div>
+            </div>
           )}
         </div>
       ))}
@@ -456,4 +631,5 @@ export function StreamingResponse({ content }) {
 
 StreamingResponse.propTypes = {
   content: PropTypes.string.isRequired,
+  handleMaterialSidebar: PropTypes.func,
 };
