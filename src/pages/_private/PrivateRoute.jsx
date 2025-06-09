@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 
 export default function PrivateRoute() {
   const { hasPersonalProfile, loading } = useGetUserProfileStatus();
-  const { user, setUser, isUserBanned, logout } = useUser();
+  const { user, setUser, isUserBanned, logout, setAuthToken } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const location = useLocation();
@@ -33,8 +33,9 @@ export default function PrivateRoute() {
       // Check if user ID exists in localStorage and set user if found
       const userId = localStorage.getItem("id");
       const userEmail = localStorage.getItem("email");
-
-      if (userId) {
+      const accessToken = localStorage.getItem("accessToken");
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (userId && accessToken && refreshToken) {
         // Found credentials in localStorage, authenticate the user
         setUser({
           id: userId,
@@ -42,15 +43,19 @@ export default function PrivateRoute() {
           isAuthenticated: true,
         });
         // User is now authenticated, no need to redirect
+
+        setAuthToken({
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        });
         return;
       }
-
-      // No valid credentials found, show authentication error toast and redirect to login
       toast({
         title: "Access Not Allowed",
         description: "You are not authenticated! Please login to continue",
         variant: "default",
       });
+      // No valid credentials found, show authentication error toast and redirect to login
 
       navigate("/login", {
         replace: true,
