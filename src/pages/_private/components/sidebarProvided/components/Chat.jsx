@@ -50,7 +50,6 @@ import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
 import { useWorkflow } from "@/context/WorkflowContext";
-import { refreshApi } from "@/services/n8n-apis/_auth/refresh.api";
 import { useCollection } from "../../../../../context/CollectionContext";
 import { useScrollToBottom } from "@/hooks/scrollToBottom";
 import RenderMaterialUniProb from "./RenderMaterialUniProb";
@@ -103,6 +102,7 @@ function Chat() {
     isUserBanned,
     setIsUserBanned,
     refreshAccessToken,
+    authToken,
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
@@ -1054,11 +1054,15 @@ function Chat() {
 
   async function SSEChatCall(payload) {
     try {
+      const accessToken = localStorage.getItem("accessToken");
       let response = await fetch(
         `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
           credentials: "include",
           body: JSON.stringify(payload),
         },
@@ -1071,13 +1075,26 @@ function Chat() {
         console.warn("❗ Unauthorized or forbidden, refreshing token");
         await refreshAccessToken();
         await new Promise((r) => setTimeout(r, 500)); // 100ms delay
-
+        const accessToken = localStorage.getItem("accessToken");
+        console.log("old accesstoken", accessToken);
+        if (!accessToken) {
+          toast({
+            title: "Error",
+            description: "No Access Token Found",
+            variant: "destructive",
+          });
+          return;
+        }
+        console.log("new accessToken:", accessToken);
         // Retry the request once after token refresh
         response = await fetch(
           `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
             credentials: "include",
             body: JSON.stringify(payload),
           },

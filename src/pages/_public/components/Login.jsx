@@ -216,7 +216,7 @@ import { useUser } from "@/context/UserContext";
 
 export default function Login() {
   // context
-  const { setUser } = useUser();
+  const { setUser, setAuthToken } = useUser();
   const navigate = useNavigate();
   // States
   const [email, setEmail] = useState("");
@@ -345,7 +345,10 @@ export default function Login() {
           email: email,
           isAuthenticated: true,
         });
+        console.log(response.data.data, "token");
 
+        localStorage.setItem("accessToken", response.data.data.accessToken);
+        localStorage.setItem("refreshToken", response.data.data.refreshToken);
         toast({
           title: "Success",
           description: response.message,
