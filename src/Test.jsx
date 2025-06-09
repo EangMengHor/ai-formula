@@ -83,7 +83,7 @@ export default function Test() {
     console.log(conversation, "conversation is here !!");
   }, [conversation]);
   return (
-    <div>
+    <div className="bg-[#09105f]">
       {/* <PollInteraction 
             interactionData={{"output": [[{"goal": "Research and outline the key components of effective child defense systems, focusing on advocacy outreach strategies that can be applied to support these initiatives. Provide insights on how technology can enhance these strategies based on current trends.", "name": "Outreach Engine Designer", "input": [], "execution": 1, "personaId": "1614"}, {"goal": "Collect and analyze legislative data that pertains to child defense and protection initiatives, providing a comprehensive overview of existing bills and policies that impact youth advocacy. This analysis should inform the Outreach Engine Designer's findings.", "name": "Legislative Researcher", "input": ["1614"], "execution": 1, "personaId": "1602"}]]}} /> */}
       <ChatSimulation

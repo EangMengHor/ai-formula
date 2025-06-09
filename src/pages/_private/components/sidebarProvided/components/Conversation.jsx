@@ -19,6 +19,11 @@ import {
   CalendarCheck,
   Clock,
   Book,
+  ExternalLink,
+  Volume2,
+  ArrowBigDownDash,
+  FolderDown,
+  CircleStop,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -31,6 +36,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import TTSPrompt from "@/components/custom/TTSPrompt";
+const buttonWrapperClass =
+  "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
+
+const iconClass = "h-5 w-5";
 
 const Conversation = forwardRef(
   (
@@ -41,6 +51,7 @@ const Conversation = forwardRef(
       sidebarStack,
       id,
       handleBlockSidebar,
+      handleMaterialSidebar,
       renderMermaidChart,
       currentLoadingMessage,
       interactionLogs,
@@ -259,6 +270,18 @@ ${block.content}
               ),
               th: ({ children }) => <th style={styles.th}>{children}</th>,
               td: ({ children }) => <td style={styles.td}>{children}</td>,
+              a: ({ node, ...props }) => {
+                const { href } = props;
+                console.log("Link props:", props);
+                return (
+                  <div className="p-1 w-fit  rounded-md border-2 border-slate-800 hover:bg-slate-800 flex gap-2  items-center">
+                    <a href={props.href} className="w-[95%]">
+                      {props.children}
+                    </a>
+                    <ExternalLink className="w-4 h-4 text-slate-500" />
+                  </div>
+                );
+              },
             }}
           />
 
@@ -337,21 +360,54 @@ ${block.content}
       );
     };
 
+    const RenderMaterial = (block, blockIdx) => (
+      <div
+        key={`material-${blockIdx}`}
+        onClick={() => {
+          const uniProtId =
+            block.uniProt
+              .match(/<showUniProt>(.*?)<\/showUniProt>/s)?.[1]
+              ?.trim() || block.uniProt;
+          console.log("passing uni prot", uniProtId, block.uniProt);
+          handleMaterialSidebar(uniProtId, block.name);
+        }}
+        className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${
+          block.isComplete
+            ? "cursor-pointer hover:bg-slate-800 text-white flex"
+            : ""
+        }`}
+      >
+        <div
+          className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
+          style={{ maxWidth: "80%" }}
+        >
+          {block.name || "Document"}
+          <p className="text-slate-600 text-sm">Material (Click)</p>
+        </div>
+        <div className="flex-shrink-0 px-3 py-2">
+          <img
+            src="/materialSvg.png"
+            className="w-16 h-14 -rotate-6 brightness-150 contrast-125 drop-shadow-lg"
+          />
+        </div>
+      </div>
+    );
+
     // Helper to render action buttons (copy and download)
     const renderActionButtons = (content, blockIdx) => (
-      <div className="flex justify-start gap-2 mt-4">
+      <div className="flex justify-start border-2 border-slate-800 p-1 rounded-md w-fit items-center gap-2 mt-4 h-fit">
+        {/* Copy */}
         <Button
-          variant="outline"
-          className="hover: font-semibold px-3 py-2 rounded-md cursor-pointer focus:outline-none flex items-center gap-2"
+          className={buttonWrapperClass}
           onClick={() => copyToClipboard(content)}
         >
           {isCopied ? (
-            <Check className="h-4 w-4" />
+            <Check className={iconClass} />
           ) : (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger>
-                  <Copy className="h-4 w-4" />
+                <TooltipTrigger className="p-0">
+                  <Copy className={iconClass} />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Copy Content</p>
@@ -360,11 +416,12 @@ ${block.content}
             </TooltipProvider>
           )}
         </Button>
+
+        {/* Download */}
         <Dialog
           open={blockIdx === currDialogIndexOpen && pdfDialogOpen}
           onOpenChange={(val) => {
             if (val) {
-              // Ensure content is set when dialog opens
               setCurrentContent(content || "No content available");
               setCurrDialogIndexOpen(blockIdx);
               setPdfDialogOpen(true);
@@ -374,12 +431,10 @@ ${block.content}
             }
           }}
         >
-          <DialogTrigger asChild>
+          <DialogTrigger asChild className="p-0 m-0 h-fit">
             <Button
-              variant="outline"
-              className="hover:bg-slate-800 font-semibold px-3 py-2 rounded-md cursor-pointer focus:outline-none flex items-center gap-2"
+              className={buttonWrapperClass}
               onClick={() => {
-                // Set content immediately when button is clicked
                 setCurrentContent(content || "No content available");
                 setCurrDialogIndexOpen(blockIdx);
               }}
@@ -387,7 +442,7 @@ ${block.content}
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger>
-                    <Download className="h-4 w-4" />
+                    <FolderDown className={iconClass} />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Download Content</p>
@@ -396,6 +451,7 @@ ${block.content}
               </TooltipProvider>
             </Button>
           </DialogTrigger>
+
           <DialogContent className="max-w-4xl bg-slate-800">
             <h1 className="font-semibold text-lg text-white mb-3">
               Name And Download Your PDF
@@ -407,7 +463,6 @@ ${block.content}
               value={pdfFileName || "Document"}
               onChange={(e) => setpPdfFileName(e.target.value)}
             />
-
             <Button
               className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
               onClick={() => handlePdfDownload(currentContent)}
@@ -426,6 +481,26 @@ ${block.content}
             </Button>
           </DialogContent>
         </Dialog>
+
+        {/* TTS */}
+        <TTSPrompt
+          prompt={content || "No Content available"}
+          startButton={
+            <div className={buttonWrapperClass}>
+              <Volume2 className={iconClass} />
+            </div>
+          }
+          StopButton={
+            <div className={buttonWrapperClass}>
+              <CircleStop className={iconClass} />
+            </div>
+          }
+          loadingButton={
+            <div className={buttonWrapperClass}>
+              <Loader2 className={iconClass + " animate-spin"} />
+            </div>
+          }
+        />
       </div>
     );
     console.log(conversation, "conversation123");
@@ -438,10 +513,10 @@ ${block.content}
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
-        className={`flex-1 overflow-y-auto font-figtree p-4 pt-8 space-y-2 w-full ${sidebarStack.length > 0 ? "max-w-2xl" : "max-w-4xl"} mx-auto`}
+        className={`flex-1 overflow-y-auto font-figtree p-2 pt-8 space-y-2 w-full max-w-4xl mx-auto`}
       >
         <div
-          className={`flex-1 overflow-y-auto font-figtree p-4 pt-8 space-y-2 w-full`}
+          className={`flex-1 overflow-y-auto font-figtree pb-56 pt-8 space-y-2 w-full`}
         >
           {conversation.map((item, index) => {
             if (item.role === "human") {
@@ -502,7 +577,10 @@ ${block.content}
                       </h2>
                       <div className="text-stream flex w-full items-center justify-center">
                         <div className="prose prose-invert max-w-3xl">
-                          <StreamingResponse content={item.markdownBuffer} />
+                          <StreamingResponse
+                            content={item.markdownBuffer}
+                            handleMaterialSidebar={handleMaterialSidebar}
+                          />
                         </div>
                       </div>
                     </div>
@@ -517,8 +595,10 @@ ${block.content}
                       const currContent = extractContentFromBlocks(
                         item.message,
                       );
-
-                      if (block.type === "simulation") {
+                      if (block.type === "showUniProt") {
+                        console.log("showing uni prop 123", block);
+                        return RenderMaterial(block, blockIdx);
+                      } else if (block.type === "simulation") {
                         return (
                           <ChatSimulation
                             key={`simulation-${blockIdx}`}
@@ -606,8 +686,11 @@ ${block.content}
                       const currContent = extractContentFromBlocks(
                         item.message,
                       );
-
-                      if (block.type === "text") {
+                      console.log(item.message, "message123");
+                      if (block.type === "showUniProt") {
+                        console.log("showing uni prop");
+                        return RenderMaterial(block, blockIdx);
+                      } else if (block.type === "text") {
                         return renderTextBlock(
                           block,
                           blockIdx,
@@ -664,7 +747,6 @@ ${block.content}
                           </div>
                         );
                       }
-                      return null;
                     })}
                 </div>
               );
