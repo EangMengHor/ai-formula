@@ -1,9 +1,16 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import ChatInput from "../../../../../components/custom/ChatInput";
 import { useToast } from "../../../../../hooks/use-toast";
 import { _useSidebar } from "../../../../../context/SidebarContext";
 import { getNewSession } from "../../../../../services/n8n-apis/_core/getNewSession.api";
-import { memo, useEffect, useState } from "react";
+import {
+  memo,
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { useUser } from "../../../../../context/UserContext";
 import {
   ArrowRight,
@@ -11,18 +18,92 @@ import {
   CalendarSync,
   FileInput,
   School,
+  Search,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AnimatedBadge from "../../../../../components/custom/AnimatedBadge";
 import { refreshAccessTokenUrl } from "@/namespace/server";
+import PromptTemplates from "./Attachments";
+import Attachments from "./Attachments";
+import { promptTemplate, promptTemplateCategories } from "@/lib/config";
+import PromptTemplateDialog from "./PromptTemplateDialog";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { z } from "zod";
+
+function useDebouncedValue(value, delay) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debounced;
+}
+
+// Helper for robust template search
+function searchPromptTemplates(query) {
+  if (!query.trim()) return [];
+  const lower = query.toLowerCase();
+  return promptTemplate.filter(
+    (tpl) =>
+      tpl.name.toLowerCase().includes(lower) ||
+      tpl.outcome.toLowerCase().includes(lower) ||
+      tpl.promptTemplate.toLowerCase().includes(lower) ||
+      (tpl.workflow || []).some((w) => w.toLowerCase().includes(lower)) ||
+      (promptTemplateCategories[tpl.category - 1] || "")
+        .toLowerCase()
+        .includes(lower),
+  );
+}
+
+function PromptTemplatesSection({ templates, label, onPromptSubmit }) {
+  // Only render if there are templates to show
+  if (!templates.length) return null;
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-base font-semibold text-white">{label}</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {templates.map((tpl, idx) => (
+          <PromptTemplateDialog
+            key={tpl.name + idx}
+            template={tpl}
+            onPromptSubmit={onPromptSubmit}
+          />
+        ))}
+      </div>
+      <hr className=" border-b-2 border-white" />
+    </div>
+  );
+}
 
 function Dashboard() {
   const [value, setValue] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, refreshAccessToken } = useUser();
+  const {
+    user,
+    refreshAccessToken,
+    setPromptTemplatePrompt,
+    promptTemplatePrompt,
+  } = useUser();
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { appendToChatHistory } = _useSidebar();
+  const [searchParams] = useSearchParams();
+  const isSubmit = searchParams.get("isSubmit");
+  useEffect(() => {
+    setValue(promptTemplatePrompt);
+    if (isSubmit) {
+      handleSubmit(promptTemplatePrompt);
+    }
+  }, [promptTemplatePrompt]);
+
 
   useEffect(() => {
     async function refreshSession() {
@@ -31,14 +112,15 @@ function Dashboard() {
     refreshSession();
   }, []);
 
-  async function handleSubmit() {
+  async function handleSubmit(passedValue) {
+    const localValud = passedValue || value.trim();
+    console.log("Submitting value:", localValud);
     setIsChatLoading(true);
     try {
-      const res = await getNewSession(value, user.id);
+      const res = await getNewSession(localValud, user.id);
       if (res.success) {
-        console.log(res, "res");
         appendToChatHistory(res.data);
-        localStorage.setItem("prompt", value);
+        localStorage.setItem("prompt", localValud);
         localStorage.setItem("isFallbackedUser", "true");
         navigate(`/chat/${res.data.sessionid}`);
       }
@@ -59,55 +141,31 @@ function Dashboard() {
     };
   }, []);
 
-  const navCards = [
-    {
-      id: 1,
-      to: "/knowledge",
-      icon: School,
-      title: "Knowledge Base & Persona",
-      description:
-        "Create superior personas and knowledge base with chatting functionality",
-    },
-    {
-      id: 2,
-      to: "/agenticAutomation",
-      icon: CalendarSync,
-      title: "Superior persona Automation",
-      description: "Create Automations for superior persona",
-    },
-    {
-      id: 3,
-      to: "/oasis",
-      icon: Brain,
-      title: "Oasis - Social Media Simulation",
-      description:
-        "Create and analyze social media posts and simulate the social media environment",
-    },
-    {
-      id: 4,
-      to: "/addToPermenentKnowledgeBase",
-      icon: FileInput,
-      title: "Add to Permenent Knowledge Base",
-      description: "Add New Document to the permenent knowledge base",
-    },
-  ];
+  // Debounced search for templates
+  const debouncedValue = useDebouncedValue(value, 300);
+  const searchedTemplates = useMemo(
+    () => searchPromptTemplates(debouncedValue).slice(0, 8),
+    [debouncedValue],
+  );
+  const showSearched =
+    debouncedValue.trim().length > 0 && searchedTemplates.length > 0;
 
   return (
     <div
-      className="flex w-full h-full md:mt-0 mt-[30%] relative md:items-center justify-center"
+      className="flex w-full h-full md:mt-0 mt-[20%] relative md:items-center justify-center"
       style={{
         backgroundImage:
-          "linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.6)), url('./Frame2.png')",
+          "linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.9)), url('./Frame2.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      <div className="absolute top-5 w-full flex items-center justify-center">
+      <div className="absolute top-5 w-full flex items-center justify-center mb-[10%]">
         <AnimatedBadge onClick={() => navigate("/manual")}>
           Work Along With Interactive User Manual
         </AnimatedBadge>
       </div>
-      <div className="w-full max-w-[900px] md:w-full relative">
+      <div className="w-full max-w-[70%] mt-[10%] md:w-full relative">
         <ChatInput
           input={value}
           setInput={setValue}
@@ -115,24 +173,21 @@ function Dashboard() {
           isLoading={isChatLoading}
           setLoading={setIsChatLoading}
         />
-        {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    {navCards.map((card) => (
-                        <Link
-                            key={card.id}
-                            to={card.to}
-                            className="bg-slate-700 hover:bg-slate-600 cursor-pointer rounded-lg shadow-md p-4 flex flex-col items-start gap-4 justify-start"
-                        >
-                            <div className="flex text-left rounded-full bg-blue text-slate-400 ">
-                                <card.icon />
-                            </div>
-                            <h3 className="text-lg font-semibold mt-2">{card.title}</h3>
-                            <p className="text-gray-300 mt-1">{card.description}</p>
-                            <p className="flex gap-2 items-end text-right w-full">
-                                Click To Visit <ArrowRight width={20} height={20} />
-                            </p>
-                        </Link>
-                    ))}
-                </div> */}
+        <div className="mt-6">
+          {showSearched && (
+            <PromptTemplatesSection
+              templates={searchedTemplates}
+              label="Searched Templates"
+              onPromptSubmit={(val) => {
+                setPromptTemplatePrompt(val);
+                handleSubmit(val);
+              }}
+            />
+          )}
+        </div>
+        <div className="min-h-[40%]">
+          <Attachments onSubmit={handleSubmit} />
+        </div>
       </div>
     </div>
   );

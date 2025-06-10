@@ -27,6 +27,7 @@ import { variants } from "../../../../lib/config";
 import Workshop from "./components/Workshop";
 import AutomationPage from "@/pages/_automations/AutomationPage";
 import AutomationJobDetails from "@/pages/_automations/AutomationJobsDetails";
+import PromptTemplateLibrary from "./components/PromptTemplateLibrary";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -61,6 +62,9 @@ export default function Page() {
             {pathname.startsWith("/your-automations") && <AutomationPage />}
             {pathname.startsWith("/automationJobs/") && (
               <AutomationJobDetails />
+            )}
+            {pathname.startsWith("/template-library") && (
+              <PromptTemplateLibrary />
             )}
           </div>
           <motion.div

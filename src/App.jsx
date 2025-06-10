@@ -45,6 +45,7 @@ import PersonalProfileForm from "./components/custom/arxPersonalProfile/arxPerso
 import AddToPersonalKnowledgeBase from "./pages/_addToPersonalKnowledge/AddToPersonalKnowledge";
 import AutomationPage from "./pages/_automations/AutomationPage";
 import AutomationJobDetails from "./pages/_automations/AutomationJobsDetails";
+import PromptTemplateLibrary from "./pages/_private/components/sidebarProvided/components/PromptTemplateLibrary";
 
 export default function App() {
   const location = useLocation();
@@ -81,6 +82,10 @@ export default function App() {
             <Route
               path="/automationJobs/:id"
               element={<AutomationJobDetails />}
+            />
+            <Route
+              path="/template-library"
+              element={<PromptTemplateLibrary />}
             />
           </Route>
           <Route
