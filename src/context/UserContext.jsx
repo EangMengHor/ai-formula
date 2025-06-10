@@ -36,6 +36,7 @@ export const UserProvider = ({ children }) => {
   const [isSuperiorPersonaAttached, setIsSuperiorPersonaAttached] =
     useState(false);
   const [isUserBanned, setIsUserBanned] = useState(false);
+  const [promptTemplatePrompt, setPromptTemplatePrompt] = useState(""); // Add this line
   console.log(user, "user");
   useEffect(() => {
     console.log("Changs", isDeepThinkMode);
@@ -124,6 +125,10 @@ export const UserProvider = ({ children }) => {
     }
   }
 
+  useEffect(() => {
+    console.log("Prompt Template Prompt Changed:", promptTemplatePrompt);
+  }, [promptTemplatePrompt]);
+
   return (
     <UserContext.Provider
       value={{
@@ -155,6 +160,8 @@ export const UserProvider = ({ children }) => {
         refreshAccessToken,
         authToken,
         setAuthToken,
+        promptTemplatePrompt,
+        setPromptTemplatePrompt,
       }}
     >
       {children}

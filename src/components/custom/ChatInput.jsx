@@ -150,7 +150,7 @@ function ChatInput({
     setIsDeepThinkMode, // Use context setter
   } = useUser();
   // component states
-  const [rows, setRows] = useState(1);
+  const [rows, setRows] = useState(5);
   const [isToolBoxOpen, setIsToolBoxOpen] = useState(false);
   const [isTransribed, setIsTransribed] = useState(false);
   const [isSupDialogOpen, setIsSupDialogOpen] = useState(false);
@@ -593,7 +593,7 @@ function ChatInput({
                          ${
                            isSwarmMode
                              ? "border-2  border-blue-500 glow-outline-soft"
-                             : "border  border-gray-400"
+                             : ""
                          }`}
         >
           {selectedWorkflowId !== null && selectedWorkflowId > 0 && (

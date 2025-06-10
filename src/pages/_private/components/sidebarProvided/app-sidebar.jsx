@@ -219,7 +219,6 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">New Chat</p>
               </div>
             </div>
-           
 
             <div
               hidden={isPublicDomain}
