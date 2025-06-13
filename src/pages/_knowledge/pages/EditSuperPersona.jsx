@@ -78,11 +78,7 @@ export default function EditSuperPersona() {
     setMaxPer(parseInt(queryParams.get("maxPer") || "0", 10));
     setCurrSkeleton(maxPer || 4);
     setPoll(queryParams.get("poll") && queryParams.get("poll") == "true");
-    console.log(
-      queryParams.get("poll"),
-      queryParams.get("poll") == "true",
-      "poll",
-    );
+
     return () => {
       resetAllStates();
     };
@@ -149,8 +145,6 @@ export default function EditSuperPersona() {
         } finally {
           setPendingRequests((prev) => prev - 1);
         }
-      } else {
-        console.log("Max pending requests reached. Waiting...");
       }
     };
 
@@ -161,7 +155,6 @@ export default function EditSuperPersona() {
       fetchData();
     }
 
-    console.log("loading 234234");
     return () => clearInterval(pollingInterval.current);
   }, [
     idx,
@@ -190,7 +183,6 @@ export default function EditSuperPersona() {
 
       personas.forEach((data) => {
         const result = eachPersonaSchema.safeParse(data);
-        console.log(result, "result");
         if (!result.success) {
           result.error.issues.forEach((issue) => {
             newImprovements.push({
@@ -204,24 +196,10 @@ export default function EditSuperPersona() {
 
       setImprovements(newImprovements);
     }
-    console.log(personas, "personas");
   }, [currSkeleton, personas]);
 
   useEffect(() => {
-    console.log(
-      improvements,
-      improvements.map((i) => {
-        console.log(
-          personas.find((a) => {
-            console.log(a.id, i.id, a.id === i.id, a, i);
-            return a.id === i.id;
-          }),
-          i,
-        );
-        return i;
-      }),
-      "improvements",
-    );
+   
   }, [improvements]);
 
   const handleRefresh = async () => {

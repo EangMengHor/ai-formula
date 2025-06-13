@@ -15,13 +15,10 @@ import {
   Loader2,
   Copy,
   Check,
-  Download,
   CalendarCheck,
   Clock,
   Book,
-  ExternalLink,
   Volume2,
-  ArrowBigDownDash,
   FolderDown,
   CircleStop,
 } from "lucide-react";
@@ -37,6 +34,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import TTSPrompt from "@/components/custom/TTSPrompt";
+import rehypeRaw from "rehype-raw";
+import { getFavicon } from "@/lib/utils";
+import SourcesIndicator from "@/components/custom/CitationSources";
+import CitationMiniCard from "./CitationMiniCard";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -138,7 +139,6 @@ const Conversation = forwardRef(
 
       try {
         setIsPdfDownloadLoading(true);
-        console.log("PDF content:", currentContent);
 
         const contentToDownload = currentContent || "No content available";
 
@@ -177,6 +177,10 @@ const Conversation = forwardRef(
         setIsPdfDownloadLoading(false);
       }
     };
+
+    useEffect(() => {
+      console.log("Conversation data:", conversation);
+    }, [conversation]);
 
     // Helper function to extract content from blocks
     const extractContentFromBlocks = (blocks) => {
@@ -247,6 +251,89 @@ ${block.content}
       },
     };
 
+    function siteName(url) {
+      try {
+        const host = new URL(url).hostname.replace(/^www\./, ""); // youtube.com
+        const first = host.split(".")[0]; // youtube
+        return first.charAt(0).toUpperCase() + first.slice(1); // Youtube
+      } catch {
+        return url;
+      }
+    }
+
+    function CitationHoverCard({ index, metadata }) {
+      // 1️⃣ Normalise input
+      const data = typeof metadata === "string" ? { url: metadata } : metadata;
+      const { url = "", title = "", description = "", siteName = "" } = data;
+
+      // 2️⃣ Host + rock-solid favicon (Google service, 64-px)
+      let hostname = url;
+      try {
+        hostname = new URL(url).hostname.replace(/^www\./, "");
+      } catch {
+        /* keep raw url */
+      }
+      const icon = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
+
+      // 3️⃣ Clean title / description (strip tags, trim)
+      const cleanTitle = stripHtml(title).trim();
+      const finalTitle =
+        cleanTitle.length >= 4 && !/^https?:/i.test(cleanTitle)
+          ? cleanTitle
+          : siteName || hostname;
+
+      const cleanDesc = stripHtml(description).trim();
+      const finalDesc = cleanDesc.length >= 10 ? cleanDesc : "";
+
+      return (
+        <span className="relative inline-block group ml-1 mr-1 mt-2">
+          {/* superscript number */}
+          <sup
+            onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+            className="cursor-pointer text-white px-2 py-1 bg-slate-800 rounded-sm hover:bg-slate-900 text-md"
+          >
+            {index}
+          </sup>
+
+          {/* pop-over */}
+          <div className="absolute z-20 hidden group-hover:block bg-slate-900 text-white p-3 rounded-lg shadow-lg w-80 mt-2">
+            {/* favicon + host */}
+            <div className="flex items-center gap-2 mb-2">
+              <img src={icon} alt="" className="w-5 h-5 rounded-full" />
+              <span className="font-semibold text-sm">
+                {hostname ? hostname : ""}
+              </span>
+            </div>
+
+            {/* title */}
+            {finalTitle && (
+              <p className="text-xs font-medium leading-snug mb-1">
+                {finalTitle}
+              </p>
+            )}
+
+            {/* description (clamped) */}
+            {finalDesc &&
+              !finalDesc?.toLowerCase().includes("no description") && (
+                <p className="text-xs text-gray-300 leading-snug line-clamp-3">
+                  {finalDesc}
+                </p>
+              )}
+
+            {/* raw link */}
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 underline text-xs break-all mt-2 inline-block"
+            >
+              {url}
+            </a>
+          </div>
+        </span>
+      );
+    }
+
     // Helper to render text blocks with appropriate styling
     const renderTextBlock = (
       block,
@@ -254,38 +341,53 @@ ${block.content}
       isLastBlock,
       currContent,
       isDeepThink = false,
+      citations,
     ) => {
+      console.log(citations, "streaming 3");
       const styles = isDeepThink ? tableStyles.deepThink : tableStyles.regular;
-
+      const data = block.content
+        .replace("undefined", "")
+        .replace(
+          /\[(\d+)\]/g,
+          (_, n) => `<sup data-source="${n}">[${n}]</sup>`,
+        );
       return (
         <div key={`text-${blockIdx}`}>
           <ReactMarkdown
             className={isDeepThink ? "module font-figtree" : "module"}
-            children={block.content.replace("undefined", "")}
+            children={data}
             remarkPlugins={[remarkGfm, remarkMath]}
-            rehypePlugins={[rehypeKatex]}
+            rehypePlugins={[rehypeRaw, rehypeKatex]}
             components={{
+              sup: ({ node, ...props }) => {
+                try {
+                  const sourceId = props["data-source"];
+                  if (sourceId) {
+                    const idx = Number(sourceId);
+                    const urls = citations.map((item) => ({ url: item }));
+
+                    const url = urls[idx - 1];
+                    if (url)
+                      return (
+                        <CitationHoverCard index={idx} metadata={url.url} />
+                      );
+                  }
+                  // default <sup> if something’s wrong
+                  return <sup {...props}>{props.children}</sup>;
+                } catch (error) {
+                  console.error("Error rendering sup:", error);
+                  return <div />;
+                }
+              },
               table: ({ children }) => (
                 <table style={styles.table}>{children}</table>
               ),
               th: ({ children }) => <th style={styles.th}>{children}</th>,
               td: ({ children }) => <td style={styles.td}>{children}</td>,
-              a: ({ node, ...props }) => {
-                const { href } = props;
-                console.log("Link props:", props);
-                return (
-                  <div className="p-1 w-fit  rounded-md border-2 border-slate-800 hover:bg-slate-800 flex gap-2  items-center">
-                    <a href={props.href} className="w-[95%]">
-                      {props.children}
-                    </a>
-                    <ExternalLink className="w-4 h-4 text-slate-500" />
-                  </div>
-                );
-              },
             }}
           />
 
-          {isLastBlock && renderActionButtons(currContent, blockIdx)}
+          {isLastBlock && renderActionButtons(currContent, blockIdx, citations)}
         </div>
       );
     };
@@ -368,7 +470,6 @@ ${block.content}
             block.uniProt
               .match(/<showUniProt>(.*?)<\/showUniProt>/s)?.[1]
               ?.trim() || block.uniProt;
-          console.log("passing uni prot", uniProtId, block.uniProt);
           handleMaterialSidebar(uniProtId, block.name);
         }}
         className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${
@@ -392,118 +493,213 @@ ${block.content}
         </div>
       </div>
     );
-
+    const stripHtml = (html = "") =>
+      html
+        .replace(/<\/?[^>]+(>|$)/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
     // Helper to render action buttons (copy and download)
-    const renderActionButtons = (content, blockIdx) => (
-      <div className="flex justify-start border-2 border-slate-800 p-1 rounded-md w-fit items-center gap-2 mt-4 h-fit">
-        {/* Copy */}
-        <Button
-          className={buttonWrapperClass}
-          onClick={() => copyToClipboard(content)}
-        >
-          {isCopied ? (
-            <Check className={iconClass} />
-          ) : (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger className="p-0">
-                  <Copy className={iconClass} />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Copy Content</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-        </Button>
-
-        {/* Download */}
-        <Dialog
-          open={blockIdx === currDialogIndexOpen && pdfDialogOpen}
-          onOpenChange={(val) => {
-            if (val) {
-              setCurrentContent(content || "No content available");
-              setCurrDialogIndexOpen(blockIdx);
-              setPdfDialogOpen(true);
-            } else {
-              setPdfDialogOpen(false);
-              setCurrDialogIndexOpen(-1);
-            }
-          }}
-        >
-          <DialogTrigger asChild className="p-0 m-0 h-fit">
-            <Button
-              className={buttonWrapperClass}
-              onClick={() => {
-                setCurrentContent(content || "No content available");
-                setCurrDialogIndexOpen(blockIdx);
-              }}
-            >
-              <TooltipProvider delayDuration={0}>
+    const renderActionButtons = (content, blockIdx, citations) => (
+      <div className="flex gap-2">
+        <div className="flex justify-start border-2 border-slate-800 p-1 rounded-md w-fit items-center gap-2 mt-4 h-fit">
+          {/* Copy */}
+          <Button
+            className={buttonWrapperClass}
+            onClick={() => copyToClipboard(content)}
+          >
+            {isCopied ? (
+              <Check className={iconClass} />
+            ) : (
+              <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
-                    <FolderDown className={iconClass} />
+                  <TooltipTrigger className="p-0">
+                    <Copy className={iconClass} />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Download Content</p>
+                    <p>Copy Content</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-            </Button>
-          </DialogTrigger>
+            )}
+          </Button>
 
-          <DialogContent className="max-w-4xl bg-slate-800">
-            <h1 className="font-semibold text-lg text-white mb-3">
-              Name And Download Your PDF
-            </h1>
-            <p className="text-white -mb-2">File Name</p>
-            <Textarea
-              className="w-full h-10 text-white"
-              placeholder="Document Name"
-              value={pdfFileName || "Document"}
-              onChange={(e) => setpPdfFileName(e.target.value)}
-            />
-            <Button
-              className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
-              onClick={() => handlePdfDownload(currentContent)}
-              disabled={isPdfDownloadLoading}
-            >
-              {isPdfDownloadLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin" />
-                  Downloading...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <FileDown /> Downloads
-                </div>
-              )}
-            </Button>
-          </DialogContent>
-        </Dialog>
+          {/* Download */}
+          <Dialog
+            open={blockIdx === currDialogIndexOpen && pdfDialogOpen}
+            onOpenChange={(val) => {
+              if (val) {
+                setCurrentContent(content || "No content available");
+                setCurrDialogIndexOpen(blockIdx);
+                setPdfDialogOpen(true);
+              } else {
+                setPdfDialogOpen(false);
+                setCurrDialogIndexOpen(-1);
+              }
+            }}
+          >
+            <DialogTrigger asChild className="p-0 m-0 h-fit">
+              <Button
+                className={buttonWrapperClass}
+                onClick={() => {
+                  setCurrentContent(content || "No content available");
+                  setCurrDialogIndexOpen(blockIdx);
+                }}
+              >
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <FolderDown className={iconClass} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Download Content</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Button>
+            </DialogTrigger>
 
-        {/* TTS */}
-        <TTSPrompt
-          prompt={content || "No Content available"}
-          startButton={
-            <div className={buttonWrapperClass}>
-              <Volume2 className={iconClass} />
-            </div>
-          }
-          StopButton={
-            <div className={buttonWrapperClass}>
-              <CircleStop className={iconClass} />
-            </div>
-          }
-          loadingButton={
-            <div className={buttonWrapperClass}>
-              <Loader2 className={iconClass + " animate-spin"} />
-            </div>
-          }
-        />
+            <DialogContent className="max-w-4xl bg-slate-800">
+              <h1 className="font-semibold text-lg text-white mb-3">
+                Name And Download Your PDF
+              </h1>
+              <p className="text-white -mb-2">File Name</p>
+              <Textarea
+                className="w-full h-10 text-white"
+                placeholder="Document Name"
+                value={pdfFileName || "Document"}
+                onChange={(e) => setpPdfFileName(e.target.value)}
+              />
+              <Button
+                className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
+                onClick={() => handlePdfDownload(currentContent)}
+                disabled={isPdfDownloadLoading}
+              >
+                {isPdfDownloadLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="animate-spin" />
+                    Downloading...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <FileDown /> Downloads
+                  </div>
+                )}
+              </Button>
+            </DialogContent>
+          </Dialog>
+
+          {/* TTS */}
+          <TTSPrompt
+            prompt={content || "No Content available"}
+            startButton={
+              <div className={buttonWrapperClass}>
+                <Volume2 className={iconClass} />
+              </div>
+            }
+            StopButton={
+              <div className={buttonWrapperClass}>
+                <CircleStop className={iconClass} />
+              </div>
+            }
+            loadingButton={
+              <div className={buttonWrapperClass}>
+                <Loader2 className={iconClass + " animate-spin"} />
+              </div>
+            }
+          />
+        </div>
+        {citations && citations.length > 0 && (
+          <div className="flex items-center gap-2 mt-4">
+            <Dialog>
+              <DialogTrigger>
+                <SourcesIndicator
+                  citations={citations.map((item) => ({ url: item.url })) || []}
+                  maxIcons={3}
+                  onClick={() => {}}
+                />
+              </DialogTrigger>
+              <DialogContent className="w-full max-w-3xl bg-slate-800 text-white">
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pb-2">
+                  {citations.map((raw, idx) => {
+                    // 1️⃣  normalise shape
+                    const c = typeof raw === "string" ? { url: raw } : raw;
+                    const { url = "" } = c;
+
+                    // 2️⃣  hostname + favicon (always Google service, 64-px for retina)
+                    let hostname = url;
+                    try {
+                      hostname = new URL(url).hostname.replace(/^www\./, "");
+                    } catch {
+                      /* keep raw url */
+                    }
+                    const icon = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
+
+                    // 3️⃣  title logic
+                    const rawTitle = c.title ? stripHtml(c.title) : "";
+                    const title =
+                      rawTitle.length >= 4 && !/^https?:/i.test(rawTitle)
+                        ? rawTitle
+                        : c.siteName || hostname;
+
+                    // 4️⃣  description logic
+                    const rawDesc = c.description
+                      ? stripHtml(c.description)
+                      : "";
+                    const description = rawDesc.length >= 10 ? rawDesc : "";
+
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-slate-700 rounded-xl px-4 py-3 flex flex-col shadow border border-[#23272f] hover:bg-slate-600 transition"
+                      >
+                        {/* line 1 — index, favicon, site name */}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm text-gray-400 font-semibold">
+                            {idx + 1}.
+                          </span>
+                          <span className="flex items-center gap-1 text-sm font-medium text-gray-200">
+                            <img
+                              src={icon}
+                              alt=""
+                              className="w-5 h-5 rounded-full"
+                            />
+                            {c.siteName || hostname}
+                          </span>
+                        </div>
+
+                        {/* title */}
+                        {title && (
+                          <p className="text-base font-semibold leading-snug text-gray-100 mb-1">
+                            {title}
+                          </p>
+                        )}
+
+                        {/* description */}
+                        {description && (
+                          <p className="text-sm text-gray-300 leading-snug mb-1 line-clamp-3">
+                            {description}
+                          </p>
+                        )}
+
+                        {/* raw link */}
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-400 hover:underline break-all"
+                        >
+                          {url}
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
     );
-    console.log(conversation, "conversation123");
     return (
       <div
         ref={chatContainerRef}
@@ -542,8 +738,18 @@ ${block.content}
               return (
                 <div
                   key={`ai-deep-${index}`}
-                  className="text-slate-300 rounded shadow space-y-4"
+                  className="text-slate-300 rounded shadow "
                 >
+                  <hr className="my-2 border border-slate-700" />
+                  <div className="flex gap-2">
+                    {console.log(item.citations, "streaming 4")}
+                    {item.citations
+                      ?.filter((item) => item?.title.length >= 7)
+                      .slice(0, 4) // first three
+                      .map((cite, i) => (
+                        <CitationMiniCard key={i} cite={cite} />
+                      ))}
+                  </div>
                   {item?.steps && item.steps.length > 0 && (
                     <ExecutionTimeline
                       steps={item.steps || []}
@@ -595,8 +801,8 @@ ${block.content}
                       const currContent = extractContentFromBlocks(
                         item.message,
                       );
+                      console.log(item, " streaming 5asd");
                       if (block.type === "showUniProt") {
-                        console.log("showing uni prop 123", block);
                         return RenderMaterial(block, blockIdx);
                       } else if (block.type === "simulation") {
                         return (
@@ -607,13 +813,13 @@ ${block.content}
                           />
                         );
                       } else if (block.type === "text") {
-                        console.log(block, "block in deep think");
                         return renderTextBlock(
                           block,
                           blockIdx,
                           isLastBlock,
                           currContent,
                           true,
+                          item.citations || [],
                         );
                       } else if (block.type === "mermaid") {
                         return renderMermaidBlock(block, blockIdx);
@@ -659,13 +865,23 @@ ${block.content}
                 </div>
               );
             } else {
-              console.log(item.type, "item type");
+              console.log(item, "steaming 1");
               // For other AI responses
               return (
                 <div
                   key={`ai-${index}`}
                   className="text-slate-300 rounded shadow space-y-4"
                 >
+                  <hr className="my-2 border border-slate-700" />
+                  <div className="flex gap-2">
+                    {console.log(item.citations, "streaming 4")}
+                    {item.citations
+                      ?.filter((item) => item?.title.length >= 7)
+                      .slice(0, 4) // first three
+                      .map((cite, i) => (
+                        <CitationMiniCard key={i} cite={cite} />
+                      ))}
+                  </div>
                   {item.workflow && item.workflow.length > 0 && (
                     <PollStatus
                       workflow={item.workflow}
@@ -676,7 +892,6 @@ ${block.content}
                       isCompleted={item?.message}
                     />
                   )}
-
                   {Array.isArray(item.message) &&
                     item.message.map((block, blockIdx) => {
                       const isLastBlock =
@@ -686,16 +901,17 @@ ${block.content}
                       const currContent = extractContentFromBlocks(
                         item.message,
                       );
-                      console.log(item.message, "message123");
                       if (block.type === "showUniProt") {
-                        console.log("showing uni prop");
                         return RenderMaterial(block, blockIdx);
                       } else if (block.type === "text") {
+                        console.log(item.citations, "streaming 2123123");
                         return renderTextBlock(
                           block,
                           blockIdx,
                           isLastBlock,
                           currContent,
+                          true,
+                          item.citations,
                         );
                       } else if (block.type === "mermaid") {
                         return renderMermaidBlock(block, blockIdx);

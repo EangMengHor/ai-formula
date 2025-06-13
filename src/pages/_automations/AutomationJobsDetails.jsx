@@ -44,7 +44,6 @@ export default function AutomationJobDetails() {
         const data = await getJobDataById(id);
 
         if (data) {
-          console.log("Fetched Job Data:", data.data);
           setJobData(data.data);
         } else {
           console.error("No job data found for ID:", id);
@@ -104,7 +103,6 @@ export default function AutomationJobDetails() {
     return `${years} years ago`;
   }
 
-  console.log("Automation Job ID:", id, jobData);
   const tableStyles = {
     deepThink: {
       table: {

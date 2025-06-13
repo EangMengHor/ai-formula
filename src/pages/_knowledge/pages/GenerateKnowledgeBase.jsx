@@ -41,7 +41,6 @@ export default function GenerateKnowledgeBase() {
       if (!idx) return;
       try {
         const response = await pollCurrLoadingPersona(idx);
-        console.log("data", response);
         if (response.success) {
           setPersonas(response.data);
         }
@@ -52,7 +51,6 @@ export default function GenerateKnowledgeBase() {
     if (idx) {
       setCurrSessionId(idx);
     }
-    console.log(!title || !description || !maxPer, idx, "eitwieiru");
     if (!title || !description || !maxPer) {
       getSuperPersonaData();
     }

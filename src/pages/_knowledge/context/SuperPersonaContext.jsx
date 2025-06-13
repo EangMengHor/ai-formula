@@ -25,7 +25,6 @@ export const SuperPersonaProvider = ({ children }) => {
     if (!currSessionId) return;
     try {
       const response = await getSuperPersona(currSessionId);
-      console.log("data", response);
       setTitle(response.data.sup_per_name);
       setDescription(response.data.sup_per_description);
       setMaxPer(response.data.numberOfPersona);

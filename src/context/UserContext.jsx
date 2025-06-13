@@ -37,18 +37,12 @@ export const UserProvider = ({ children }) => {
     useState(false);
   const [isUserBanned, setIsUserBanned] = useState(false);
   const [promptTemplatePrompt, setPromptTemplatePrompt] = useState(""); // Add this line
-  console.log(user, "user");
-  useEffect(() => {
-    console.log("Changs", isDeepThinkMode);
-  }, [isDeepThinkMode]);
+
   useEffect(() => {
     setIsDocumentOn(false);
   }, [pathname]);
 
   const navigate = useNavigate();
-  useEffect(() => {
-    console.log(user, "user");
-  }, [user]);
 
   async function logout() {
     localStorage.removeItem("id");
@@ -78,7 +72,6 @@ export const UserProvider = ({ children }) => {
     // Set new refresh timer (10 minutes = 600000 milliseconds)
     tokenRefreshTimerRef.current = setInterval(
       () => {
-        console.log("Automatically refreshing access token");
         refreshAccessToken();
       },
       10 * 60 * 1000,
@@ -117,7 +110,6 @@ export const UserProvider = ({ children }) => {
           accessToken: data.accessToken,
         }));
         localStorage.setItem("accessToken", data.accessToken);
-        console.log("Access token refreshed successfully");
       }
     } catch (error) {
       console.error("Failed to refresh token:", error);
@@ -125,9 +117,7 @@ export const UserProvider = ({ children }) => {
     }
   }
 
-  useEffect(() => {
-    console.log("Prompt Template Prompt Changed:", promptTemplatePrompt);
-  }, [promptTemplatePrompt]);
+
 
   return (
     <UserContext.Provider

@@ -12,7 +12,6 @@ const AudioRecorder = ({ value, setValue, trigger, setTrigger }) => {
       audio: true,
       mimeType: "audio/webm",
       onStop: (blobUrl, blob) => {
-        console.log("✅ Recording stopped. Blob URL:", blobUrl);
         if (blobUrl) {
           const file = new File([blob], "recording.webm", { type: blob.type });
           setAudioFile(file);
@@ -35,13 +34,11 @@ const AudioRecorder = ({ value, setValue, trigger, setTrigger }) => {
   const onAudioRecorded = async () => {
     if (!audioFile) return;
 
-    console.log("📤 Sending file for transcription:", audioFile);
     setIsTranscribing(true);
 
     try {
       const response = await TTS(audioFile);
       if (response.success) {
-        console.log("✅ Transcription received:", response.data);
         setValue(response.data);
         setTrigger(!trigger);
       } else {
@@ -66,7 +63,6 @@ const AudioRecorder = ({ value, setValue, trigger, setTrigger }) => {
 
   // Debugging mediaBlobUrl
   useEffect(() => {
-    console.log("🔄 Current mediaBlobUrl:", mediaBlobUrl);
     if (mediaBlobUrl) {
       setAudioUrl(mediaBlobUrl);
     }
@@ -75,7 +71,6 @@ const AudioRecorder = ({ value, setValue, trigger, setTrigger }) => {
   // Trigger transcription when file is ready
   useEffect(() => {
     if (audioFile) {
-      console.log("🎤 Audio file ready:", audioFile);
       onAudioRecorded();
     }
   }, [audioFile]);
@@ -87,11 +82,9 @@ const AudioRecorder = ({ value, setValue, trigger, setTrigger }) => {
           if (isTranscribing) return;
 
           if (isRecording) {
-            console.log("⏹️ Stopping recording...");
             setIsRecording(false);
             stopRecording();
           } else {
-            console.log("🎙️ Starting recording...");
             setIsRecording(true);
             startRecording();
           }

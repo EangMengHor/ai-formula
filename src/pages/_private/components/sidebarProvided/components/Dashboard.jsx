@@ -3,37 +3,12 @@ import ChatInput from "../../../../../components/custom/ChatInput";
 import { useToast } from "../../../../../hooks/use-toast";
 import { _useSidebar } from "../../../../../context/SidebarContext";
 import { getNewSession } from "../../../../../services/n8n-apis/_core/getNewSession.api";
-import {
-  memo,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-  useLayoutEffect,
-} from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useUser } from "../../../../../context/UserContext";
-import {
-  ArrowRight,
-  Brain,
-  CalendarSync,
-  FileInput,
-  School,
-  Search,
-  X,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import AnimatedBadge from "../../../../../components/custom/AnimatedBadge";
-import { refreshAccessTokenUrl } from "@/namespace/server";
-import PromptTemplates from "./Attachments";
 import Attachments from "./Attachments";
 import { promptTemplate, promptTemplateCategories } from "@/lib/config";
 import PromptTemplateDialog from "./PromptTemplateDialog";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { z } from "zod";
 
 function useDebouncedValue(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -103,7 +78,6 @@ function Dashboard() {
       handleSubmit(promptTemplatePrompt);
     }
   }, [promptTemplatePrompt]);
-
 
   useEffect(() => {
     async function refreshSession() {

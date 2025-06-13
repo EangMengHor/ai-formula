@@ -61,10 +61,8 @@ export default function CreateKnowledgeBase() {
   const [isCreateLoading, setIsCreateLoading] = useState(false);
 
   const { user } = useUser();
-  console.log(user, "kkkk");
 
   async function onSubmit(values) {
-    console.log(values);
     setIsCreateLoading(true);
     try {
       const response = await createPersona({
@@ -78,7 +76,6 @@ export default function CreateKnowledgeBase() {
         `/editSuperPersona/${response.data}?title=${values.title}&description=${values.prompt}&maxPer=${values.maxPersonas}&poll=true`,
       ); // poll=true
 
-      console.log(response);
       setIsCreateLoading(false);
     } catch (error) {
       toast({
@@ -92,11 +89,9 @@ export default function CreateKnowledgeBase() {
   }
 
   async function onTemplateFormSubmit(values) {
-    console.log("Template Form Submitted", values);
     setIsTemplateLoading(true);
     try {
       const response = await createTemplatePersona(values.goal);
-      console.log(response, "is ui data");
       createPersonaForm.setValue("prompt", response.data[0].output.description);
       createPersonaForm.setValue("title", response.data[0].output.title);
       createPersonaForm.setValue(

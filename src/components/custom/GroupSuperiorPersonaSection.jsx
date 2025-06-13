@@ -24,7 +24,6 @@ const GroupSuperiorPersonaSection = ({
   } = useUser();
   const { toast } = useToast();
   const [isSupPerItemLoading, setSupPerItemLoading] = useState(false);
-  console.log("here ");
   // ✅ Memoize selected persona IDs to prevent re-computation on each render
   const selectedPersonaIds = useMemo(
     () => new Set(selectedSuperiorPersona.map((itm) => itm.id)),

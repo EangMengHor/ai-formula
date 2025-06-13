@@ -381,7 +381,6 @@ export default function CreateAutomationForm() {
       const data = await breakDownTask(activeTab, textInput, selectedFile);
 
       if (data.success) {
-        console.log("trying...", data.data);
         setIsProcessing(false);
         setIsProcessed(true);
         setWorkflowSteps([...data.data.data]);
@@ -515,7 +514,6 @@ export default function CreateAutomationForm() {
         }
       }
     } catch (error) {
-      console.log(error.errors, "is the error");
       if (Array.isArray(error?.errors)) {
         error.errors.map((item) =>
           toast({
@@ -528,7 +526,6 @@ export default function CreateAutomationForm() {
     }
   };
   const onSubmit = async (values) => {
-    console.log(values, "is the value");
     try {
       if (selectedSuperiorPersona.length <= 0) {
         toast({
@@ -550,8 +547,6 @@ export default function CreateAutomationForm() {
         previousContextCount: values.contextCount,
         superiorPersona: selectedSuperiorPersona.map((item) => item.id),
       };
-
-      console.log("Submitting data:", submissionData);
 
       // Call mock API
       const result = await createAutomationAPI(submissionData);
@@ -1540,9 +1535,6 @@ export default function CreateAutomationForm() {
           >
             <Button
               type="submit"
-              onClick={() => {
-                console.log(form.formState.errors);
-              }}
               disabled={!isFormValid() || isSubmitting}
               className="bg-blue-600 hover:bg-blue-700 text-white relative overflow-hidden group"
             >

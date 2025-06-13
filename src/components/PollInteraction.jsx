@@ -14,7 +14,6 @@ export default function PollInteraction({
   interactionData = [],
   sessionId = "",
 }) {
-  console.log(interactionData, "kkkkkk");
   return (
     <div>
       <Dialog>

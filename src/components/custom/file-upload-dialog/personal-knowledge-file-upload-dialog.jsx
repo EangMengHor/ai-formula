@@ -116,7 +116,6 @@ export function PersonalKnowledgeFileUpload({
         if (!presignedUrlResult.success) {
           throw new Error(presignedUrlResult.message);
         }
-        console.log(presignedUrlResult, "");
         const uploadResult = await uploadToSignedUrl({
           file: fileObj.file,
           signedUrl: presignedUrlResult.data.signedUrl,

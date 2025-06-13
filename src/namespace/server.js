@@ -3,7 +3,6 @@ const test = import.meta.env.VITE_N8N_TEST_API_URL;
 const backendUrl = import.meta.env.VITE_SOCKET_URL;
 
 const migrate = "https://backend.jamesscott.tech/webhook-test";
-console.log(url);
 
 // chat interface
 export const login = `${backendUrl}/api/auth/login`;

@@ -18,7 +18,6 @@ export const useGetUserProfileStatus = () => {
           userId: user.id,
         },
       );
-      console.log(response.data.data, "response");
       setHasPersonalProfile(response.data.data);
     } catch (err) {
       setError(err.message);

@@ -79,9 +79,6 @@ export default function PersonaCard({
       inputRef.current.focus();
     }
   }, [open]);
-  function a() {
-    console.log("B");
-  }
   const editField = useCallback(async () => {
     setOpen(false);
     if (prompt.length <= 0) {
@@ -89,7 +86,6 @@ export default function PersonaCard({
     }
     setIsEditLoading(true);
     try {
-      console.log("Selected Fields", selectedEditableField);
       const res = await editGeneratedPersona({
         persona,
         fieldToEdit: selectedEditableField.join(","),
@@ -112,13 +108,7 @@ export default function PersonaCard({
           return acc;
         }, {}),
       });
-      console.log("Edited Field", {
-        ...persona,
-        ...res.data.reduce((acc, field) => {
-          acc[field.field] = field.editedValue;
-          return acc;
-        }, {}),
-      });
+      
     } catch (error) {
       toast({
         title: "Error",
@@ -209,7 +199,6 @@ export default function PersonaCard({
                               field.value,
                             ]);
                           }
-                          console.log(selectedEditableField);
                         }}
                         className="cursor-pointer"
                       >

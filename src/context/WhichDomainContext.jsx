@@ -17,18 +17,14 @@ export const DomainProvider = ({ children }) => {
     } else {
       setDomainState(false); // will trigger when local development
     }
-    console.log("Current Domain: ", currentDomain);
   }, []);
 
   useEffect(() => {
-    console.log(domainState, "domainState Check");
     let url =
       domainState && domainState == true
         ? import.meta.env.VITE_OPENAI_REALTIME_URL
         : import.meta.env.VITE_OPENAI_REALTIME_URL2;
-    console.log(url, "Final URL 232323");
 
-    console.log("Domain State: 232323", domainState);
   }, [domainState]);
 
   return (
