@@ -41,7 +41,6 @@ export const SidebarProvider = ({ children }) => {
       Object.keys(chatHistory).length === 0
     ) {
       fetchChatHistory();
-      console.log(chatHistory, "chatHistory");
     }
   }, [user, user.isAuthenticated, pathname]);
 

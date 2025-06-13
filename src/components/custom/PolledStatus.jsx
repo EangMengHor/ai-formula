@@ -163,13 +163,9 @@ export default function PollStatus({
   isOpen = false,
   sessionId = "",
 }) {
-  console.log(workflow, updated, isActive, isCompleted, added, "workflow");
   const [isExpanded, setIsExpanded] = useState(isOpen);
   const [currLoading, setCurrLoading] = useState(workflow);
-  console.log(workflow, updated, isActive, isCompleted, added, "workflow");
-  useEffect(() => {
-    console.log(sessionId, "sessionId");
-  }, [sessionId]);
+
   useEffect(() => {
     if (updated.length === workflow.length) {
       const timer = setTimeout(() => {
@@ -259,9 +255,7 @@ export default function PollStatus({
                 const Icon = getIcon(type);
                 const text = getText(type);
                 const other = getOthers(type);
-                {
-                  console.log(other, "dashboard");
-                }
+             
                 return (
                   <motion.div
                     key={type}

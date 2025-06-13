@@ -30,7 +30,6 @@ export default function SettingsModal({ open, onClose }) {
   useEffect(() => {
     const fetchData = async () => {
       if (user.id != null) {
-        console.log("here123124312");
         try {
           const [knowledgeRes, profileRes, profileOnStatusRes] =
             await Promise.all([

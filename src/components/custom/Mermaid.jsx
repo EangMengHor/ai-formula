@@ -101,13 +101,7 @@ export const Mermaid = memo(({ chart }) => {
       btoa(unescape(encodeURIComponent(svgData)));
   };
 
-  console.log(
-    "6787867867876876876876876876868768768768",
-    chart
-      .replaceAll("`", "")
-      .replaceAll("chart ", "")
-      .replace("flow", "flowchart ", ""),
-  );
+ 
   return (
     <div className="w-full h-full my-5 border border-gray-500 rounded-lg">
       <div className="flex items-center justify-between">

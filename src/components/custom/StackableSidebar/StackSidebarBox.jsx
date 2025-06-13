@@ -17,7 +17,6 @@ export default function StackSidebarBox({ header, component, onClose, index }) {
   const [hasOpened, setHasOpened] = useState(false); // Track if it's already opened
   const { pathname } = useLocation();
   const isChatPage = pathname.includes("chat");
-  console.log(isChatPage, "sdfsdkfweru");
   useEffect(() => {
     setHasOpened(true);
   }, []);

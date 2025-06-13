@@ -182,7 +182,6 @@ function Chat() {
   }, []);
 
   const memoizedHandleMaterialSidebar = useCallback((uniProb, title) => {
-    console.log("Handling material sidebar for uniProb:", uniProb, title);
     setSidebarStack(() => {
       return [
         {
@@ -267,7 +266,6 @@ function Chat() {
 
                       try {
                         setIsPdfDownloadLoading(true);
-                        console.log("PDF content:", block);
 
                         const down = await downloadPdf({
                           content: block,
@@ -427,7 +425,6 @@ function Chat() {
   }, [id]);
 
   useEffect(() => {
-    console.log(fallBackPrompt);
     if (fallBackPrompt.length > 4999) {
       toast({
         title: "Error",
@@ -445,7 +442,6 @@ function Chat() {
     async function fetchConversations() {
       try {
         const res = await getConversationHistory(id);
-        console.log(res, "conversation history");
         if (res.success) {
           const processedData = res.data.map((item) => {
             if (item.role === "human") {
@@ -460,6 +456,7 @@ function Chat() {
                   isLoading: false,
                   isComplete: true,
                   message: parsedResponse,
+                  citations: item?.citations || [],
                 };
               }
               return {
@@ -516,12 +513,7 @@ function Chat() {
   }, [isChatLoading, id, toast]);
 
   useEffect(() => {
-    console.log(chatIdentifer, conversation, "conversation ksdkfl2389040");
-  }, [conversation, chatIdentifer]);
-
-  useEffect(() => {
     if (isShowAgenticBlock && isSuperiorPersonaAttached) {
-      console.log("interaction polling started lsdfs9820923");
       setIsShowInteractionLogs(true);
       // startPollingInteractionLogs();
     }
@@ -563,7 +555,6 @@ function Chat() {
             return item;
           });
         });
-        console.log("Stream completed due to inactivity");
       }, 60000); // 60 seconds of inactivity means streaming is done
     }
 
@@ -603,7 +594,6 @@ function Chat() {
 
   const handleSocketEvent = async (event) => {
     if (event.type === "loadingStatus") {
-      console.log(event, "loadingStatus");
       setCurrLoadingStatus(event.status || "Thinking . . .");
       return;
     }
@@ -672,12 +662,30 @@ function Chat() {
     }
 
     if (event.type == "exploitationFlag") {
-      console.log(event, "Exploitation Flag");
       if (event.userBan) {
         setIsUserBanned(true);
       } else if (event.sessionBan) {
         setIsSessionExploited(true);
       }
+    }
+
+    if (event.type == "searchUrls") {
+      setConversation((prev) => {
+        const conv = [...prev];
+        let last = conv[conv.length - 1];
+        if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
+          last = newAiMessage("quick");
+          conv.push({
+            ...last,
+            citations: event.urls,
+          });
+        } else {
+          // If the last message is already a quick or deepThink, just update its citations
+          last.citations = event.urls;
+        }
+        console.log("Search URLs updated:", event.urls, conv);
+        return conv;
+      });
     }
     /* ─────────────────────────────────────────────────────── */
     /* 4. Deep‑think sub‑events (only if last message is deep) */
@@ -688,9 +696,6 @@ function Chat() {
       if (!last || last.type !== "deepThink") return prev;
       const steps = last.steps || (last.steps = []);
       switch (event.type) {
-        case "searchUrls":
-          console.log(event, "searchUrls");
-          break;
         case "defineGoal":
           steps.push({ type: "defineGoal", text: "" });
           break;
@@ -726,6 +731,7 @@ function Chat() {
         case "reEvaluating":
           steps.push({ type: "reEvaluating", text: "" });
           break;
+
         default:
           if (event.content && steps.length) {
             const s = steps[steps.length - 1];
@@ -739,14 +745,11 @@ function Chat() {
   const processStreamingContent = (content, forceComplete = false) => {
     if (!content) return [];
 
-    console.log("Processing content:", content.substring(0, 100) + "...");
-
     try {
       // First try the standard parser from utils for complete blocks
       if (forceComplete) {
         try {
           const parsedContent = parseContent(content);
-          console.log("Standard parser result:", parsedContent);
           if (Array.isArray(parsedContent) && parsedContent.length > 0) {
             return parsedContent.map((block) => ({
               ...block,
@@ -1002,7 +1005,6 @@ function Chat() {
         });
       }
 
-      console.log("Final parsed blocks:", result);
       return result;
     } catch (error) {
       console.error("Error in processStreamingContent:", error);
@@ -1020,8 +1022,6 @@ function Chat() {
   // Function to ensure history content is properly parsed and all blocks are marked complete
   const parseHistoryAIContent = (content) => {
     if (!content) return [];
-
-    console.log("Parsing history content");
 
     try {
       // First try to parse with standard parser
@@ -1068,15 +1068,12 @@ function Chat() {
         },
       );
 
-      console.log("SSEChatCall response:", response);
-
       // If unauthorized or forbidden, try refreshing token and retrying once
       if (response.status === 401 || response.status === 403) {
         console.warn("❗ Unauthorized or forbidden, refreshing token");
         await refreshAccessToken();
         await new Promise((r) => setTimeout(r, 500)); // 100ms delay
         const accessToken = localStorage.getItem("accessToken");
-        console.log("old accesstoken", accessToken);
         if (!accessToken) {
           toast({
             title: "Error",
@@ -1085,7 +1082,6 @@ function Chat() {
           });
           return;
         }
-        console.log("new accessToken:", accessToken);
         // Retry the request once after token refresh
         response = await fetch(
           `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
@@ -1103,7 +1099,6 @@ function Chat() {
 
       if (!response.ok || response.status >= 400) {
         const errorText = await response.json();
-        console.log("SSEChatCall error:", errorText.errors);
         throw new Error(`${errorText.errors}`);
       }
 
@@ -1284,7 +1279,6 @@ function Chat() {
       .filter((item) => item.role === "human")
       .slice(-1)[0];
     if (lastHumanMessage) {
-      console.log(lastHumanMessage, "last human message");
       lastContent.current = lastHumanMessage.message;
       // remove only last element of human message
       setConversation((prev) => {
@@ -1293,7 +1287,6 @@ function Chat() {
       });
       isRetryTrigger.current = true;
     }
-    console.log(lastHumanMessage, "last human message");
   }, [conversation]);
 
   useEffect(() => {
@@ -1301,7 +1294,6 @@ function Chat() {
       isRetryTrigger.current = false;
 
       const lastHumanMessageContent = lastContent.current;
-      console.log(lastHumanMessageContent, "last human message content");
       // setPrompt(lastHumanMessageContent);
       handleSubmit(lastHumanMessageContent, true);
       setIsNextChatLoading(true);

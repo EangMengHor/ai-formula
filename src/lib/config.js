@@ -3522,4 +3522,3 @@ export const promptTemplateCategories = [
     "IB, PE & Family Office Stacks",
     "Enhanced Stock Analysis"
 ]
-console.log("Prompt templates loaded successfully.", promptTemplate.length, promptTemplateCategories.length);

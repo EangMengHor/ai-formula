@@ -130,15 +130,6 @@ function ChatInput({
     files,
   } = useFilesUploadMetadata();
   const {
-    isDocumentOn,
-    setIsDocumentOn,
-    isSearchOn,
-    setIsSearchOn,
-    isVectorBaseOn,
-    setIsVectorBaseOn,
-    isSuperiorPersonaAttached,
-    setIsSuperiorPersonaAttached,
-
     isSwarmMode,
     setIsSwarmMode,
     isAutoSwarmContextState,
@@ -181,18 +172,16 @@ function ChatInput({
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
   const { user } = useUser();
 
+  useEffect(() => {
+    if (pathname.startsWith("/chat")) {
+      setRows(2);
+    }
+  }, [pathname]);
+
   // Memoize the heavy function to prevent recreation on each render
   const handleCreateNewWorkflow = useCallback(async () => {
     // Debug: Log all relevant variables before try
-    console.log("handleCreateNewWorkflow called");
-    console.log("user:", user);
-    console.log("user.id:", user && user.id);
-    console.log("conversationProp:", conversationProp);
-    console.log(
-      "conversationProp.current:",
-      conversationProp && conversationProp.current,
-    );
-    console.log("workflowPrompt:", workflowPrompt);
+   
 
     try {
       // Use default values if missing
@@ -206,12 +195,7 @@ function ChatInput({
         typeof workflowPrompt === "string" ? workflowPrompt : "";
 
       if (!safeUserId || conversation.length === 0) {
-        console.log(
-          "!safeUserId:",
-          !safeUserId,
-          "conversation.length === 0:",
-          conversation.length === 0,
-        );
+      
         toast({
           title: "Error",
           description:
@@ -220,7 +204,6 @@ function ChatInput({
         });
         return;
       }
-      console.log("Creating new workflow with conversation:", conversation);
       setIsWorkflowCreatorLoading(true);
       let nextId = 1;
       const agents = conversation
@@ -257,7 +240,6 @@ function ChatInput({
         userPrompt: safeWorkflowPrompt,
         userId: safeUserId,
       };
-      console.log("Prepared newWorkflow:", newWorkflow);
       const resp = await createUserSavedWorflow(newWorkflow);
       setRecentlyCreatedWorkflowResponse(resp.data);
       setWorkflowList((prev) => [
@@ -266,7 +248,6 @@ function ChatInput({
           ...resp.data,
         },
       ]);
-      console.log("Workflow creation response:", resp);
     } catch (error) {
       // Improved error logging
       console.error("Error creating new workflow:", error);
@@ -280,9 +261,6 @@ function ChatInput({
     }
   }, [conversationProp, user, workflowPrompt, toast]);
 
-  useEffect(() => {
-    console.log("Workflow List Updated:", workflowList);
-  }, [workflowList]);
 
   // Memoize the prompt enhancer function
   const enchancePrompt = useCallback(async () => {
@@ -459,14 +437,12 @@ function ChatInput({
   const toggleSwarmMode = useCallback(() => {
     setIsSwarmMode((prev) => {
       const newState = !prev;
-      console.log("ChatInput - Toggling isSwarmMode to:", newState);
       return newState;
     });
     setIsToolBoxOpen((prev) => !prev);
   }, []);
 
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
-  console.log(isShowScrollToBottomButtom, "scrolling");
   return (
     <div className="relative mb-3">
       {pathname !== "/dashboard" && (
@@ -950,11 +926,7 @@ function ChatInput({
                           let url = domainState
                             ? import.meta.env.VITE_OPENAI_REALTIME_URL
                             : import.meta.env.VITE_OPENAI_REALTIME_URL2;
-                          console.log(
-                            url,
-                            "url",
-                            import.meta.env.VITE_OPENAI_REALTIME_URL2,
-                          );
+                   
                           url =
                             files.length > 0
                               ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
@@ -1005,7 +977,6 @@ function ChatInput({
                           const url = domainState
                             ? import.meta.env.VITE_GEMINI_REALTIME_URL
                             : import.meta.env.VITE_GEMINI_REALTIME_URL2;
-                          console.log(url, "kajlsdhfklasjd839472509382");
                           window.open(url, "_blank");
                         }}
                         className={`flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}

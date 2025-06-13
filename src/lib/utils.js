@@ -7,11 +7,7 @@ export function cn(...inputs) {
 }
 
 export function response(success, message, data = null) {
-    console.log({
-        success,
-        message,
-        data,
-    });
+ 
     return {
         success,
         message,
@@ -260,7 +256,6 @@ export function parseContent(input) {
         finalSections.push(...validSections);
     }
 
-    console.log("Parsed sections:", finalSections);
     return finalSections;
 }
 // Process content that isn't nested inside document blocks
@@ -337,7 +332,6 @@ function processNonNestedBlocks(text) {
 }
 
 export const getFavicon = (urls) => {
-    console.log("getFavicon called with URLs:", urls);
     if (!Array.isArray(urls)) {
         console.error("Expected an array of URLs");
         return [];
@@ -347,7 +341,6 @@ export const getFavicon = (urls) => {
         try {
             const domain = new URL(url).hostname;
             const favImage = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-            console.log(favImage)
             return { link: url, favImage: favImage, root: domain };
         } catch (error) {
             return { link: url, favImage: "" };

@@ -51,7 +51,6 @@ export default function JobDetails() {
     setIsJobDataLoading(true);
     try {
       const res = await getJobDetails(jobId);
-      console.log(res, "is here");
       if (res.success && res.data) {
         setJobData(res.data);
         return;
@@ -86,7 +85,6 @@ export default function JobDetails() {
       setIsShowAllAgentsLoading(true);
       const res = await getJobEachAgentResponse(jobId);
       if (res.success) {
-        console.log(res.data);
         setEachAgentResponse(res.data);
         return;
       }

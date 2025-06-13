@@ -39,7 +39,6 @@ export default function AddToPersonalKnowledge() {
       if (userFiles) {
         setFiles(userFiles.data);
       }
-      console.log("Fetched files:", userFiles.data);
     } catch (error) {
       console.error("Error fetching files:", error);
       toast.error("Failed to fetch files");
@@ -96,7 +95,6 @@ export default function AddToPersonalKnowledge() {
     try {
       const data = await getUserPersonalKnowledgeCollection(user.id);
       setVectorStoreList(data || []);
-      console.log("Fetched vector stores:", data);
     } catch (error) {
       setVectorStoreList([]);
     } finally {

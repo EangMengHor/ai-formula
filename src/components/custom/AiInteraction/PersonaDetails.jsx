@@ -33,7 +33,6 @@ export default function PersonaDetails({
 }) {
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   function handleCoT() {
-    console.log("clicked");
     if (cot.length > 0) {
       setSidebarStack((prev) => [
         ...prev,

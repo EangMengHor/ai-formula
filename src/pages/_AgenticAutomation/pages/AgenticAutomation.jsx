@@ -33,7 +33,6 @@ export default function AgenticAutomation() {
         }
         if (resp.success && resp.data.length > 0) {
           setUserAgenticAutomationProject(resp.data);
-          console.log(resp.data, "djfskdj293");
           return;
         }
 

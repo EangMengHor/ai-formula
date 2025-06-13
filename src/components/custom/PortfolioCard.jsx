@@ -23,7 +23,6 @@ export default function PortfolioCard({ data }) {
     privateEquity: false,
     jurisdictions: false,
   });
-  console.log(data, "data");
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
