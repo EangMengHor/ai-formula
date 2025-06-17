@@ -7,7 +7,7 @@ export function cn(...inputs) {
 }
 
 export function response(success, message, data = null) {
- 
+
     return {
         success,
         message,

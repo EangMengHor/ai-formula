@@ -8,7 +8,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { useToast } from "../../../../../hooks/use-toast";
 import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
-import { parseContent, sanitizeFileName } from "../../../../../lib/utils";
+import { sanitizeFileName } from "../../../../../lib/utils";
 import ChatInput from "../../../../../components/custom/ChatInput";
 import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
@@ -76,11 +76,7 @@ function Chat() {
   const {
     setFileCount,
     setMemorizedFiles,
-    isMemorizationLoading,
-    setIsMemorizationLoading,
-    fileName,
     setFileName,
-    files,
     setFiles,
     resetAllStates,
   } = useFilesUploadMetadata();
@@ -449,6 +445,7 @@ function Chat() {
             } else {
               const parsedResponse = parseHistoryAIContent(item.message);
               if (item?.steps) {
+
                 return {
                   role: "ai",
                   type: "deepThink",
@@ -457,11 +454,14 @@ function Chat() {
                   isComplete: true,
                   message: parsedResponse,
                   citations: item?.citations || [],
+                  cot: item.cot,
                 };
               }
               return {
                 role: "ai",
                 message: parsedResponse,
+                cot: item.cot || [],
+
               };
             }
           });
@@ -574,6 +574,7 @@ function Chat() {
     message: kind === "simulation" ? [{ type: "simulation", items: [] }] : [],
     tempContent: "", // streaming buffer
     steps: [], // deep‑think only
+    cot: ""
   });
 
   const appendChunk = (msg, chunk) => {
@@ -602,7 +603,7 @@ function Chat() {
     /* ─────────────────────────────────────────────────────── */
     if (event.type === "swarmId") {
       const { output } = await getPersonaById(event.swarmId);
-      const simItems = parseContent(output).flatMap((d) => d.items);
+      const simItems = processStreamingContent(output).flatMap((d) => d.items);
       setConversation((prev) => {
         const conv = [...prev];
         let last = conv[conv.length - 1];
@@ -695,6 +696,7 @@ function Chat() {
       const last = conv[conv.length - 1];
       if (!last || last.type !== "deepThink") return prev;
       const steps = last.steps || (last.steps = []);
+
       switch (event.type) {
         case "defineGoal":
           steps.push({ type: "defineGoal", text: "" });
@@ -731,7 +733,9 @@ function Chat() {
         case "reEvaluating":
           steps.push({ type: "reEvaluating", text: "" });
           break;
-
+        case "nextThought":
+          console.log("chain of thought", event)
+          last.cot += event.nextThought
         default:
           if (event.content && steps.length) {
             const s = steps[steps.length - 1];
@@ -741,283 +745,243 @@ function Chat() {
       return conv;
     });
   };
+  function parseAgentBlock(agentContent) {
+    const result = {
+      content: agentContent,
+    };
 
-  const processStreamingContent = (content, forceComplete = false) => {
-    if (!content) return [];
-
-    try {
-      // First try the standard parser from utils for complete blocks
-      if (forceComplete) {
-        try {
-          const parsedContent = parseContent(content);
-          if (Array.isArray(parsedContent) && parsedContent.length > 0) {
-            return parsedContent.map((block) => ({
-              ...block,
-              isComplete: true,
-            }));
-          }
-        } catch (e) {
-          console.warn("Standard parser failed:", e);
-          // Continue with custom parsing
-        }
+    // Extract title
+    const titleMatch = /<\|title\|([\s\S]*?)<\|title\|>/g.exec(agentContent);
+    if (titleMatch) {
+      let title = titleMatch[1].trim();
+      if (title.startsWith(">")) {
+        title = title.substring(1).trim();
       }
-
-      // Custom block extraction with more robust patterns
-      const result = [];
-
-      // IMPROVED APPROACH: First extract document blocks completely with nested content
-      // Use a more careful approach to extract document blocks with balanced tag parsing
-      const extractDocumentBlocks = (content) => {
-        const documentBlocks = [];
-        const regex = /<document>/g;
-        let match;
-        let searchFrom = 0;
-
-        while ((match = regex.exec(content)) !== null) {
-          const startIndex = match.index;
-          // Find the matching closing tag, considering nesting
-          let tagDepth = 1;
-          let closeIndex = startIndex + 10; // Length of "<document>"
-
-          while (tagDepth > 0 && closeIndex < content.length) {
-            const nextOpenTag = content.indexOf("<document>", closeIndex);
-            const nextCloseTag = content.indexOf("</document>", closeIndex);
-
-            // If we find a close tag and it's before any next open tag (or there is no next open tag)
-            if (
-              nextCloseTag !== -1 &&
-              (nextOpenTag === -1 || nextCloseTag < nextOpenTag)
-            ) {
-              tagDepth--;
-              closeIndex = nextCloseTag + 11; // Length of "</document>"
-            }
-            // If we find another open tag before a close tag
-            else if (nextOpenTag !== -1) {
-              tagDepth++;
-              closeIndex = nextOpenTag + 10;
-            }
-            // If we can't find any more tags, break out
-            else {
-              break;
-            }
-          }
-
-          // If we found a balanced document tag
-          if (tagDepth === 0) {
-            const fullDocContent = content.substring(startIndex, closeIndex);
-            const innerContent = content.substring(
-              startIndex + 10,
-              closeIndex - 11,
-            );
-
-            // Extract the name if present
-            const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(innerContent);
-            let name = nameMatch ? nameMatch[1].trim() : "Document";
-            let cleanContent = innerContent;
-
-            if (nameMatch) {
-              cleanContent = innerContent.replace(nameMatch[0], "").trim();
-            }
-
-            documentBlocks.push({
-              type: "document",
-              name,
-              content: cleanContent,
-              isComplete: forceComplete || cleanContent.length > 0,
-              start: startIndex,
-              end: closeIndex,
-            });
-
-            // Update search position to avoid re-finding the same tag
-            regex.lastIndex = closeIndex;
-          }
-        }
-
-        return documentBlocks;
-      };
-
-      // Extract all document blocks first
-      const documentBlocks = extractDocumentBlocks(content);
-
-      // Create a masked content where document blocks are replaced with placeholders
-      let maskedContent = content;
-      documentBlocks.forEach((block) => {
-        // Replace the document block in the masked content with spaces
-        maskedContent =
-          maskedContent.substring(0, block.start) +
-          " ".repeat(block.end - block.start) +
-          maskedContent.substring(block.end);
-      });
-
-      // Now extract other blocks from the masked content (where document blocks are removed)
-      const visualPattern = /<visual>([\s\S]*?)<\/visual>/g;
-      const mermaidPattern = /```mermaid([\s\S]*?)```/g;
-
-      const otherBlocks = [];
-
-      // Find visual blocks in masked content
-      let match;
-      while ((match = visualPattern.exec(maskedContent)) !== null) {
-        // Only process if not inside a document (check if the match position has content in maskedContent)
-        if (
-          maskedContent.substring(match.index, match.index + 8) === "<visual>"
-        ) {
-          const fullBlock = match[0];
-          const blockContent = match[1];
-          const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(blockContent);
-
-          let name = nameMatch ? nameMatch[1].trim() : "Visualization";
-          let cleanContent = blockContent;
-
-          if (nameMatch) {
-            cleanContent = blockContent.replace(nameMatch[0], "").trim();
-          }
-
-          otherBlocks.push({
-            type: "visual",
-            name,
-            content: cleanContent,
-            isComplete: forceComplete || cleanContent.length > 0,
-            start: match.index,
-            end: match.index + fullBlock.length,
-          });
-        }
-      }
-
-      // Find mermaid blocks in masked content
-      while ((match = mermaidPattern.exec(maskedContent)) !== null) {
-        // Only process if not inside a document
-        if (
-          maskedContent
-            .substring(match.index, match.index + 10)
-            .includes("mermaid")
-        ) {
-          otherBlocks.push({
-            type: "mermaid",
-            content: match[1].trim(),
-            isComplete: true,
-            start: match.index,
-            end: match.index + match[0].length,
-          });
-        }
-      }
-
-      const automationPattern = /<automationCard>([\s\S]*?)<\/automationCard>/g;
-      while ((match = automationPattern.exec(maskedContent)) !== null) {
-        const inner = match[1];
-        const name =
-          (/<name>([\s\S]*?)<\/name>/i.exec(inner) || [])[1]?.trim() || "";
-        const task =
-          (/<task>([\s\S]*?)<\/task>/i.exec(inner) || [])[1]?.trim() || "";
-        const time =
-          (/<time>([\s\S]*?)<\/time>/i.exec(inner) || [])[1]?.trim() || "";
-        const outputFormat =
-          (/<outputFormat>([\s\S]*?)<\/outputFormat>/i.exec(inner) ||
-            [])[1]?.trim() || "";
-        otherBlocks.push({
-          type: "automationDaily",
-          name,
-          task,
-          time,
-          outputFormat,
-          isComplete: true,
-          start: match.index,
-          end: match.index + match[0].length,
-        });
-      }
-
-      // Add showUniProt pattern parsing
-      const showUniProtPattern = /<showUniProt>([\s\S]*?)<\/showUniProt>/g;
-      while ((match = showUniProtPattern.exec(maskedContent)) !== null) {
-        // Only process if not inside a document
-        if (
-          maskedContent.substring(match.index, match.index + 13) ===
-          "<showUniProt>"
-        ) {
-          const uniprotContent = match[1];
-          // Extract name and UniProt ID
-          const nameMatch = /<name>([\s\S]*?)<\/name>/i.exec(uniprotContent);
-          let name = nameMatch ? nameMatch[1].trim() : "";
-          let content = uniprotContent;
-
-          // Remove name tag if present to get the UniProt ID
-          if (nameMatch) {
-            content = uniprotContent.replace(nameMatch[0], "").trim();
-          }
-
-          otherBlocks.push({
-            type: "showUniProt",
-            uniProt: content,
-            name: name,
-            isComplete: forceComplete || content.length > 0,
-            start: match.index,
-            end: match.index + match[0].length,
-          });
-        }
-      }
-
-      // Combine all blocks and sort by position
-      const allBlocks = [...documentBlocks, ...otherBlocks].sort(
-        (a, b) => a.start - b.start,
-      );
-
-      // Extract text between blocks
-      let lastIndex = 0;
-
-      for (const block of allBlocks) {
-        // Add text before the current block
-        if (block.start > lastIndex) {
-          const textContent = content.substring(lastIndex, block.start).trim();
-          if (textContent) {
-            result.push({
-              type: "text",
-              content: textContent,
-              isComplete: true,
-            });
-          }
-        }
-
-        // Add the block itself (without position info)
-        const { start, end, ...cleanBlock } = block;
-        result.push(cleanBlock);
-
-        lastIndex = block.end;
-      }
-
-      // Add any remaining text after the last block
-      if (lastIndex < content.length) {
-        const remainingContent = content.substring(lastIndex).trim();
-        if (remainingContent) {
-          result.push({
-            type: "text",
-            content: remainingContent,
-            isComplete: true,
-          });
-        }
-      }
-
-      // If nothing was found, return the full content as text
-      if (result.length === 0 && content.trim()) {
-        result.push({
-          type: "text",
-          content: content.trim(),
-          isComplete: true,
-        });
-      }
-
-      return result;
-    } catch (error) {
-      console.error("Error in processStreamingContent:", error);
-      // Ultimate fallback - just return as plain text
-      return [
-        {
-          type: "text",
-          content: content || "",
-          isComplete: true,
-        },
-      ];
+      result.title = title;
+      result.content = result.content.replace(titleMatch[0], "");
     }
+
+    // Extract goal
+    const goalMatch = /<\|goal\|([\s\S]*?)<\|goal\|>/g.exec(agentContent);
+    if (goalMatch) {
+      let goal = goalMatch[1].trim();
+      if (goal.startsWith(">")) {
+        goal = goal.substring(1).trim();
+      }
+      result.goal = goal;
+      result.content = result.content.replace(goalMatch[0], "");
+    }
+
+    // Extract all team entries
+    result.team = [];
+    const teamRegex = /<\|team\|([\s\S]*?)<\|team\|>/g;
+    let teamMatch;
+
+    while ((teamMatch = teamRegex.exec(agentContent)) !== null) {
+      const teamContent = teamMatch[1].trim();
+
+      if (teamContent.startsWith('"') && teamContent.endsWith('"')) {
+        let member = teamContent.slice(1, -1).trim();
+        if (member.startsWith(">")) {
+          member = member.substring(1).trim();
+        }
+        result.team.push(member);
+      } else {
+        const members = teamContent.split(",").map((item) => {
+          let trimmed = item.trim();
+          if (trimmed.startsWith(">")) {
+            trimmed = trimmed.substring(1).trim();
+          }
+          return trimmed.startsWith('"') && trimmed.endsWith('"')
+            ? trimmed.slice(1, -1).trim()
+            : trimmed;
+        });
+        result.team.push(...members);
+      }
+
+      result.content = result.content.replace(teamMatch[0], "");
+    }
+
+    result.content = result.content.trim();
+    if (result.content.startsWith(">")) {
+      result.content = result.content.substring(1).trim();
+    }
+    return result;
+  }
+
+  const processStreamingContent = (input, forceComplete = false) => {
+    if (!input) return [];
+
+    /** helper to push a text block if non-empty */
+    const pushText = (arr, txt) => {
+      const t = txt.trim();
+      if (t) arr.push({ type: 'text', content: t, isComplete: true });
+    };
+
+    // --- 1. Extract balanced <document> blocks ---
+    const documentBlocks = [];
+    const docRegex = /<document>/gi;
+    let match;
+    while ((match = docRegex.exec(input)) !== null) {
+      const start = match.index;
+      let depth = 1;
+      let pos = start + match[0].length;
+      while (depth > 0 && pos < input.length) {
+        const nextOpen = input.indexOf('<document>', pos);
+        const nextClose = input.indexOf('</document>', pos);
+        if (nextClose === -1) break;
+        if (nextOpen !== -1 && nextOpen < nextClose) {
+          depth++;
+          pos = nextOpen + 10;
+        } else {
+          depth--;
+          pos = nextClose + 11;
+        }
+      }
+      if (depth === 0) {
+        const end = pos;
+        let inner = input.slice(start + 10, end - 11).trim();
+        let name = 'Document';
+        const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+        if (nm) {
+          name = nm[1].trim();
+          inner = inner.replace(nm[0], '').trim();
+        }
+        documentBlocks.push({ type: 'document', name, content: inner, isComplete: true, start, end });
+        docRegex.lastIndex = end;
+      }
+    }
+
+    // --- 2. Mask document spans to avoid nested matches ---
+    let masked = input;
+    documentBlocks.forEach(({ start, end }) => {
+      masked = masked.slice(0, start) + ' '.repeat(end - start) + masked.slice(end);
+    });
+
+    // --- 3. Define other block patterns ---
+    const blockDefs = [
+      {
+        type: 'visual',
+        regex: /<visual>([\s\S]*?)<\/visual>/gi,
+        handler: (m, start, end) => {
+          let inner = m[1].trim();
+          let name = 'Visualization';
+          const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+          if (nm) {
+            name = nm[1].trim();
+            inner = inner.replace(nm[0], '').trim();
+          }
+          return { type: 'visual', name, content: inner, isComplete: true, start, end };
+        }
+      },
+      {
+        type: 'mermaid',
+        regex: /```mermaid([\s\S]*?)```/gi,
+        handler: (m, start, end) => ({ type: 'mermaid', content: m[1].trim(), isComplete: true, start, end })
+      },
+      {
+        type: 'automationDaily',
+        regex: /<automationCard>([\s\S]*?)<\/automationCard>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1];
+          console.log(inner, "aahsdkj387498");
+          const tag = (t) => new RegExp(`<${t}>([\\s\\S]*?)<\/${t}>`, 'i').exec(inner)?.[1]?.trim() || '';
+          return {
+            type: 'automationDaily',
+            name: tag('name'),
+            task: tag('task'),
+            time: tag('time'),
+            outputFormat: tag('outputFormat'),
+            isComplete: true,
+            start,
+            end
+          };
+        }
+
+      },
+      {
+        type: 'showUniProt',
+        regex: /<showUniProt>([\s\S]*?)<\/showUniProt>/gi,
+        handler: (m, start, end) => {
+          let inner = m[1].trim();
+          let name = '';
+          const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+          if (nm) {
+            name = nm[1].trim();
+            inner = inner.replace(nm[0], '').trim();
+          }
+          return { type: 'showUniProt', name, uniProt: inner, isComplete: true, start, end };
+        }
+      },
+      {
+        type: 'chart',
+        regex: /<chart>([\s\S]*?)<\/chart>/gi,
+        handler: (m, start, end) => {
+          let inner = m[1].trim();
+          let chartType = '';
+          const tp = /<type>([\s\S]*?)<\/type>/i.exec(inner);
+          if (tp) {
+            chartType = tp[1].trim();
+            inner = inner.replace(tp[0], '').trim();
+          }
+          return { type: 'chart', chartType, content: inner, isComplete: true, start, end };
+        }
+      },
+      {
+        type: 'persona',
+        regex: /<\|agent\|([\s\S]*?)<\|end\|>/gi,
+        handler: (m, start, end) => {
+          const parsed = parseAgentBlock(m[1]);
+          return { type: 'persona', ...parsed, isComplete: true, start, end };
+        }
+      }
+    ];
+
+    // --- 4. Find other blocks in masked content ---
+    const found = [];
+    blockDefs.forEach(def => {
+      let rx = def.regex;
+      let m;
+      while ((m = rx.exec(masked)) !== null) {
+        found.push(def.handler(m, m.index, rx.lastIndex));
+      }
+    });
+
+    // Combine and sort all blocks
+    const allBlocks = [...documentBlocks, ...found].sort((a, b) => a.start - b.start);
+
+    // --- 5. Walk through content and build result ---
+    const result = [];
+    let cursor = 0;
+
+    allBlocks.forEach(block => {
+      if (block.start > cursor) {
+        pushText(result, input.slice(cursor, block.start));
+      }
+      block.isComplete = forceComplete || Boolean(block.content && block.content.length > 0);
+      result.push(block);
+      cursor = block.end;
+    });
+
+    if (cursor < input.length) pushText(result, input.slice(cursor));
+
+    if (result.length === 0) {
+      result.push({ type: 'text', content: input.trim(), isComplete: true });
+    }
+
+    // --- 6. Merge persona blocks into a simulation at original position ---
+    const personas = result.filter(b => b.type === 'persona');
+    if (personas.length) {
+      const idx = result.findIndex(b => b.type === 'persona');
+      const simulation = { type: 'simulation', items: personas, isComplete: true };
+      const filtered = result.filter(b => b.type !== 'persona');
+      filtered.splice(idx, 0, simulation);
+      return filtered;
+    }
+
+    return result;
   };
+
 
   // Function to ensure history content is properly parsed and all blocks are marked complete
   const parseHistoryAIContent = (content) => {
@@ -1026,7 +990,7 @@ function Chat() {
     try {
       // First try to parse with standard parser
       try {
-        const parsedResult = parseContent(content);
+        const parsedResult = processStreamingContent(content);
         if (Array.isArray(parsedResult) && parsedResult.length > 0) {
           // Force all blocks to be marked as complete
           return parsedResult.map((block) => ({
@@ -1155,18 +1119,18 @@ function Chat() {
           type: isDeepThinkMode ? "deepThink" : "quick",
           ...(isDeepThinkMode
             ? {
-                steps: [],
-                markdownBuffer: "",
-                isComplete: false,
-                isStreaming: false,
-                isLoading: true,
-              }
+              steps: [],
+              markdownBuffer: "",
+              isComplete: false,
+              isStreaming: false,
+              isLoading: true,
+            }
             : {
-                message: [],
-                streamingContent: "",
-                isComplete: false,
-                isLoading: true,
-              }),
+              message: [],
+              streamingContent: "",
+              isComplete: false,
+              isLoading: true,
+            }),
         },
       ]);
 
@@ -1274,6 +1238,7 @@ function Chat() {
     ],
   );
 
+  const lastContent = useRef("");
   const onRetry = useCallback(() => {
     const lastHumanMessage = conversation
       .filter((item) => item.role === "human")
@@ -1323,7 +1288,7 @@ function Chat() {
           pollResult.data.length > 0 &&
           !dataFetchedRef.current
         ) {
-          const parsedResponse = parseContent(pollResult.data);
+          const parsedResponse = processStreamingContent(pollResult.data);
           setConversation((prev) => [
             ...prev,
             {
@@ -1380,7 +1345,7 @@ function Chat() {
         const data = await pollInteractionLogs(chatIdentifer);
         if (data.data.length > 0) {
           const processedData = data.data.map((item) =>
-            parseContent(item.output),
+            processStreamingContent(item.output),
           );
           const setterData = processedData.map(
             (data) => data?.[0]?.items[0] || {},

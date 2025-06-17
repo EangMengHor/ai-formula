@@ -28,7 +28,7 @@ export default function CitationMiniCard({ cite }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block bg-slate-900   rounded-xl p-3 w-full hover:bg-[#2b2c2f] transition shadow"
+      className="block bg-slate-900 rounded-xl p-3 w-full hover:bg-[#2b2c2f] transition shadow"
     >
       {/* favicon + site */}
       <div className="flex items-center overflow-ellipsis line-clamp-1 gap-2 mb-1 p-1">
