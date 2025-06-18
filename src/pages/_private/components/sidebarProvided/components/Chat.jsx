@@ -115,11 +115,7 @@ function Chat() {
   const [isShowInteractionLogs, setIsShowInteractionLogs] = useState(false);
   const [streamingResponse, setStreamingResponse] = useState("");
   const [isShowAgenticBlock, setIsShowAgenticBlock] = useState(false);
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogContent, setDialogContent] = useState("");
-  const [dialogType, setDialogType] = useState("visual");
-  const [dialogTitle, setDialogTitle] = useState("");
+
   const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isReconnected, setIsReconnected] = useState(false);
@@ -217,11 +213,6 @@ function Chat() {
       return (
         <div>
           <div className="flex items-center justify-between p-4 gap-2 border-b-2 border-slate-600 sticky top-0 bg-slate-800 z-40">
-            {/* onClick={() => downloadDocument({
-                                                content: block,
-                                                type: "pdf",
-                                                fileName: header ? header : "ARX Blocks"
-                                            })} */}
             {/* download */}
             <div className="sticky right-0 top-0 z-50">
               <Dialog>
@@ -445,7 +436,6 @@ function Chat() {
             } else {
               const parsedResponse = parseHistoryAIContent(item.message);
               if (item?.steps) {
-
                 return {
                   role: "ai",
                   type: "deepThink",
@@ -461,7 +451,6 @@ function Chat() {
                 role: "ai",
                 message: parsedResponse,
                 cot: item.cot || [],
-
               };
             }
           });
@@ -574,7 +563,8 @@ function Chat() {
     message: kind === "simulation" ? [{ type: "simulation", items: [] }] : [],
     tempContent: "", // streaming buffer
     steps: [], // deep‑think only
-    cot: ""
+    cot: "",
+    isOpen: false,
   });
 
   const appendChunk = (msg, chunk) => {
@@ -626,6 +616,9 @@ function Chat() {
         if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
           last = newAiMessage("quick");
           conv.push(last);
+        }
+        if (last.isOpen) {
+          last.isOpen = false; // Reset open state if it was open
         }
         appendChunk(last, event.content);
         return conv;
@@ -734,8 +727,12 @@ function Chat() {
           steps.push({ type: "reEvaluating", text: "" });
           break;
         case "nextThought":
-          console.log("chain of thought", event)
-          last.cot += event.nextThought
+          if (!last.isOpen) {
+            last.isOpen = true;
+          }
+          console.log("chain of thought", event);
+          last.cot += event.nextThought;
+
         default:
           if (event.content && steps.length) {
             const s = steps[steps.length - 1];
@@ -815,7 +812,7 @@ function Chat() {
     /** helper to push a text block if non-empty */
     const pushText = (arr, txt) => {
       const t = txt.trim();
-      if (t) arr.push({ type: 'text', content: t, isComplete: true });
+      if (t) arr.push({ type: "text", content: t, isComplete: true });
     };
 
     // --- 1. Extract balanced <document> blocks ---
@@ -827,8 +824,8 @@ function Chat() {
       let depth = 1;
       let pos = start + match[0].length;
       while (depth > 0 && pos < input.length) {
-        const nextOpen = input.indexOf('<document>', pos);
-        const nextClose = input.indexOf('</document>', pos);
+        const nextOpen = input.indexOf("<document>", pos);
+        const nextClose = input.indexOf("</document>", pos);
         if (nextClose === -1) break;
         if (nextOpen !== -1 && nextOpen < nextClose) {
           depth++;
@@ -841,13 +838,20 @@ function Chat() {
       if (depth === 0) {
         const end = pos;
         let inner = input.slice(start + 10, end - 11).trim();
-        let name = 'Document';
+        let name = "Document";
         const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
         if (nm) {
           name = nm[1].trim();
-          inner = inner.replace(nm[0], '').trim();
+          inner = inner.replace(nm[0], "").trim();
         }
-        documentBlocks.push({ type: 'document', name, content: inner, isComplete: true, start, end });
+        documentBlocks.push({
+          type: "document",
+          name,
+          content: inner,
+          isComplete: true,
+          start,
+          end,
+        });
         docRegex.lastIndex = end;
       }
     }
@@ -855,91 +859,121 @@ function Chat() {
     // --- 2. Mask document spans to avoid nested matches ---
     let masked = input;
     documentBlocks.forEach(({ start, end }) => {
-      masked = masked.slice(0, start) + ' '.repeat(end - start) + masked.slice(end);
+      masked =
+        masked.slice(0, start) + " ".repeat(end - start) + masked.slice(end);
     });
 
     // --- 3. Define other block patterns ---
     const blockDefs = [
       {
-        type: 'visual',
+        type: "visual",
         regex: /<visual>([\s\S]*?)<\/visual>/gi,
         handler: (m, start, end) => {
           let inner = m[1].trim();
-          let name = 'Visualization';
+          let name = "Visualization";
           const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
           if (nm) {
             name = nm[1].trim();
-            inner = inner.replace(nm[0], '').trim();
+            inner = inner.replace(nm[0], "").trim();
           }
-          return { type: 'visual', name, content: inner, isComplete: true, start, end };
-        }
+          return {
+            type: "visual",
+            name,
+            content: inner,
+            isComplete: true,
+            start,
+            end,
+          };
+        },
       },
       {
-        type: 'mermaid',
+        type: "mermaid",
         regex: /```mermaid([\s\S]*?)```/gi,
-        handler: (m, start, end) => ({ type: 'mermaid', content: m[1].trim(), isComplete: true, start, end })
+        handler: (m, start, end) => ({
+          type: "mermaid",
+          content: m[1].trim(),
+          isComplete: true,
+          start,
+          end,
+        }),
       },
       {
-        type: 'automationDaily',
+        type: "automationDaily",
         regex: /<automationCard>([\s\S]*?)<\/automationCard>/gi,
         handler: (m, start, end) => {
           const inner = m[1];
           console.log(inner, "aahsdkj387498");
-          const tag = (t) => new RegExp(`<${t}>([\\s\\S]*?)<\/${t}>`, 'i').exec(inner)?.[1]?.trim() || '';
+          const tag = (t) =>
+            new RegExp(`<${t}>([\\s\\S]*?)<\/${t}>`, "i")
+              .exec(inner)?.[1]
+              ?.trim() || "";
           return {
-            type: 'automationDaily',
-            name: tag('name'),
-            task: tag('task'),
-            time: tag('time'),
-            outputFormat: tag('outputFormat'),
+            type: "automationDaily",
+            name: tag("name"),
+            task: tag("task"),
+            time: tag("time"),
+            outputFormat: tag("outputFormat"),
             isComplete: true,
             start,
-            end
+            end,
           };
-        }
-
+        },
       },
       {
-        type: 'showUniProt',
+        type: "showUniProt",
         regex: /<showUniProt>([\s\S]*?)<\/showUniProt>/gi,
         handler: (m, start, end) => {
           let inner = m[1].trim();
-          let name = '';
+          let name = "";
           const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
           if (nm) {
             name = nm[1].trim();
-            inner = inner.replace(nm[0], '').trim();
+            inner = inner.replace(nm[0], "").trim();
           }
-          return { type: 'showUniProt', name, uniProt: inner, isComplete: true, start, end };
-        }
+          return {
+            type: "showUniProt",
+            name,
+            uniProt: inner,
+            isComplete: true,
+            start,
+            end,
+          };
+        },
       },
       {
-        type: 'chart',
+        type: "chart",
         regex: /<chart>([\s\S]*?)<\/chart>/gi,
         handler: (m, start, end) => {
           let inner = m[1].trim();
-          let chartType = '';
+          let chartType = "";
           const tp = /<type>([\s\S]*?)<\/type>/i.exec(inner);
           if (tp) {
             chartType = tp[1].trim();
-            inner = inner.replace(tp[0], '').trim();
+            inner = inner.replace(tp[0], "").trim();
           }
-          return { type: 'chart', chartType, content: inner, isComplete: true, start, end };
-        }
+          return {
+            type: "chart",
+            chartType,
+            content: inner,
+            isComplete: true,
+            start,
+            end,
+          };
+        },
       },
       {
-        type: 'persona',
+        type: "persona",
         regex: /<\|agent\|([\s\S]*?)<\|end\|>/gi,
         handler: (m, start, end) => {
           const parsed = parseAgentBlock(m[1]);
-          return { type: 'persona', ...parsed, isComplete: true, start, end };
-        }
-      }
+          return { type: "persona", ...parsed, isComplete: true, start, end };
+        },
+      },
     ];
 
     // --- 4. Find other blocks in masked content ---
     const found = [];
-    blockDefs.forEach(def => {
+    blockDefs.forEach((def) => {
       let rx = def.regex;
       let m;
       while ((m = rx.exec(masked)) !== null) {
@@ -948,17 +982,20 @@ function Chat() {
     });
 
     // Combine and sort all blocks
-    const allBlocks = [...documentBlocks, ...found].sort((a, b) => a.start - b.start);
+    const allBlocks = [...documentBlocks, ...found].sort(
+      (a, b) => a.start - b.start,
+    );
 
     // --- 5. Walk through content and build result ---
     const result = [];
     let cursor = 0;
 
-    allBlocks.forEach(block => {
+    allBlocks.forEach((block) => {
       if (block.start > cursor) {
         pushText(result, input.slice(cursor, block.start));
       }
-      block.isComplete = forceComplete || Boolean(block.content && block.content.length > 0);
+      block.isComplete =
+        forceComplete || Boolean(block.content && block.content.length > 0);
       result.push(block);
       cursor = block.end;
     });
@@ -966,22 +1003,25 @@ function Chat() {
     if (cursor < input.length) pushText(result, input.slice(cursor));
 
     if (result.length === 0) {
-      result.push({ type: 'text', content: input.trim(), isComplete: true });
+      result.push({ type: "text", content: input.trim(), isComplete: true });
     }
 
     // --- 6. Merge persona blocks into a simulation at original position ---
-    const personas = result.filter(b => b.type === 'persona');
+    const personas = result.filter((b) => b.type === "persona");
     if (personas.length) {
-      const idx = result.findIndex(b => b.type === 'persona');
-      const simulation = { type: 'simulation', items: personas, isComplete: true };
-      const filtered = result.filter(b => b.type !== 'persona');
+      const idx = result.findIndex((b) => b.type === "persona");
+      const simulation = {
+        type: "simulation",
+        items: personas,
+        isComplete: true,
+      };
+      const filtered = result.filter((b) => b.type !== "persona");
       filtered.splice(idx, 0, simulation);
       return filtered;
     }
 
     return result;
   };
-
 
   // Function to ensure history content is properly parsed and all blocks are marked complete
   const parseHistoryAIContent = (content) => {
@@ -1119,18 +1159,18 @@ function Chat() {
           type: isDeepThinkMode ? "deepThink" : "quick",
           ...(isDeepThinkMode
             ? {
-              steps: [],
-              markdownBuffer: "",
-              isComplete: false,
-              isStreaming: false,
-              isLoading: true,
-            }
+                steps: [],
+                markdownBuffer: "",
+                isComplete: false,
+                isStreaming: false,
+                isLoading: true,
+              }
             : {
-              message: [],
-              streamingContent: "",
-              isComplete: false,
-              isLoading: true,
-            }),
+                message: [],
+                streamingContent: "",
+                isComplete: false,
+                isLoading: true,
+              }),
         },
       ]);
 
@@ -1267,98 +1307,6 @@ function Chat() {
     }
   }, [conversation]);
 
-  async function _pollChatOutput(id) {
-    return await pollChatOutput(id);
-  }
-
-  const startPollingChatOutput = (chatId) => {
-    if (
-      pollChatOutputRef.current &&
-      pollChatOutputRef.current.hasOwnProperty("stopPolling")
-    )
-      return;
-    startPollingStatus();
-
-    pollChatOutputRef.current = polling(
-      async () => {
-        const pollResult = await _pollChatOutput(chatId);
-        if (
-          pollResult &&
-          pollResult.success &&
-          pollResult.data.length > 0 &&
-          !dataFetchedRef.current
-        ) {
-          const parsedResponse = processStreamingContent(pollResult.data);
-          setConversation((prev) => [
-            ...prev,
-            {
-              message: parsedResponse,
-              role: "ai",
-              workflow: compileWorkflow(
-                isDocumentOn,
-                isSearchOn,
-                isVectorBaseOn,
-              ),
-              updated: latestUpdatedStatus.current,
-            },
-          ]);
-          dataFetchedRef.current = true;
-          setIsNextChatLoading(false);
-          clearPolling();
-        }
-      },
-      10000,
-      2,
-    )();
-  };
-
-  const startPollingStatus = () => {
-    if (
-      pollChatStatusRef.current &&
-      pollChatStatusRef.current.hasOwnProperty("stopPolling")
-    )
-      return;
-
-    pollChatStatusRef.current = polling(
-      async () => {
-        const data = await pollStatus(id);
-        if (latestUpdatedStatus.current.length < data.data.length) {
-          latestUpdatedStatus.current = data.data;
-        }
-        setIsChanged((prev) => !prev);
-      },
-      2000,
-      2,
-    )();
-  };
-
-  const startPollingInteractionLogs = () => {
-    if (
-      pollInteractionLogsRef.current &&
-      pollInteractionLogsRef.current.hasOwnProperty("stopPolling")
-    )
-      return;
-    if (!chatIdentifer) return;
-
-    pollInteractionLogsRef.current = polling(
-      async () => {
-        const data = await pollInteractionLogs(chatIdentifer);
-        if (data.data.length > 0) {
-          const processedData = data.data.map((item) =>
-            processStreamingContent(item.output),
-          );
-          const setterData = processedData.map(
-            (data) => data?.[0]?.items[0] || {},
-          );
-          if (interactionLogs.length !== setterData.length)
-            setInteractionLogs(setterData);
-        }
-      },
-      8000,
-      2,
-    )();
-  };
-
   function clearPolling() {
     pollChatOutputRef.current?.stopPolling();
     pollInteractionLogsRef.current?.stopPolling();
@@ -1429,7 +1377,6 @@ function Chat() {
         handleBlockSidebar={memoizedHandleBlockSidebar}
         renderMermaidChart={memoizedRenderMermaidChart}
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
-        currentLoadingMessage={currentLoadingMessage}
         interactionLogs={interactionLogs}
         isChanged={isChanged}
         loadingMessage={currLoadingStatus}

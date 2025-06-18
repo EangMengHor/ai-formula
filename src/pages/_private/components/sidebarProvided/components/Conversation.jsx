@@ -39,6 +39,7 @@ import rehypeRaw from "rehype-raw";
 import { getFavicon } from "@/lib/utils";
 import SourcesIndicator from "@/components/custom/CitationSources";
 import CitationMiniCard from "./CitationMiniCard";
+import DeepThoughts from "./DeepThoughts";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -55,7 +56,6 @@ const Conversation = forwardRef(
       handleBlockSidebar,
       handleMaterialSidebar,
       renderMermaidChart,
-      currentLoadingMessage,
       interactionLogs,
       isChanged,
       loadingMessage = "Thinking . . .",
@@ -400,10 +400,11 @@ ${block.content}
           handleBlockSidebar(block.content, block.type, block.name)
         }
         key={`doc-${blockIdx}`}
-        className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete
-          ? "cursor-pointer hover:bg-slate-800 text-white flex"
-          : ""
-          }`}
+        className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${
+          block.isComplete
+            ? "cursor-pointer hover:bg-slate-800 text-white flex"
+            : ""
+        }`}
       >
         <div
           className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
@@ -429,10 +430,11 @@ ${block.content}
             handleBlockSidebar(sanitizedMermaid, block.type, block.name)
           }
           key={`visual-${blockIdx}`}
-          className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete
-            ? "cursor-pointer hover:bg-slate-800 text-white flex"
-            : ""
-            }`}
+          className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${
+            block.isComplete
+              ? "cursor-pointer hover:bg-slate-800 text-white flex"
+              : ""
+          }`}
         >
           <div
             className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
@@ -461,25 +463,12 @@ ${block.content}
       );
     };
 
-    const renderCot = (text) => {
+    const renderCot = (text, collapsed = true) => {
+      console.log(text, typeof text, collapsed, "streaming 4");
       return (
-        <div>
-          <div className="bg-slate-900 p-3  rounded-md">
-            <div className="flex gap-2 font-semibold items-center mb-2">
-              <Diameter className="w-5 h-5" />
-              <p>Deep Thoughts</p>
-            </div>
-            <div>{text.replaceAll("<endCot>", "").replaceAll("endCot", "").replace("||", '\n\n').split("||  ").map((item, index) => (
-              <div className="flex gap-2">
-                <p className="px-2 rounded-lg bg-slate-800 h-fit w-fit">{index + 1}</p>
-                <p>{item}</p>
-
-              </div>
-            ))}</div>
-          </div>
-        </div>
-      )
-    }
+        <DeepThoughts text={text || ""} isCollapsedByDefault={collapsed} />
+      );
+    };
 
     const RenderMaterial = (block, blockIdx) => (
       <div
@@ -491,10 +480,11 @@ ${block.content}
               ?.trim() || block.uniProt;
           handleMaterialSidebar(uniProtId, block.name);
         }}
-        className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete
-          ? "cursor-pointer hover:bg-slate-800 text-white flex"
-          : ""
-          }`}
+        className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${
+          block.isComplete
+            ? "cursor-pointer hover:bg-slate-800 text-white flex"
+            : ""
+        }`}
       >
         <div
           className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
@@ -511,11 +501,13 @@ ${block.content}
         </div>
       </div>
     );
+
     const stripHtml = (html = "") =>
       html
         .replace(/<\/?[^>]+(>|$)/g, "")
         .replace(/\s+/g, " ")
         .trim();
+
     // Helper to render action buttons (copy and download)
     const renderActionButtons = (content, blockIdx, citations) => (
       <div className="flex gap-2">
@@ -633,7 +625,7 @@ ${block.content}
                 <SourcesIndicator
                   citations={citations.map((item) => ({ url: item.url })) || []}
                   maxIcons={3}
-                  onClick={() => { }}
+                  onClick={() => {}}
                 />
               </DialogTrigger>
               <DialogContent className="w-full max-w-3xl bg-slate-800 text-white">
@@ -718,6 +710,7 @@ ${block.content}
         )}
       </div>
     );
+
     return (
       <div
         ref={chatContainerRef}
@@ -736,12 +729,12 @@ ${block.content}
             if (item.role === "human") {
               return (
                 <div className="flex flex-col items-end w-full justify-end">
-                  <div className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-lg shadow break-words whitespace-pre-wrap">
+                  <div className="bg-gradient-to-r from-[#001B3F] to-[#0A1429] max-w-[80%] border-2 border-slate-800 px-3 py-4 rounded-2xl shadow break-words whitespace-pre-wrap">
                     {item.message
                       ? item.message.replaceAll(
-                        "Provided Document : No document provided",
-                        "",
-                      )
+                          "Provided Document : No document provided",
+                          "",
+                        )
                       : "{Message Not found}"}
                   </div>
                   {item.isRetry && (
@@ -758,7 +751,6 @@ ${block.content}
                   key={`ai-deep-${index}`}
                   className="text-slate-300 rounded shadow "
                 >
-                  <hr className="my-2 border border-slate-700" />
                   <div className="flex gap-2">
                     {item.citations
                       ?.filter((item) => item?.title.length >= 7)
@@ -781,12 +773,14 @@ ${block.content}
                       ))}
                     </div>
                   )} */}
-                  {
-                    item.cot && (
-                      renderCot(item.cot || ".")
-                    )
-                  }
-                  {console.log(item.cot, "streaming 2")}
+                  {item?.cot &&
+                    item?.cot?.length &&
+                    typeof item.cot === "string" &&
+                    renderCot(
+                      item.cot || ".",
+                      item?.isOpen ? item.isOpen : true,
+                    )}
+                  {console.log(item.cot, item.isOpen, "streaming 2")}
 
                   {item?.steps && item.steps.length > 0 && (
                     <ExecutionTimeline
@@ -866,14 +860,8 @@ ${block.content}
                       } else if (block.type === "visual") {
                         return renderVisualBlock(block, blockIdx);
                       } else if (block.type == "chart") {
-                        return (
-                          <div>
-                            asd
-                          </div>
-                        )
-                      }
-
-                      else if (block.type == "automationDaily") {
+                        return <div>asd</div>;
+                      } else if (block.type == "automationDaily") {
                         return (
                           <div
                             key={`automation-${blockIdx}`}
@@ -918,7 +906,6 @@ ${block.content}
                   key={`ai-${index}`}
                   className="text-slate-300 rounded shadow space-y-4"
                 >
-                  <hr className="my-2 border border-slate-700" />
                   <div className="flex gap-2">
                     {item.citations
                       ?.filter((item) => item?.title.length >= 7)
@@ -945,12 +932,9 @@ ${block.content}
                     )}
 
                   </div> */}
-                  {console.log(item.cot, "streaming 2")}
-                  {
-                    item.cot && (
-                      renderCot(item.cot || ".")
-                    )
-                  }
+                  {item?.cot &&
+                    typeof item.cot === "string" &&
+                    renderCot(item.cot || ".")}
                   {item.workflow && item.workflow.length > 0 && (
                     <PollStatus
                       workflow={item.workflow}
