@@ -56,52 +56,46 @@ export default function ChatSimulation({
   }
 
   return (
-    <div className=" w-fit md:min-w-[560px] cursor-pointer mt-5 mb-2  border-2 bg-gray-900 border-[#141957] glow-outline-soft glow-outline-soft-blue px-4 py-4 rounded-xl max-w-4xl ">
+    <div className=" md:min-w-[560px] cursor-pointer mt-5 mb-2 bg-gradient-to-r from-g2/70 to-g1/70 w-full px-4 py-4 rounded-2xl max-w-4xl ">
       <div className="flex w-full justify-between items-center">
-        <div className="flex gap-2 font-semibold items-center text-slate-200">
+        <div className="flex gap-2 font-semibold items-center ">
           <Building2 width={20} height={20} />
           <p>Agentic Simulation</p>
         </div>
         {isLoading && (
-          <div className="bg-slate-500 rounded-md flex gap-2 font-semibold px-2 py-1">
+          <div className="bg-blue-900 rounded-md flex gap-2 font-semibold px-2 py-1">
             <LoaderCircle className="animate-spin p-1" />
             Agents Are Interacting
           </div>
         )}
       </div>
-      <Separator className="border border-slate-600 my-2" />
-      <div className="flex gap-2 items-center text-slate-400 text-xs">
-        <BrainCog width={16} height={16} />
-        <p>Agents Used</p>
-        <p className="text-slate-500">Click On Agents</p>
-      </div>
 
-      {}
+
 
       {personas && personas.length == 0 && isLoading ? (
         <div className="flex flex-wrap gap-2 w-full mt-2">
           {[1, 2, 3, 4, 5].map((item, index) => (
-            <Skeleton className="px-2 py-1 border border-slate-600 rounded-md bg-slate-700 text-slate-200 w-44 h-8" />
+            <Skeleton className="px-2 py-1 rounded-md bg-slate-700 text-slate-200 w-44 h-8" />
           ))}
         </div>
       ) : (
         <div className="flex flex-wrap gap-2 w-full mt-2">
           {personas
-            .slice(0, showAll ? personas.length : 5)
+            .slice(0, showAll ? personas.length : 15)
             .map((persona, index) => (
               <div
                 onClick={() => handleDirectClick(index)}
                 key={index}
-                className="px-2 py-1 border border-slate-600 rounded-md bg-gray-800 font-serif text-slate-300"
+                className="px-2 py-1 bg-blue-950/60 hover:bg-blue-950 rounded-lg font-serif text-slate-300"
               >
                 {persona?.title || "No title"}
               </div>
             ))}
 
-          {personas.length > 5 && (
+          {personas.length > 15 && (
             <button
               onClick={handleShowAll}
-              className="mt-2 text-slate-400 hover:text-slate-200"
+              className="mt-2 text-blue-900 hover:text-blue-950"
             >
               {showAll ? "Show Less" : "Show All"}
             </button>
@@ -109,13 +103,13 @@ export default function ChatSimulation({
         </div>
       )}
 
-      <Separator className="border border-slate-600 my-2" />
+      <Separator className="border-none my-2" />
 
       <div className="flex gap-2">
         <Button
           onClick={handleDigDeeper}
           variant="default"
-          className="flex gap-2 bg-slate-700 hover:bg-slate-800"
+          className="flex gap-2 bg-g2 hover:bg-blue-950"
         >
           <Flame />
           Dig Deeper

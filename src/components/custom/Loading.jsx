@@ -126,7 +126,7 @@ export default function LoadingAnimation(
               <motion.polygon
                 points={hexagonPoints}
                 fill="none"
-                stroke="#6B7280"
+                stroke="#172a52"
                 strokeWidth="6"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -143,7 +143,7 @@ export default function LoadingAnimation(
 
         {/* Center dot */}
         <motion.div
-          className="absolute w-2 h-2 bg-gray-600 rounded-full"
+          className="absolute w-2 h-2 bg-[#375491] rounded-full"
           animate={{
             scale: [1, 1.3, 1],
             opacity: [0.7, 1, 0.7],

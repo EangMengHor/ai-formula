@@ -2,26 +2,17 @@ import {
   ArrowDownToDot,
   ArrowLeftRight,
   ArrowRight,
-  ArrowUp,
-  ArrowUpRight,
   AudioLines,
   AudioWaveform,
-  BookHeart,
   BrainCog,
   Camera,
-  Check,
   ChevronDown,
   ChevronUp,
-  CircleCheck,
   CircleFadingPlus,
-  CircleUserRound,
-  DatabaseZap,
   DiamondPlus,
-  File,
-  Files,
   FileText,
   Flame,
-  Globe,
+  Grid2x2,
   Layers2,
   Loader2,
   LoaderCircle,
@@ -30,20 +21,17 @@ import {
   RotateCcw,
   Sparkles,
   SquareDashed,
-  SquarePlus,
-  Star,
   Target,
   TriangleAlert,
   Unplug,
   X,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { memo, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { memo, useEffect, useRef, useState, useCallback } from "react";
 import { _useSidebar } from "../../context/SidebarContext";
 import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
 import AudioRecorder from "./audio-input/AudioRecorder";
-import Player from "./audio-input/Player";
 import { useLocation, useParams } from "react-router-dom";
 import {
   Tooltip,
@@ -51,9 +39,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useUser } from "../../context/UserContext";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -61,71 +48,38 @@ import {
   DialogTitle,
   DialogDescription,
   DialogHeader,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-
-import { Separator } from "@/components/ui/separator";
-
 import { useToast } from "../../hooks/use-toast";
-import { useStackSidebar } from "../../context/StackSidebarContext";
-import GroupSuperiorPersonaSection from "./GroupSuperiorPersonaSection";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "../ui/button";
 import { useDomain } from "@/context/WhichDomainContext";
 import { getPromptEnhancerApi } from "@/services/n8n-apis/_core/getPromptEnhancer.api";
 import { useWorkflow } from "../../context/WorkflowContext";
 import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUserSavedWorflow";
-// Add this import for debounce function
 import { debounce } from "lodash";
 import SelectedCollectionsDisplay from "./SelectedCollectionsDisplay";
 import InternalKnowledgeDialog from "./InternalKnowledgeDialog";
+import { useCollection } from "../../context/CollectionContext";
 const maxRows = 30;
 
 function ChatInput({
   conversationProp = [],
-  isReconnectionNeeded = false,
-  setIsReconnectionNeeded = () => {},
   input,
   setInput,
   handleSubmit,
   isLoading,
-  isError = false,
-  setIsError,
-  errorMessage = "Something Went Wrong!!",
-  onRetry,
-  isReconnecting = false,
-  setIsReconnecting,
-  isReconnected = false,
-  setIsReconnected,
-  onScrollToBottom = () => {},
+  onScrollToBottom = () => { },
 }) {
-  const isShowScrollToBottomButtom = false;
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
   const { pathname } = useLocation();
   const {
     fileCount,
     memorizedFiles,
-    isMemorizationLoading,
     resetAllStates,
     files,
   } = useFilesUploadMetadata();
@@ -134,17 +88,14 @@ function ChatInput({
     setIsSwarmMode,
     isAutoSwarmContextState,
     setIsAutoSwarmContextState,
-
-    selectedSuperiorPersona,
-    setSelectedSuperiorPersona,
     isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
   } = useUser();
   // component states
   const [rows, setRows] = useState(5);
+  // TODO: use isToolBoxOpen and create option to select superior persona
   const [isToolBoxOpen, setIsToolBoxOpen] = useState(false);
   const [isTransribed, setIsTransribed] = useState(false);
-  const [isSupDialogOpen, setIsSupDialogOpen] = useState(false);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isPromptEnhancerLoading, setIsPromptEnhancerLoading] = useState(false);
@@ -152,6 +103,8 @@ function ChatInput({
   const [prevUnenchancedPrompt, setPrevUnenchancedPrompt] = useState("");
   // Add a ref to track if input is being set by enhancer API
   const isEnhancerApiUpdateRef = useRef(false);
+  const { toggleCollectionSelection, getSelectedCollections } = useCollection();
+  const selectedCollections = getSelectedCollections();
 
   // Get only the necessary workflow states from context
   const {
@@ -181,8 +134,6 @@ function ChatInput({
   // Memoize the heavy function to prevent recreation on each render
   const handleCreateNewWorkflow = useCallback(async () => {
     // Debug: Log all relevant variables before try
-   
-
     try {
       // Use default values if missing
       const conversation =
@@ -195,7 +146,6 @@ function ChatInput({
         typeof workflowPrompt === "string" ? workflowPrompt : "";
 
       if (!safeUserId || conversation.length === 0) {
-      
         toast({
           title: "Error",
           description:
@@ -365,10 +315,10 @@ function ChatInput({
     (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        if (input.length > 4999) {
+        if (input.length > 30000) {
           toast({
             title: "Please Make Your Input Prompt Shorter.",
-            description: `Input length exceeded 5000 Character! Current length: ${input.length}`,
+            description: `Input length exceeded 30000 Character! Current length: ${input.length}`,
             variant: "destructive",
           });
           return;
@@ -397,19 +347,19 @@ function ChatInput({
   }, [pathname]);
 
   // toggler
-  useEffect(() => {
-    if (isReconnected) {
-      setTimeout(() => {
-        setIsReconnected(false);
-      }, 1500);
-    }
+  // useEffect(() => {
+  //   if (isReconnected) {
+  //     setTimeout(() => {
+  //       setIsReconnected(false);
+  //     }, 1500);
+  //   }
 
-    if (isReconnecting) {
-      setTimeout(() => {
-        setIsReconnecting(false);
-      }, 1500);
-    }
-  }, [isReconnected, isReconnecting]);
+  //   if (isReconnecting) {
+  //     setTimeout(() => {
+  //       setIsReconnecting(false);
+  //     }, 1500);
+  //   }
+  // }, [isReconnected, isReconnecting]);
 
   // if public or domain state is false, then set isAutoSwarmContextState to false
   useEffect(() => {
@@ -442,6 +392,46 @@ function ChatInput({
     setIsToolBoxOpen((prev) => !prev);
   }, []);
 
+  const AttachmentCard = ({
+    title = "",
+    type = "",
+    icon = () => { },
+    showIsRemove = true,
+    onRemove = () => { },
+  }) => {
+
+    return (
+      <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
+        <div className=" p-2 pl-3">
+          {icon}
+        </div>
+        <div className="flex items-center gap-2 py-2 pr-4">
+          <span className=" text-white text-xs h-full min-w-max">
+            {title}
+            <p className="text-slate-400">{type}</p>
+          </span>
+        </div>
+        {
+          showIsRemove && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-slate-800 rounded-xl p-2 m-2 hover:bg-slate-700 text-white"
+              onClick={onRemove}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )
+        }
+      </div>
+    )
+
+  }
+
+
+  useEffect(() => {
+    console.log(selectedCollections, "Selected Collections in ChatInput");
+  }, [])
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative mb-3">
@@ -456,7 +446,7 @@ function ChatInput({
         </div>
       )}
       <div className="flex w-full flex-col animate-fade-in ">
-        {isReconnectionNeeded && (
+        {/* {isReconnectionNeeded && (
           <div className="mb-2 font-semibold text-lg rounded-xl border-blue-900 border-2 bg-blue-300 flex items-center p-2 justify-between">
             <div className="flex gap-2 text-black max-w-lg">
               <Unplug />
@@ -489,8 +479,8 @@ function ChatInput({
               </Button>
             </div>
           </div>
-        )}
-        {isError && (
+        )} */}
+        {/* {isError && (
           <div className="mb-2 font-semibold text-lg rounded-xl border-red-900 border-2 bg-red-300 flex items-center p-2 justify-between">
             <div className="flex gap-2 text-black max-w-lg">
               <TriangleAlert />
@@ -518,80 +508,65 @@ function ChatInput({
               </Button>
             </div>
           </div>
-        )}
+        )} */}
 
-        <motion.div
-          className={`relative flex items-center ${files.length > 0 ? "" : "hidden"}`}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{
-            opacity: files.length > 0 ? 1 : 0,
-            y: files.length > 0 ? 0 : -10,
-          }}
-          transition={{ duration: 0.2, ease: "easeInOut" }}
-        >
-          <div className="flex gap-2 items-center overflow-x-scroll scroll-smooth hide-scrollbar">
-            {files.filter((file) => memorizedFiles.includes(file.name)).length >
-              0 &&
-              files
-                .filter((file) => memorizedFiles.includes(file.name))
-                .map((file, index) => (
-                  <div
-                    key={index}
-                    className="bg-[#2a3444]/80 backdrop-blur-sm rounded-lg px-2 py-2 my-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="bg-gray-200 p-3 rounded-lg">
-                          <FileText className="w-5 h-5 text-gray-700" />
-                        </div>
-                        <div className="overflow-hidden">
-                          <h3 className="text-white font-medium truncate  w-full">
-                            {file.name.length > 25
-                              ? file.name.slice(0, 25) + "..."
-                              : file.name}
-                          </h3>
-                          <p className="text-sm text-gray-400 truncate">
-                            <span className="uppercase">
-                              {file.type.replaceAll("application/", "")}
-                            </span>{" "}
-                            File
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-          </div>
-        </motion.div>
+
 
         <div
-          className={`rounded-2xl p-2 hide-scrollbar bg-gray-900 trans
-                         ${
-                           isSwarmMode
-                             ? "border-2  border-blue-500 glow-outline-soft"
-                             : ""
-                         }`}
+          className={`rounded-3xl p-2 hide-scrollbar bg-gray-900 trans
+                         ${isSwarmMode
+              ? "border-2  border-blue-500 glow-outline-soft"
+              : ""
+            }`}
         >
-          {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
-            <div className="flex items-center gap-2  rounded-md justify-between mb-2 p-2 w-fit bg-slate-800">
-              <SquareDashed className="w-5 h-5" />
-              <div className="flex items-center gap-2">
-                <span className=" text-white text-xs">
-                  {getSelectedWorkflow()?.name || "No Workflow Selected"}
-                  <p className="text-slate-400">Workflow</p>
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-slate-800 rounded-full hover:bg-slate-700 text-white"
-                onClick={() => setSelectedWorkflowId(null)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+          <motion.div
+            className={`relative flex items-center `}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{
+              opacity: 1,
+              y: -10,
+            }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+          >
+            <div className="flex gap-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+              {files.filter((file) => memorizedFiles.includes(file.name)).length > 0 &&
+                files
+                  .filter((file) => memorizedFiles.includes(file.name))
+                  .map((file, index) => (
+                    <AttachmentCard
+                      key={index}
+                      title={file.name}
+                      type={file.type.replaceAll("application/", "")}
+                      icon={<FileText className="w-5 h-5" />}
+                      showIsRemove={false}
+                    />
+                  ))}
+
+              {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
+                <AttachmentCard
+                  title={getSelectedWorkflow()?.name || "No Workflow Selected"}
+                  type="Workflow"
+                  icon={<SquareDashed className="w-5 h-5" />}
+                  showIsRemove={true}
+                  onRemove={() => setSelectedWorkflowId(null)}
+                />
+              )}
+
+              {selectedCollections.map((collection) => (
+                <AttachmentCard
+                  key={collection.id}
+                  title={collection.collectionName}
+                  type="Knowledge Block"
+                  icon={<Grid2x2 className="w-5 h-5" />}
+                  showIsRemove={true}
+                  onRemove={() => toggleCollectionSelection(collection.id)}
+                />
+              ))}
             </div>
-          )}
-          <SelectedCollectionsDisplay />
+
+          </motion.div>
+
+          {/* <SelectedCollectionsDisplay /> */}
 
           <Textarea
             value={input}
@@ -653,9 +628,8 @@ function ChatInput({
                       {/* Star (z-10 above text, on right) */}
                       <div className="z-10">
                         <CircleFadingPlus
-                          className={`w-5 h-5 ${
-                            selectedWorkflowId ? "text-white " : "text-white"
-                          } drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
+                          className={`w-5 h-5 ${selectedWorkflowId ? "text-white " : "text-white"
+                            } drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
                         />
                       </div>
                     </div>
@@ -860,7 +834,6 @@ function ChatInput({
                     onClick={toggleSwarmMode}
                     className=" rounded-md px-2 cursor-pointer flex gap-2"
                   >
-                    {/* default */}
                     {
                       <div className="flex gap-2 font-semibold">
                         <TooltipProvider>
@@ -926,13 +899,13 @@ function ChatInput({
                           let url = domainState
                             ? import.meta.env.VITE_OPENAI_REALTIME_URL
                             : import.meta.env.VITE_OPENAI_REALTIME_URL2;
-                   
+
                           url =
                             files.length > 0
                               ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-                                  .slice(0, 20)
-                                  .map((file) => file.name)
-                                  .join("||||")}&namespace=${id || ""}`
+                                .slice(0, 20)
+                                .map((file) => file.name)
+                                .join("||||")}&namespace=${id || ""}`
                               : id && id != undefined
                                 ? `${url}?namespace=${id}`
                                 : url;
@@ -1115,11 +1088,11 @@ function ChatInput({
                               {index <
                                 recentlyCreatedWorkflowResponse.workflow
                                   .length -
-                                  1 && (
-                                <div className="absolute left-1 top-5 h-6">
-                                  <div className="w-px h-full bg-slate-600 opacity-50"></div>
-                                </div>
-                              )}
+                                1 && (
+                                  <div className="absolute left-1 top-5 h-6">
+                                    <div className="w-px h-full bg-slate-600 opacity-50"></div>
+                                  </div>
+                                )}
                             </div>
                           ),
                         )}
@@ -1128,10 +1101,10 @@ function ChatInput({
 
                     <div className="mt-6 space-y-4">
                       {recentlyCreatedWorkflowResponse &&
-                      Object.keys(recentlyCreatedWorkflowResponse).includes(
-                        "personaList",
-                      ) &&
-                      recentlyCreatedWorkflowResponse.personaList.length > 0 ? (
+                        Object.keys(recentlyCreatedWorkflowResponse).includes(
+                          "personaList",
+                        ) &&
+                        recentlyCreatedWorkflowResponse.personaList.length > 0 ? (
                         <div>
                           <p className="py-2 font-semibold mb-2">Agents</p>
                           <ul className="space-y-2">

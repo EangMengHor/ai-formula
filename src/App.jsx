@@ -18,7 +18,7 @@ import {
 import PrivateRoute from "./pages/_private/PrivateRoute";
 import Dashboard from "./pages/_private/components/sidebarProvided/components/Dashboard";
 import SidebarProvided from "./pages/_private/components/sidebarProvided/SidebarProvided";
-import Chat from "./pages/_private/components/sidebarProvided/components/Chat";
+import Chat from "./pages/_private/components/sidebarProvided/chat/Chat";
 import { useEffect } from "react";
 import KnowledgeLayout from "./pages/_knowledge/KnowledgeLayout";
 import CreateKnowledgeBase from "./pages/_knowledge/pages/CreateKnowledgeBase";
@@ -36,7 +36,6 @@ import ComingSoonPage from "./components/custom/ComingSoonPage";
 import OasisLayout from "./pages/_oasis/OasisLayout";
 import OasisDashboard from "./pages/_oasis/components/OasisDashboard";
 import UserFormProgress from "./pages/_oasis/components/createNewUserTemplate/UserFormProgress";
-import AIExecutionFlow from "./pages/_private/components/sidebarProvided/components/AIExecutionFlow";
 import Workshop from "./pages/_private/components/sidebarProvided/components/Workshop";
 import Test from "./Test";
 import UserManualLayout from "./pages/_userManual/UserManualLayout";

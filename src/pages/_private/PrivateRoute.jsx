@@ -21,7 +21,7 @@ export default function PrivateRoute() {
   const location = useLocation();
   const [isMounted, setIsMounted] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-
+  const [isOffline, setIsOffline] = useState(false);
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -73,6 +73,38 @@ export default function PrivateRoute() {
     }
   }, [hasPersonalProfile, loading, isMounted]);
 
+
+  // check internet connection
+  useEffect(() => {
+    const handleOnline = () => {
+      console.warn("You are back online!");
+      toast({
+        title: "Back Online",
+        description: "You are back online!",
+        variant: "default",
+      });
+    };
+
+    const handleOffline = () => {
+      console.warn("You are back offline!");
+      toast({
+        title: "Offline",
+        description: "You are currently offline. Please check your internet connection.",
+        variant: "destructive",
+      });
+      setIsOffline(true);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+
   if (isUserBanned) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-slate-900 ">
@@ -106,7 +138,28 @@ export default function PrivateRoute() {
       </div>
     );
   }
-
+  if (isOffline) {
+    return (
+      <div className="flex items-center justify-center h-screen w-screen bg-slate-900 ">
+        <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md text-center">
+          <h2 className="text-2xl font-bold mb-4 text-red-500">
+            You Are Offline
+          </h2>
+          <p className="text-gray-300 mb-4">
+            Please check your internet connection and try again.
+          </p>
+          <Button
+            onClick={() => {
+              window.location.reload();
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

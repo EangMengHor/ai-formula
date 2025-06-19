@@ -6,6 +6,147 @@ export function cn(...inputs) {
     return twMerge(clsx(inputs));
 }
 
+
+export const tableStyles = {
+    deepThink: {
+        table: {
+            borderCollapse: "collapse",
+            width: "100%",
+            borderColor: "#65AFFF",
+            borderRadius: "8px",
+            overflow: "hidden",
+            backgroundColor: "#000C1B",
+            margin: "1rem 0",
+        },
+        th: {
+            border: "1px solid #444",
+            padding: "8px",
+            backgroundColor: "#001A3B",
+            textAlign: "left",
+        },
+        td: {
+            border: "1px solid #444",
+            padding: "8px",
+            backgroundColor: "#0A1429",
+        },
+    },
+    regular: {
+        table: {
+            borderCollapse: "collapse",
+            width: "100%",
+            borderRadius: "8px",
+            overflow: "hidden",
+            color: "#e0e0e0",
+            margin: "1rem 0",
+        },
+        th: {
+            border: "1px solid #444",
+            padding: "8px",
+            backgroundColor: "transparent",
+            textAlign: "left",
+        },
+        td: {
+            border: "1px solid #444",
+            padding: "8px",
+            backgroundColor: "#222",
+            color: "#e0e0e0",
+        },
+    },
+};
+
+export const urlToCompanyNameExtractor = (url) => {
+    // take the core part of the url to get the name of the company ex. www.yotube.com >yotube
+    try {
+        const urlObj = new URL(url);
+        const hostname = urlObj.hostname.replace(/^www\./, ""); // Remove 'www.' if present
+        const parts = hostname.split(".");
+        return parts.length > 1 ? parts[0] : hostname; // Return the first part as company name
+    } catch (error) {
+        console.error("Invalid URL:", url, error);
+        return ""; // Return empty string if URL is invalid
+    }
+}
+
+export const processAgenticCitations = (agenticCitations, agents) => {
+    console.log(agenticCitations, "asdsad", agents)
+    try {
+
+        return agenticCitations.map(item => {
+            const citationIdx = item.citation.replaceAll(/\[(\d+)\]/g, '$1')
+            const citationAgentName = item.agentName;
+            const agentDetails = agents.items.find(agent => agent.title == citationAgentName);
+            console.log({
+                citationIdx: citationIdx,
+                citationAgentName: citationAgentName,
+                citationAgentGoal: agentDetails.goal || "-",
+                citationAgentInitialText: agentDetails.content.slice(0, 100) || "-",
+                team: agentDetails.team || []
+
+            }, "asdsad")
+            return {
+                citationIdx: citationIdx,
+                citationAgentName: citationAgentName,
+                citationAgentGoal: agentDetails.goal || "-",
+                citationAgentInitialText: agentDetails.content.slice(0, 100) || "-",
+                team: agentDetails.team || []
+            }
+
+        })
+    } catch (error) {
+        return [];
+
+    }
+}
+
+// Helper function to extract content from blocks
+export const extractContentFromBlocks = (blocks) => {
+    return blocks
+        .map((block) => {
+            let gatheredBlock = "";
+            if (block.type === "text") {
+                gatheredBlock += block.content.replace("undefined", "");
+            } else if (block.type === "visual") {
+                gatheredBlock += `<visual>
+<name>${block?.name || "No Name"}</name>
+${block.content}
+</visual>`;
+            } else {
+                gatheredBlock += block.content;
+            }
+
+            return gatheredBlock;
+        })
+        .join("\n");
+};
+export const stripHtml = (html = "") =>
+    html
+        .replace(/<\/?[^>]+(>|$)/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+export const copyToClipboard = async (content) => {
+    try {
+        // Extract plain text from markdown
+        const plainText = content
+            .replace(/\*\*(.*?)\*\*/g, "$1") // Bold
+            .replace(/\*(.*?)\*/g, "$1") // Italic
+            .replace(/\[(.*?)\]\((.*?)\)/g, "$1: $2") // Links
+            .replace(/#{1,6}\s(.*?)(\n|$)/g, "$1\n") // Headers
+            .replace(/```[a-zA-Z]*\n([\s\S]*?)```/g, "$1") // Code blocks
+            .replace(/`(.*?)`/g, "$1"); // Inline code
+
+        await navigator.clipboard.writeText(plainText);
+
+        setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+        console.error("Failed to copy: ", error);
+        toast({
+            title: "Error",
+            description: "Failed to copy to clipboard",
+            variant: "destructive",
+        });
+    }
+};
 export function response(success, message, data = null) {
 
     return {

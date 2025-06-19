@@ -15,7 +15,7 @@ import {
 import { AppSidebar } from "@/pages/_private/components/sidebarProvided/app-sidebar.jsx";
 import { useLocation } from "react-router-dom";
 import Dashboard from "./components/Dashboard";
-import Chat from "./components/Chat";
+import Chat from "./chat/Chat";
 import { _useSidebar } from "../../../../context/SidebarContext";
 import StackSidebarProvider, {
   useStackSidebar,

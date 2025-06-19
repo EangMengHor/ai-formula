@@ -7,44 +7,20 @@ import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { useToast } from "../../../../../hooks/use-toast";
-import { chat } from "../../../../../services/n8n-apis/_core/chat.api";
-import { sanitizeFileName } from "../../../../../lib/utils";
 import ChatInput from "../../../../../components/custom/ChatInput";
-import LatexParser from "@/components/custom/LatexParser";
 import { getConversationHistory } from "@/services/n8n-apis/_core/getConversationHistory.api";
 import "../../../../_private/components/sidebarProvided/components/Chat.css";
 import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_core/getUploadedDocumentHis.api";
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
-import PollStatus from "../../../../../components/custom/PolledStatus";
-import { pollStatus } from "../../../../../services/n8n-apis/_core/pollStatus.api";
 import { useUser } from "../../../../../context/UserContext";
-import { pollChatOutput } from "../../../../../services/n8n-apis/_core/pollChatOutput.api";
-import PersonaOp from "../../../../../components/custom/AiInteraction/PersonaOp";
-import ChatSimulation from "../../../../../components/custom/AiInteraction/ChatSimulation";
-import polling from "../../../../../lib/polling";
-import { pollInteractionLogs } from "../../../../../services/n8n-apis/_core/pollInteractionLogs.api";
 import { useStackSidebar } from "../../../../../context/StackSidebarContext";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Mermaid } from "../../../../../components/custom/Mermaid";
-import LoadingAnimation from "@/components/custom/Loading";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { downloadDocument } from "@/lib/downloadModule";
-import ExecutionTimeline from "./ExecutionTimeline";
-import { StreamingResponse } from "./StreamingRendered";
 import Conversation from "./Conversation";
 import { getPersonaById } from "@/services/n8n-knowledge-apis/getPersonaById";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,22 +28,14 @@ import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
 import { useWorkflow } from "@/context/WorkflowContext";
 import { useCollection } from "../../../../../context/CollectionContext";
 import { useScrollToBottom } from "@/hooks/scrollToBottom";
-import RenderMaterialUniProb from "./RenderMaterialUniProb";
+import RenderMaterialUniProb from "../components/RenderMaterialUniProb";
+import { SSEChatCall } from "../../../../../services/SSEChat";
 
-const fileType = ["pdf"];
 
 function Chat() {
   // exploitation
   const [isSessionExploited, setIsSessionExploited] = useState(false);
 
-  // --- Refs ---
-  const conversationCompRef = useRef(null);
-  const latestUpdatedStatus = useRef([]);
-  const dataFetchedRef = useRef(false);
-  const pollChatOutputRef = useRef(null);
-  const pollChatStatusRef = useRef(null);
-  const pollInteractionLogsRef = useRef(null);
-  const streamTimeoutRef = useRef(null);
   const isRetryTrigger = useRef(false);
 
   // --- Context ---
@@ -82,23 +50,14 @@ function Chat() {
   } = useFilesUploadMetadata();
   const { selectedWorkflowId } = useWorkflow();
   const {
-    isVectorBaseOn,
-    setIsVectorBaseOn,
-    isSuperiorPersonaAttached,
+
     isSwarmMode,
-    setIsSwarmMode,
     isAutoSwarmContextState,
-    setIsAutoSwarmContextState,
-    setIsSuperiorPersonaAttached,
     selectedSuperiorPersona,
-    setSelectedSuperiorPersona,
-    currActiveIntraction,
-    setCurrActiveIntraction,
+
     isDeepThinkMode,
-    isUserBanned,
     setIsUserBanned,
     refreshAccessToken,
-    authToken,
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
@@ -109,12 +68,8 @@ function Chat() {
   const [conversation, setConversation] = useState([]);
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
   const [prompt, setPrompt] = useState("");
-  const [isChanged, setIsChanged] = useState(false);
-  const [chatIdentifer, setChatIdentifer] = useState(null);
-  const [interactionLogs, setInteractionLogs] = useState([]);
-  const [isShowInteractionLogs, setIsShowInteractionLogs] = useState(false);
+
   const [streamingResponse, setStreamingResponse] = useState("");
-  const [isShowAgenticBlock, setIsShowAgenticBlock] = useState(false);
 
   const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -125,11 +80,12 @@ function Chat() {
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [currLoadingStatus, setCurrLoadingStatus] = useState("Thinking");
   const chatContainerRef = useRef(null);
-
+  const [agentCitations, setAgentCitations] = useState([]);
   // Use the hook properly
   const { showScrollButton, scrollToBottom, endRef } =
     useScrollToBottom(chatContainerRef);
 
+  // when sessionId changes then reset the state 
   useEffect(() => {
     setIsNextChatLoading(false);
     isSessionExploited && setIsSessionExploited(false);
@@ -206,6 +162,7 @@ function Chat() {
     [setSidebarStack],
   );
 
+  // document block with download pdf
   const Sb = useCallback(
     ({ header, block, type }) => {
       const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
@@ -389,7 +346,7 @@ function Chat() {
     [memoizedRenderMermaidChart, pdfFileName, setpPdfFileName],
   );
 
-  // --- Effects ---
+  // check if user is coming from dashboard to here.
   useEffect(() => {
     async function getPurpose() {
       const localItem = localStorage.getItem("prompt");
@@ -411,12 +368,12 @@ function Chat() {
     }
   }, [id]);
 
+  // check the prompt coming from dashboard
   useEffect(() => {
-    if (fallBackPrompt.length > 4999) {
+    if (fallBackPrompt.length > 30000) {
       toast({
         title: "Error",
-        description: "Prompt length exceeds 5000 characters.",
-
+        description: "Prompt length exceeds 30000 characters.",
         variant: "destructive",
       });
     }
@@ -425,6 +382,7 @@ function Chat() {
     }
   }, [fallBackPrompt]);
 
+  // get conversation history and uploaded documents for chat thread
   useEffect(() => {
     async function fetchConversations() {
       try {
@@ -435,23 +393,18 @@ function Chat() {
               return item;
             } else {
               const parsedResponse = parseHistoryAIContent(item.message);
-              if (item?.steps) {
-                return {
-                  role: "ai",
-                  type: "deepThink",
-                  steps: item.steps,
-                  isLoading: false,
-                  isComplete: true,
-                  message: parsedResponse,
-                  citations: item?.citations || [],
-                  cot: item.cot,
-                };
-              }
+              console.log(item,"asdads")
               return {
                 role: "ai",
+                type: "quick",
+                isLoading: false,
+                isComplete: true,
                 message: parsedResponse,
-                cot: item.cot || [],
+                citations: item?.citations || [],
+                cot: item.cot,
+                agenticCitations: item.agenticCitations || []
               };
+
             }
           });
           setConversation(processedData);
@@ -501,80 +454,44 @@ function Chat() {
     }
   }, [isChatLoading, id, toast]);
 
+  // catch the error and set the error in conversation
   useEffect(() => {
-    if (isShowAgenticBlock && isSuperiorPersonaAttached) {
-      setIsShowInteractionLogs(true);
-      // startPollingInteractionLogs();
+    if (isError) {
+      setToLastAiMessage({
+        isError: true,
+        errorMessage: errorMessage || "An error occurred during the chat.",
+      })
+      console.warn("Error in chat:", errorMessage);
     }
-  }, [isShowAgenticBlock, isSuperiorPersonaAttached]);
+  }, [isError, errorMessage])
 
-  useEffect(() => {
-    return () => {
-      clearPolling();
-      if (streamTimeoutRef.current) {
-        clearTimeout(streamTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Find the latest deep thinking conversation item that is streaming
-    const deepThinkingItem = conversation.find(
-      (item) =>
-        item.role === "ai" && item.type === "deepThink" && item.isStreaming,
-    );
-
-    if (deepThinkingItem) {
-      // Reset any existing timeout
-      if (streamTimeoutRef.current) {
-        clearTimeout(streamTimeoutRef.current);
-      }
-
-      // Set new timeout to detect end of streaming
-      streamTimeoutRef.current = setTimeout(() => {
-        setConversation((prevConversation) => {
-          return prevConversation.map((item) => {
-            if (
-              item.role === "ai" &&
-              item.type === "deepThink" &&
-              item.isStreaming
-            ) {
-              return { ...item, isStreaming: false };
-            }
-            return item;
-          });
-        });
-      }, 60000); // 60 seconds of inactivity means streaming is done
-    }
-
-    return () => {
-      if (streamTimeoutRef.current) {
-        clearTimeout(streamTimeoutRef.current);
-      }
-    };
-  }, [conversation]);
 
   // --- Helper Functions ---
   const newAiMessage = (kind = "quick") => ({
     role: "ai",
-    type: kind, // "simulation" | "quick" | "deepThink"
+    type: kind, // "simulation" | "quick"
     isStreaming: kind !== "simulation",
     isComplete: kind === "simulation",
     message: kind === "simulation" ? [{ type: "simulation", items: [] }] : [],
     tempContent: "", // streaming buffer
-    steps: [], // deep‑think only
     cot: "",
     isOpen: false,
   });
 
+  const newHumanMessage = ({
+    prompt,
+    isRetry = false,
+  }) => ({
+    role: "human",
+    message: prompt,
+    isRetry: isRetry,
+  })
+
+  // function that set the response when streaming the latest response 
   const appendChunk = (msg, chunk) => {
     msg.tempContent += chunk;
     msg.isStreaming = true;
-
-    msg.message =
-      msg.type === "quick"
-        ? processStreamingContent(msg.tempContent)
-        : parseHistoryAIContent(msg.tempContent);
+    msg.message = processStreamingContent(msg.tempContent)
   };
 
   const completeStreaming = (msg) => {
@@ -583,165 +500,127 @@ function Chat() {
     delete msg.tempContent;
   };
 
+  const setToLastAiMessage = (item) => {
+    setConversation((prev) => {
+      const conv = [...prev];
+      let last = conv[conv.length - 1];
+      if (last && last.role === "ai" && typeof item == "object") {
+        Object.keys(item).forEach((key) => {
+          if (item[key] !== undefined) {
+            last[key] = item[key];
+          }
+        });
+      }
+      return conv;
+    })
+  }
+
   const handleSocketEvent = async (event) => {
     if (event.type === "loadingStatus") {
       setCurrLoadingStatus(event.status || "Thinking . . .");
       return;
     }
-    /* ─────────────────────────────────────────────────────── */
-    /* 1. "swarmId" → update or create the simulation message  */
-    /* ─────────────────────────────────────────────────────── */
-    if (event.type === "swarmId") {
-      const { output } = await getPersonaById(event.swarmId);
-      const simItems = processStreamingContent(output).flatMap((d) => d.items);
-      setConversation((prev) => {
-        const conv = [...prev];
-        let last = conv[conv.length - 1];
-        if (!last || last.type !== "simulation") {
-          last = newAiMessage("simulation");
-          conv.push(last);
-        }
-        last.message[0].items.push(...simItems);
-        return conv;
-      });
-      return;
-    }
-    /* ─────────────────────────────────────────────────────── */
-    /* 2. "finalResponse" chunks                               */
-    /* ─────────────────────────────────────────────────────── */
-    if (event.type === "finalResponse" && event.content) {
-      setConversation((prev) => {
-        const conv = [...prev];
-        let last = conv[conv.length - 1];
-        if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
+
+    setConversation((prev) => {
+      const conv = [...prev];
+      let last = conv[conv.length - 1];
+
+      /* 1. swarmId → create simulation block */
+      if (event.type === "swarmId") {
+        getPersonaById(event.swarmId).then(({ output }) => {
+          const simItems = processStreamingContent(output).flatMap((d) => d.items);
+          setConversation((prevConv) => {
+            const convCopy = [...prevConv];
+            let lastSim = convCopy[convCopy.length - 1];
+            if (!lastSim || lastSim.type !== "simulation") {
+              lastSim = newAiMessage("simulation");
+              convCopy.push(lastSim);
+            }
+            lastSim.message[0].items.push(...simItems);
+            return convCopy;
+          });
+        });
+        return prev;
+      }
+
+      /* 2. finalResponse → streaming message */
+      if (event.type === "finalResponse" && event.content) {
+        if (!last || (last.type !== "quick")) {
           last = newAiMessage("quick");
           conv.push(last);
         }
-        if (last.isOpen) {
-          last.isOpen = false; // Reset open state if it was open
+        if (agentCitations && agentCitations.length > 0) {
+          last.agentCitations = agentCitations;
+          console.log(last, "added agent citations to last message");
+          setAgentCitations([]);
         }
+        if (last.isOpen) last.isOpen = false;
         appendChunk(last, event.content);
+        setIsNextChatLoading(true);
         return conv;
-      });
-      setIsNextChatLoading(true);
-      return;
-    }
-    /* ─────────────────────────────────────────────────────── */
-    /* 3. "finish" → close the streaming message               */
-    /* ─────────────────────────────────────────────────────── */
-    if (event.type === "finish") {
-      setConversation((prev) => {
-        const conv = [...prev];
-        const last = conv[conv.length - 1];
-        if (last && (last.type === "quick" || last.type === "deepThink")) {
-          completeStreaming(last);
-          if (last.type === "deepThink") {
-            last.steps.push({ type: "finish" });
-          }
+      }
+
+      /* 3. finish → mark last complete */
+      if (event.type === "finish") {
+        if (last) completeStreaming(last);
+        setIsNextChatLoading(false);
+        setCurrLoadingStatus("");
+        return conv;
+      }
+
+      /* 4. searchUrls → attach citations to last */
+      if (event.type === "searchUrls") {
+        if (!last || (last.type !== "quick")) {
+          const newMsg = newAiMessage("quick");
+          conv.push({ ...newMsg, citations: event.urls });
+        } else {
+          last.citations = event.urls;
+        }
+        console.log("Search URLs updated:", event.urls, conv);
+        return conv;
+      }
+
+      /* 5. nextThought → add thought to last if open */
+      if (event.type === "nextThought") {
+        if (last) {
+          if (!last.isOpen) last.isOpen = true;
+          last.cot = (last.cot || "") + (event.nextThought || "");
         }
         return conv;
-      });
-      setIsNextChatLoading(false);
-      setIsShowAgenticBlock(false);
-      setCurrLoadingStatus("");
-      return;
-    }
+      }
 
+      // agentic citation
+      if (event.type = "agenticCitation") {
+        setAgentCitations(event.agentCitations)
+        console.log(event.agentCitations, "agentic citations");
+      }
+
+      return prev; // default return if no match
+    });
+
+
+
+
+    /* 6. Error & flag handlers */
     if (event.type === "error") {
+      if (isError) return; // Avoid duplicate error handling
       console.error("Error event received:", event);
       setIsError(true);
       setErrorMessage(event.message || "An error occurred during the chat.");
       setIsNextChatLoading(false);
       setIsChatLoading(false);
+      return;
     }
 
-    if (event.type == "exploitationFlag") {
-      if (event.userBan) {
-        setIsUserBanned(true);
-      } else if (event.sessionBan) {
-        setIsSessionExploited(true);
-      }
+    if (event.type === "exploitationFlag") {
+      if (event.userBan) setIsUserBanned(true);
+      else if (event.sessionBan) setIsSessionExploited(true);
     }
-
-    if (event.type == "searchUrls") {
-      setConversation((prev) => {
-        const conv = [...prev];
-        let last = conv[conv.length - 1];
-        if (!last || (last.type !== "quick" && last.type !== "deepThink")) {
-          last = newAiMessage("quick");
-          conv.push({
-            ...last,
-            citations: event.urls,
-          });
-        } else {
-          // If the last message is already a quick or deepThink, just update its citations
-          last.citations = event.urls;
-        }
-        console.log("Search URLs updated:", event.urls, conv);
-        return conv;
-      });
-    }
-    /* ─────────────────────────────────────────────────────── */
-    /* 4. Deep‑think sub‑events (only if last message is deep) */
-    /* ─────────────────────────────────────────────────────── */
-    setConversation((prev) => {
-      const conv = [...prev];
-      const last = conv[conv.length - 1];
-      if (!last || last.type !== "deepThink") return prev;
-      const steps = last.steps || (last.steps = []);
-
-      switch (event.type) {
-        case "defineGoal":
-          steps.push({ type: "defineGoal", text: "" });
-          break;
-        case "thinking":
-          steps.push({ type: "thinking", text: "" });
-          break;
-        case "stepAgent":
-          steps.push({
-            type: "stepAgent",
-            goal: "",
-            isLoadingKnowledge: false,
-            isLoadingSearch: false,
-          });
-          break;
-        case "stepAgentGoal":
-          if (steps.length) {
-            const s = steps[steps.length - 1];
-            if (s.type === "stepAgent") s.goal += event.content || "";
-          }
-          break;
-        case "knowledge":
-          if (steps.length) {
-            const s = steps[steps.length - 1];
-            if (s.type === "stepAgent") s.isLoadingKnowledge = true;
-          }
-          break;
-        case "search":
-          if (steps.length) {
-            const s = steps[steps.length - 1];
-            if (s.type === "stepAgent") s.isLoadingSearch = true;
-          }
-          break;
-        case "reEvaluating":
-          steps.push({ type: "reEvaluating", text: "" });
-          break;
-        case "nextThought":
-          if (!last.isOpen) {
-            last.isOpen = true;
-          }
-          console.log("chain of thought", event);
-          last.cot += event.nextThought;
-
-        default:
-          if (event.content && steps.length) {
-            const s = steps[steps.length - 1];
-            if (s) s.text = (s.text || "") + event.content;
-          }
-      }
-      return conv;
-    });
   };
+
+
+
+  // persers.
   function parseAgentBlock(agentContent) {
     const result = {
       content: agentContent,
@@ -965,10 +844,21 @@ function Chat() {
         type: "persona",
         regex: /<\|agent\|([\s\S]*?)<\|end\|>/gi,
         handler: (m, start, end) => {
-          const parsed = parseAgentBlock(m[1]);
-          return { type: "persona", ...parsed, isComplete: true, start, end };
+          const rawContent = m[1].trim();
+
+          // Important: Don't use m[1] directly for parsing — use rawContent + manually remove tail
+          const parsed = parseAgentBlock(rawContent.replaceAll("<visual>", '').replaceAll("</visual>", ''));
+          console.log(parsed, "parsed persona block");
+          return {
+            type: "persona",
+            ...parsed,
+            isComplete: true,
+            start,
+            end,
+          };
         },
-      },
+      }
+
     ];
 
     // --- 4. Find other blocks in masked content ---
@@ -1026,92 +916,19 @@ function Chat() {
   // Function to ensure history content is properly parsed and all blocks are marked complete
   const parseHistoryAIContent = (content) => {
     if (!content) return [];
-
     try {
-      // First try to parse with standard parser
-      try {
-        const parsedResult = processStreamingContent(content);
-        if (Array.isArray(parsedResult) && parsedResult.length > 0) {
-          // Force all blocks to be marked as complete
-          return parsedResult.map((block) => ({
-            ...block,
-            isComplete: true,
-          }));
-        }
-      } catch (e) {
-        console.warn("Standard parsing failed for history:", e);
-      }
-
-      // Fallback to our custom parser with forceComplete=true
       return processStreamingContent(content, true);
     } catch (error) {
       console.error("All parsing methods failed for history:", error);
       return [
         {
           type: "text",
-          content: content || "",
+          content: "error occured while loading your history" || "",
           isComplete: true,
         },
       ];
     }
   };
-
-  async function SSEChatCall(payload) {
-    try {
-      const accessToken = localStorage.getItem("accessToken");
-      let response = await fetch(
-        `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        },
-      );
-
-      // If unauthorized or forbidden, try refreshing token and retrying once
-      if (response.status === 401 || response.status === 403) {
-        console.warn("❗ Unauthorized or forbidden, refreshing token");
-        await refreshAccessToken();
-        await new Promise((r) => setTimeout(r, 500)); // 100ms delay
-        const accessToken = localStorage.getItem("accessToken");
-        if (!accessToken) {
-          toast({
-            title: "Error",
-            description: "No Access Token Found",
-            variant: "destructive",
-          });
-          return;
-        }
-        // Retry the request once after token refresh
-        response = await fetch(
-          `${import.meta.env.VITE_SOCKET_URL}/api/core/chating`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            credentials: "include",
-            body: JSON.stringify(payload),
-          },
-        );
-      }
-
-      if (!response.ok || response.status >= 400) {
-        const errorText = await response.json();
-        throw new Error(`${errorText.errors}`);
-      }
-
-      return response;
-    } catch (error) {
-      console.error("Error in SSEChatCall:", error);
-      throw new Error(error.message || "Unknown SSEChatCall error");
-    }
-  }
 
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
@@ -1119,7 +936,7 @@ function Chat() {
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
 
-      if (prompt.length > 4999) {
+      if (prompt.length > 30000) {
         toast({
           title: "Error",
           description: "Prompt is too long. Please shorten it.",
@@ -1133,6 +950,7 @@ function Chat() {
         setErrorMessage("");
       }
 
+      // clear the input box and store the previous prompt seperatly
       setIsNextChatLoading(true);
       const prevPrompt = prompt;
       setPrompt("");
@@ -1150,44 +968,30 @@ function Chat() {
 
       // Reset state
       setStreamingResponse("");
-      setIsShowAgenticBlock(true);
       setConversation((prev) => [
         ...prev,
-        { message: prompt, role: "human", isRetry },
-        {
-          role: "ai",
-          type: isDeepThinkMode ? "deepThink" : "quick",
-          ...(isDeepThinkMode
-            ? {
-                steps: [],
-                markdownBuffer: "",
-                isComplete: false,
-                isStreaming: false,
-                isLoading: true,
-              }
-            : {
-                message: [],
-                streamingContent: "",
-                isComplete: false,
-                isLoading: true,
-              }),
-        },
+        newHumanMessage({
+          prompt: prompt,
+          isRetry,
+        }),
+        newAiMessage("quick"),
       ]);
 
       let activityTimeout = null;
       let lastMessageTime = Date.now();
 
       const checkInactivity = () => {
-        if (Date.now() - lastMessageTime > 20000) {
-          console.warn("⚠️ Stream inactive for 20s");
+        if (Date.now() - lastMessageTime > 18000) {
+          console.warn("⚠️ Stream inactive for 15s");
           setIsError(true);
-          setErrorMessage("The connection is too slow or has stalled.");
+          setErrorMessage("The connection is too slow or has stalled. Please Check your internet connection or try again later. check your internet speed on https://www.fast.com");
+          setIsNextChatLoading(false);
+          clearInterval(activityTimeout);
         }
       };
 
       try {
-        let response;
-        response = await SSEChatCall(payload);
+        let response = await SSEChatCall(payload, refreshAccessToken);
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
@@ -1279,25 +1083,38 @@ function Chat() {
   );
 
   const lastContent = useRef("");
+
   const onRetry = useCallback(() => {
-    const lastHumanMessage = conversation
-      .filter((item) => item.role === "human")
-      .slice(-1)[0];
-    if (lastHumanMessage) {
-      lastContent.current = lastHumanMessage.message;
-      // remove only last element of human message
-      setConversation((prev) => {
-        const lastIndex = prev.lastIndexOf(lastHumanMessage);
-        return prev.filter((_, index) => index !== lastIndex);
-      });
-      isRetryTrigger.current = true;
-    }
+    const lastHumanMessage = [...conversation]
+      .reverse()
+      .find((item) => item.role === "human");
+
+    if (!lastHumanMessage) return;
+
+    lastContent.current = lastHumanMessage.message;
+
+    setConversation((prev) => {
+      const lastIndex = prev.lastIndexOf(lastHumanMessage);
+      if (lastIndex === -1) return prev;
+
+      const updated = [...prev];
+      updated.splice(lastIndex, 1); // remove last human message
+
+      // If the next message (same index due to splice) is from AI, remove it too
+      if (updated[lastIndex]?.role === "ai") {
+        updated.splice(lastIndex, 1);
+      }
+
+      return updated;
+    });
+
+    isRetryTrigger.current = true;
   }, [conversation]);
+
 
   useEffect(() => {
     if (isError && isRetryTrigger.current) {
       isRetryTrigger.current = false;
-
       const lastHumanMessageContent = lastContent.current;
       // setPrompt(lastHumanMessageContent);
       handleSubmit(lastHumanMessageContent, true);
@@ -1307,18 +1124,6 @@ function Chat() {
     }
   }, [conversation]);
 
-  function clearPolling() {
-    pollChatOutputRef.current?.stopPolling();
-    pollInteractionLogsRef.current?.stopPolling();
-    pollChatStatusRef.current?.stopPolling();
-    pollChatOutputRef.current = null;
-    pollInteractionLogsRef.current = null;
-    pollChatStatusRef.current = null;
-    latestUpdatedStatus.current = [];
-    setIsShowInteractionLogs(false);
-    setChatIdentifer(null);
-    setInteractionLogs([]);
-  }
 
   const conversationRef = useRef(conversation);
   useEffect(() => {
@@ -1331,7 +1136,7 @@ function Chat() {
     }
   }, [isChatLoading]);
 
-  // --- UI Render ---
+  // --- UI Render hook boundary ---
   if (isChatLoading) {
     return (
       <div className="w-full h-full flex items-center justify-center gap-2">
@@ -1371,41 +1176,31 @@ function Chat() {
       <Conversation
         conversation={conversation}
         isNextChatLoading={isNextChatLoading}
-        isShowInteractionLogs={isShowInteractionLogs}
-        sidebarStack={sidebarStack}
         id={id}
         handleBlockSidebar={memoizedHandleBlockSidebar}
         renderMermaidChart={memoizedRenderMermaidChart}
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
-        interactionLogs={interactionLogs}
-        isChanged={isChanged}
         loadingMessage={currLoadingStatus}
         chatContainerRef={chatContainerRef}
         endRef={endRef}
+        isError={isError}
+        setIsError={setIsError}
+        errorMessage={errorMessage}
+        onRetry={onRetry}
       />
 
       <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
         <div className="max-w-4xl bg-black w-full mx-auto">
           <ChatInput
             conversationProp={conversationRef}
-            conversationCount={conversation.length}
-            isReconnectionNeeded={isReconnectionNeeded}
             input={prompt}
             setInput={setPrompt}
             handleSubmit={() => handleSubmit(prompt)}
             isLoading={isNextChatLoading}
             setLoading={setIsNextChatLoading}
-            isError={isError}
-            errorMessage={errorMessage}
-            onRetry={onRetry}
-            setIsError={setIsError}
-            setIsReconnectionNeeded={setIsReconnectionNeeded}
-            isReconnecting={isReconnecting}
-            setIsReconnecting={setIsReconnecting}
-            setIsReconnected={setIsReconnected}
-            isReconnected={isReconnected}
             onScrollToBottom={scrollToBottom}
           />
+
         </div>
       </div>
     </div>
@@ -1413,27 +1208,3 @@ function Chat() {
 }
 
 export default memo(Chat);
-
-// --- Helper: Workflow Compilation ---
-function compileWorkflow(
-  isDocumentOn,
-  isSearchOn,
-  isVectorBaseOn,
-  isInteraction,
-) {
-  const workflow = [];
-  if (isDocumentOn) {
-    workflow.push("document");
-  }
-  if (isSearchOn) {
-    workflow.push("search");
-  }
-  if (isVectorBaseOn) {
-    workflow.push("vector");
-  }
-  if (isInteraction) {
-    workflow.push("interaction");
-  }
-  workflow.push("generate");
-  return workflow;
-}
