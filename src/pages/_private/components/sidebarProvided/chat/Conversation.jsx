@@ -419,10 +419,15 @@ const Conversation = forwardRef(
         </div>
         {citations && citations.length > 0 && (
           <div className="flex items-center gap-2 mt-4">
+            {console.log(citations, "citations")}
             <Dialog>
               <DialogTrigger>
                 <SourcesIndicator
-                  citations={citations.map((item) => ({ url: item.url })) || []}
+                  citations={
+                    citations.map((item) => ({
+                      url: typeof item == "string" ? item : item.url,
+                    })) || []
+                  }
                   maxIcons={3}
                   onClick={() => {}}
                 />
