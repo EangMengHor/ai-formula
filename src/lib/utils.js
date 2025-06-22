@@ -68,21 +68,13 @@ export const urlToCompanyNameExtractor = (url) => {
 }
 
 export const processAgenticCitations = (agenticCitations, agents) => {
-    console.log(agenticCitations, "asdsad", agents)
     try {
 
         return agenticCitations.map(item => {
             const citationIdx = item.citation.replaceAll(/\[(\d+)\]/g, '$1')
             const citationAgentName = item.agentName;
             const agentDetails = agents.items.find(agent => agent.title == citationAgentName);
-            console.log({
-                citationIdx: citationIdx,
-                citationAgentName: citationAgentName,
-                citationAgentGoal: agentDetails.goal || "-",
-                citationAgentInitialText: agentDetails.content.slice(0, 100) || "-",
-                team: agentDetails.team || []
 
-            }, "asdsad")
             return {
                 citationIdx: citationIdx,
                 citationAgentName: citationAgentName,

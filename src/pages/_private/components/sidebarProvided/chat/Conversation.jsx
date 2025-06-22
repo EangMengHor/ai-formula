@@ -29,7 +29,15 @@ import {
 } from "@/components/ui/tooltip";
 import TTSPrompt from "@/components/custom/TTSPrompt";
 import rehypeRaw from "rehype-raw";
-import { copyToClipboard, extractContentFromBlocks, getFavicon, processAgenticCitations, sanitizeFileName, stripHtml, tableStyles } from "@/lib/utils";
+import {
+  copyToClipboard,
+  extractContentFromBlocks,
+  getFavicon,
+  processAgenticCitations,
+  sanitizeFileName,
+  stripHtml,
+  tableStyles,
+} from "@/lib/utils";
 import SourcesIndicator from "@/components/custom/CitationSources";
 import CitationMiniCard from "../components/CitationMiniCard";
 import DeepThoughts from "./DeepThoughts";
@@ -68,7 +76,6 @@ const Conversation = forwardRef(
     const { toast } = useToast();
     // Helper function to process PDF download
 
-
     useEffect(() => {
       console.log("Conversation data:", conversation);
     }, [conversation]);
@@ -82,9 +89,8 @@ const Conversation = forwardRef(
       isDeepThink = false,
       citations,
       agentSimulationObj,
-      agenticCitation
+      agenticCitation,
     ) => {
-      console.log(agentSimulationObj, "agentSimulationObj", agenticCitation);
       const styles = isDeepThink ? tableStyles.deepThink : tableStyles.regular;
       const data = block.content
         .replace("undefined", "")
@@ -102,7 +108,7 @@ const Conversation = forwardRef(
       return (
         <div key={`text-${blockIdx}`}>
           <ReactMarkdown
-            className={isDeepThink ? "module font-figtree" : "module"}
+            className={"module"}
             children={data}
             remarkPlugins={[remarkGfm, remarkMath]}
             rehypePlugins={[rehypeRaw, rehypeKatex]}
@@ -110,34 +116,47 @@ const Conversation = forwardRef(
               sup: ({ node, ...props }) => {
                 try {
                   const sourceId = props["data-source"];
-                  console.log(sourceId, "sourceId", node, props, block, agenticCitation, agentSimulationObj);
-                  if (sourceId.includes("searchCitations-")) {
-                    const idx = Number(sourceId.replaceAll("searchCitations-", ""));
+
+                  if (sourceId && sourceId.includes("searchCitations-")) {
+                    const idx = Number(
+                      sourceId.replaceAll("searchCitations-", ""),
+                    );
                     const urls = citations.map((item) => ({ url: item }));
 
                     const url = urls[idx - 1];
 
-                    console.log(url, "url123123123", idx, urls, citations);
                     if (url)
                       return (
                         <CitationHoverCard index={idx} metadata={url.url} />
                       );
-                  }
-                  else if (sourceId.includes("agentCitations-")) {
-                    console.log(block, "agentCitations", sourceId, node, props, sourceId.replaceAll("agentCitations-", ""));
-                    console.log("1388172948938ojdhasjdhf", processAgenticCitations(agenticCitation, agentSimulationObj))
+                  } else if (sourceId && sourceId.includes("agentCitations-")) {
+                    console.log(
+                      {
+                        sourceId,
+                        agentSimulationObj,
+                        agenticCitation,
+                      },
+                      "agenticCitation data",
+                    );
+                    const citationId = sourceId.replaceAll(
+                      "agentCitations-",
+                      "",
+                    );
+                    const citations = processAgenticCitations(
+                      agenticCitation,
+                      agentSimulationObj,
+                    );
 
-                    const citationId = sourceId.replaceAll("agentCitations-", "");
-                    const citations = processAgenticCitations(agenticCitation, agentSimulationObj);
-                    console.log(citations, "citations", citationId, citations[citationId], citations[citationId]?.url, citations[citationId]?.title, citations[citationId]?.description);
                     if (!citations[citationId]) {
                       return <sup {...props}>-</sup>;
                     }
                     return (
                       <span {...props} className="cursor-pointer">
-                        <AgentCitationsHoverCard agentData={citations[citationId] || {}} />
+                        <AgentCitationsHoverCard
+                          agentData={citations[citationId] || {}}
+                        />
                       </span>
-                    )
+                    );
                   }
                   // default <sup> if something’s wrong
                   return <sup {...props}>{props.children}</sup>;
@@ -166,10 +185,11 @@ const Conversation = forwardRef(
           handleBlockSidebar(block.content, block.type, block.name)
         }
         key={`doc-${blockIdx}`}
-        className={` bg-slate-900 flex justify-between items-center gap-2 relative rounded-2xl p-1 ${block.isComplete
-          ? "cursor-pointer hover:bg-slate-800 text-white flex"
-          : ""
-          }`}
+        className={` bg-slate-900 flex justify-between items-center gap-2 relative rounded-2xl p-1 ${
+          block.isComplete
+            ? "cursor-pointer hover:bg-slate-800 text-white flex"
+            : ""
+        }`}
       >
         <div
           className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
@@ -195,10 +215,11 @@ const Conversation = forwardRef(
             handleBlockSidebar(sanitizedMermaid, block.type, block.name)
           }
           key={`visual-${blockIdx}`}
-          className={` bg-g1 flex justify-between items-center gap-2 relative rounded-2xl p-1 ${block.isComplete
-            ? "cursor-pointer hover:bg-slate-800 text-white flex"
-            : ""
-            }`}
+          className={` bg-g1 flex justify-between items-center gap-2 relative rounded-2xl p-1 ${
+            block.isComplete
+              ? "cursor-pointer hover:bg-slate-800 text-white flex"
+              : ""
+          }`}
         >
           <div
             className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
@@ -230,7 +251,11 @@ const Conversation = forwardRef(
     const renderCot = (text, collapsed = true, index) => {
       console.log(text, typeof text, collapsed, index, "streaming 4");
       return (
-        <DeepThoughts text={text || ""} isCollapsedByDefault={collapsed || false} isLoading={index + 1 == conversation.length && isNextChatLoading} />
+        <DeepThoughts
+          text={text || ""}
+          isCollapsedByDefault={collapsed || false}
+          isLoading={index + 1 == conversation.length && isNextChatLoading}
+        />
       );
     };
 
@@ -244,10 +269,11 @@ const Conversation = forwardRef(
               ?.trim() || block.uniProt;
           handleMaterialSidebar(uniProtId, block.name);
         }}
-        className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${block.isComplete
-          ? "cursor-pointer hover:bg-slate-800 text-white flex"
-          : ""
-          }`}
+        className={`border-2 border-slate-800 bg-slate-900 flex justify-between items-center gap-2 relative rounded-lg p-1 ${
+          block.isComplete
+            ? "cursor-pointer hover:bg-slate-800 text-white flex"
+            : ""
+        }`}
       >
         <div
           className="text-md font-medium text-white truncate px-3 flex items-start justify-between flex-col"
@@ -265,7 +291,6 @@ const Conversation = forwardRef(
       </div>
     );
 
-
     // Helper to render action buttons (copy and download)
     const renderActionButtons = (content, blockIdx, citations) => (
       <div className="flex gap-2">
@@ -274,7 +299,7 @@ const Conversation = forwardRef(
           <Button
             className={buttonWrapperClass}
             onClick={() => {
-              copyToClipboard(content)
+              copyToClipboard(content);
               setIsCopied(true);
               toast({
                 title: "Copied to clipboard",
@@ -298,7 +323,7 @@ const Conversation = forwardRef(
               </TooltipProvider>
             )}
           </Button>
-          {console.log(blockIdx === currDialogIndexOpen && pdfDialogOpen, "asdasjdkasdjashkjdh")}
+
           {/* Download */}
           <Dialog
             open={blockIdx === currDialogIndexOpen && pdfDialogOpen}
@@ -347,13 +372,15 @@ const Conversation = forwardRef(
               />
               <Button
                 className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
-                onClick={() => handlePdfDownload({
-                  currContent: currentContent,
-                  pdfFileName: sanitizeFileName(pdfFileName || "Document"),
-                  setIsPdfDownloadLoading,
-                  setPdfDialogOpen,
-                  toast
-                })}
+                onClick={() =>
+                  handlePdfDownload({
+                    currContent: currentContent,
+                    pdfFileName: sanitizeFileName(pdfFileName || "Document"),
+                    setIsPdfDownloadLoading,
+                    setPdfDialogOpen,
+                    toast,
+                  })
+                }
                 disabled={isPdfDownloadLoading}
               >
                 {isPdfDownloadLoading ? (
@@ -397,7 +424,7 @@ const Conversation = forwardRef(
                 <SourcesIndicator
                   citations={citations.map((item) => ({ url: item.url })) || []}
                   maxIcons={3}
-                  onClick={() => { }}
+                  onClick={() => {}}
                 />
               </DialogTrigger>
               <DialogContent className="w-full max-w-3xl bg-slate-800 text-white">
@@ -443,7 +470,8 @@ const Conversation = forwardRef(
                             <img
                               src={icon}
                               alt=""
-                              className="w-5 h-5 rounded-full"
+                              className="w-5 h-5
+                               rounded-full"
                             />
                             {c.siteName || hostname}
                           </span>
@@ -504,9 +532,9 @@ const Conversation = forwardRef(
                   <div className="bg-gradient-to-tr to-g2 via-g1 from-g1 max-w-[80%]  px-3 py-4 rounded-2xl shadow break-words whitespace-pre-wrap">
                     {item.message
                       ? item.message.replaceAll(
-                        "Provided Document : No document provided",
-                        "",
-                      )
+                          "Provided Document : No document provided",
+                          "",
+                        )
                       : "{Message Not found}"}
                   </div>
                   {item?.isRetry && (
@@ -518,26 +546,33 @@ const Conversation = forwardRef(
                 </div>
               );
             } else {
-              const isLoadingAndFinalResponseIsNotThere = isNextChatLoading && index + 1 == conversation.length && !(item.message.find(i => i.type == "text"))
-              console.log(`${index} : dfdfdfdfd ${isLoadingAndFinalResponseIsNotThere} : `, (item.message.find(i => i.type == "text") ? true : false))
+              const isLoadingAndFinalResponseIsNotThere =
+                isNextChatLoading &&
+                index + 1 == conversation.length &&
+                !item.message.find((i) => i.type == "text");
+
               // For other AI responses
               return (
                 <div
                   key={`ai-${index}`}
                   className="text-slate-300 rounded shadow space-y-4"
                 >
-
                   {/* deep thoughts */}
                   {item?.cot &&
                     typeof item.cot === "string" &&
-                    renderCot(item.cot || ".", !isLoadingAndFinalResponseIsNotThere, isLoadingAndFinalResponseIsNotThere)
-                  }
+                    renderCot(
+                      item.cot || ".",
+                      !isLoadingAndFinalResponseIsNotThere,
+                      isLoadingAndFinalResponseIsNotThere,
+                    )}
 
                   {Array.isArray(item.message) &&
                     item.message.map((block, blockIdx) => {
-                      // to show action buttons 
-                      const isLastBlock = blockIdx === item.message.length - 1 &&
-                        (!isNextChatLoading || conversation.length !== index + 1);
+                      // to show action buttons
+                      const isLastBlock =
+                        blockIdx === item.message.length - 1 &&
+                        (!isNextChatLoading ||
+                          conversation.length !== index + 1);
                       // for pdf download : combine all the content for pdf download
                       const currContent = extractContentFromBlocks(
                         item.message,
@@ -545,10 +580,31 @@ const Conversation = forwardRef(
                       if (block.type === "showUniProt") {
                         return RenderMaterial(block, blockIdx);
                       } else if (block.type === "text") {
-                        console.log(item.citations, "streaming 2123123");
-                        const simulation = item.message.find(
-                          (b) => b.type === "simulation",
-                        );
+                        let simulation =
+                          item.message.find((b) => b.type === "simulation") ||
+                          null;
+
+                        if (!simulation && conversation.length >= 2) {
+                          const secondLast =
+                            conversation[conversation.length - 2];
+                          if (secondLast?.type === "simulation") {
+                            simulation =
+                              secondLast.message?.find(
+                                (msg) => msg?.type === "simulation",
+                              ) || null;
+                          } else if (
+                            secondLast &&
+                            secondLast.message &&
+                            secondLast.message.length > 0 &&
+                            secondLast.message[0]?.type === "simulation"
+                          ) {
+                            simulation =
+                              secondLast.message?.find(
+                                (msg) => msg?.type === "simulation",
+                              ) || null;
+                          }
+                          console.log(simulation, "2nd parse");
+                        }
 
                         return renderTextBlock(
                           block,
@@ -558,7 +614,7 @@ const Conversation = forwardRef(
                           true,
                           item.citations,
                           simulation,
-                          item.agenticCitations
+                          item.agenticCitations,
                         );
                       } else if (block.type === "mermaid") {
                         return renderMermaidBlock(block, blockIdx);
@@ -578,18 +634,21 @@ const Conversation = forwardRef(
                       } else if (block.type === "visual") {
                         return renderVisualBlock(block, blockIdx);
                       } else if (block.type == "automationDaily") {
-                        console.log(block, "automation block");
-                        return <AutomationCard
-                          block={block}
-                          blockIdx={blockIdx}
-                        />
+                        return (
+                          <AutomationCard block={block} blockIdx={blockIdx} />
+                        );
                       }
-
                     })}
-
-
+                  {item && item?.isAbortManually && (
+                    <div className="bg-yellow-700 flex gap-2 items-center justify-between text-white p-3 px-4 rounded-2xl">
+                      <div>
+                        <h2 className="text-lg font-semibold mb-2">Paused</h2>
+                        <p>Response Paused Manually !</p>
+                      </div>
+                    </div>
+                  )}
                   {/* error */}
-                  {item && item.isError && (
+                  {item && item.isError && !(item?.isAbortManually || true) && (
                     <div className="bg-red-900 flex gap-2 items-center justify-between text-white p-3 px-4 rounded-2xl">
                       <div>
                         <h2 className="text-lg font-semibold mb-2">

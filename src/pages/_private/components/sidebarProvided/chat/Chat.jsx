@@ -14,11 +14,7 @@ import { getUploadedDocumentHistory } from "../../../../../services/n8n-apis/_co
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
 import { useUser } from "../../../../../context/UserContext";
 import { useStackSidebar } from "../../../../../context/StackSidebarContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Mermaid } from "../../../../../components/custom/Mermaid";
 import { Button } from "@/components/ui/button";
 import Conversation from "./Conversation";
@@ -30,7 +26,9 @@ import { useCollection } from "../../../../../context/CollectionContext";
 import { useScrollToBottom } from "@/hooks/scrollToBottom";
 import RenderMaterialUniProb from "../components/RenderMaterialUniProb";
 import { SSEChatCall } from "../../../../../services/SSEChat";
-
+import { abortSSEChat } from "@/services/abortSSEChat";
+import { isReplay } from "@/services/isReplay";
+import { replayStream } from "@/services/replayStream";
 
 function Chat() {
   // exploitation
@@ -50,7 +48,6 @@ function Chat() {
   } = useFilesUploadMetadata();
   const { selectedWorkflowId } = useWorkflow();
   const {
-
     isSwarmMode,
     isAutoSwarmContextState,
     selectedSuperiorPersona,
@@ -67,25 +64,30 @@ function Chat() {
   const [fallBackPrompt, setFallBackPrompt] = useState("");
   const [conversation, setConversation] = useState([]);
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState("large eassy on pm modi");
 
   const [streamingResponse, setStreamingResponse] = useState("");
 
-  const [isReconnectionNeeded, setIsReconnectionNeeded] = useState(false);
-  const [isReconnecting, setIsReconnecting] = useState(false);
-  const [isReconnected, setIsReconnected] = useState(false);
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [pdfFileName, setpPdfFileName] = useState("");
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
   const [currLoadingStatus, setCurrLoadingStatus] = useState("Thinking");
   const chatContainerRef = useRef(null);
-  const [agentCitations, setAgentCitations] = useState([]);
+  const agentCitationsRef = useRef([]);
+  const searchCitationsRef = useRef([]);
+  //   aboard controller logic
+  const [currConversationId, setCurrConversationId] = useState("");
+  const [isAborting, setIsAborting] = useState(false);
+  const isAboartController = useRef(null);
   // Use the hook properly
   const { showScrollButton, scrollToBottom, endRef } =
     useScrollToBottom(chatContainerRef);
+  //   replay message
+  const messageReplayRef = useRef(null);
+  const lastReadedRelayIndex = useRef(null);
 
-  // when sessionId changes then reset the state 
+  // when sessionId changes then reset the state
   useEffect(() => {
     setIsNextChatLoading(false);
     isSessionExploited && setIsSessionExploited(false);
@@ -393,7 +395,6 @@ function Chat() {
               return item;
             } else {
               const parsedResponse = parseHistoryAIContent(item.message);
-              console.log(item,"asdads")
               return {
                 role: "ai",
                 type: "quick",
@@ -402,9 +403,8 @@ function Chat() {
                 message: parsedResponse,
                 citations: item?.citations || [],
                 cot: item.cot,
-                agenticCitations: item.agenticCitations || []
+                agenticCitations: item.agenticCitations || [],
               };
-
             }
           });
           setConversation(processedData);
@@ -444,9 +444,47 @@ function Chat() {
       }
     }
 
+    async function isReplayMessages() {
+      messageReplayRef.current = null;
+      lastReadedRelayIndex.current = null;
+      const res = await isReplay(id);
+      const data = res.data;
+
+      if (data && data?.message && data.message?.data.length > 0) {
+        console.log(data, "is replay data 1");
+
+        messageReplayRef.current = data.message.data || null;
+        lastReadedRelayIndex.current = data.message.lastReadedIndex || 0;
+        console.log(messageReplayRef.current, "message replay ref");
+        if (
+          messageReplayRef.current &&
+          Array.isArray(messageReplayRef.current) &&
+          messageReplayRef.current.length > 0 &&
+          messageReplayRef.current.reduce((acc, curr) => {
+            console.log(curr, "curr message replay");
+            if (curr && curr.event == "finish") acc = true;
+            return acc;
+          }, false)
+        ) {
+          console.log("no replay to do");
+        } else {
+          loadReplayMessages();
+        }
+      }
+      console.log(
+        data,
+        "is replay data",
+        messageReplayRef,
+        lastReadedRelayIndex,
+      );
+    }
+
     async function getData() {
       resetAllStates();
       await Promise.all([getUploadedDocumentHis(), fetchConversations()]);
+      // wait
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      isReplayMessages();
     }
 
     if (isChatLoading) {
@@ -454,17 +492,100 @@ function Chat() {
     }
   }, [isChatLoading, id, toast]);
 
+  // load replay messages if available
+  async function loadReplayMessages() {
+    // setIsNextChatLoading(true);
+
+    console.log("Loading replay messages", messageReplayRef.current);
+    console.log("Last read index:", lastReadedRelayIndex.current);
+    if (
+      messageReplayRef.current &&
+      Array.isArray(messageReplayRef.current) &&
+      messageReplayRef.current.length > 0
+    ) {
+      const messages = messageReplayRef.current;
+      messages.forEach(async (msg, index) => {
+        console.log("messageasdasdad", {
+          type: msg.event,
+          ...msg.object,
+        });
+        await handleSocketEvent({
+          type: msg.event,
+          ...msg.object,
+        });
+      });
+    }
+
+    // replay
+
+    try {
+      const replayStreamRes = await replayStream(
+        id,
+        parseInt(lastReadedRelayIndex.current) || 0,
+      );
+      console.log("Replay stream response 2:", replayStreamRes);
+
+      const reader = replayStreamRes.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      const processStream = async () => {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop();
+
+          for (const part of parts) {
+            if (!part.trim()) continue;
+
+            const lines = part.split("\n");
+            let eventType = "message";
+            let dataStr = "";
+
+            for (const line of lines) {
+              if (line.startsWith("event:"))
+                eventType = line.replace("event:", "").trim();
+              else if (line.startsWith("id:"))
+                continue; // Ignore id lines
+              else if (line.startsWith("data:"))
+                dataStr += line.replace("data:", "").trim();
+            }
+
+            let data = {};
+            try {
+              data = JSON.parse(dataStr);
+              console.warn(data, " parsed data");
+            } catch {
+              data = { content: dataStr };
+            }
+
+            handleSocketEvent({ type: eventType, ...data });
+          }
+        }
+      };
+
+      await processStream();
+    } catch (error) {
+      console.error("Error loading replay messages:", error);
+      setIsError(true);
+      setErrorMessage(
+        "An error occurred while loading replay messages. Please try again.",
+      );
+    }
+  }
+
   // catch the error and set the error in conversation
   useEffect(() => {
     if (isError) {
       setToLastAiMessage({
         isError: true,
         errorMessage: errorMessage || "An error occurred during the chat.",
-      })
+      });
       console.warn("Error in chat:", errorMessage);
     }
-  }, [isError, errorMessage])
-
+  }, [isError, errorMessage]);
 
   // --- Helper Functions ---
   const newAiMessage = (kind = "quick") => ({
@@ -478,20 +599,18 @@ function Chat() {
     isOpen: false,
   });
 
-  const newHumanMessage = ({
-    prompt,
-    isRetry = false,
-  }) => ({
+  const newHumanMessage = ({ prompt, isRetry = false }) => ({
     role: "human",
     message: prompt,
     isRetry: isRetry,
-  })
+  });
 
-  // function that set the response when streaming the latest response 
+  // function that set the response when streaming the latest response
   const appendChunk = (msg, chunk) => {
+    console.log(msg, chunk, "asdlhjaskdlh09123");
     msg.tempContent += chunk;
     msg.isStreaming = true;
-    msg.message = processStreamingContent(msg.tempContent)
+    msg.message = processStreamingContent(msg.tempContent);
   };
 
   const completeStreaming = (msg) => {
@@ -512,10 +631,23 @@ function Chat() {
         });
       }
       return conv;
-    })
-  }
+    });
+  };
+
+  const convesationCleanup = () => {
+    setIsChatLoading(false);
+    setIsNextChatLoading(false);
+    setCurrConversationId(null);
+    setIsAborting(false);
+    setCurrLoadingStatus("");
+    isAboartController.current = null;
+    agentCitationsRef.current = [];
+    searchCitationsRef.current = [];
+  };
 
   const handleSocketEvent = async (event) => {
+    console.log(event, "socket event received");
+
     if (event.type === "loadingStatus") {
       setCurrLoadingStatus(event.status || "Thinking . . .");
       return;
@@ -528,14 +660,30 @@ function Chat() {
       /* 1. swarmId → create simulation block */
       if (event.type === "swarmId") {
         getPersonaById(event.swarmId).then(({ output }) => {
-          const simItems = processStreamingContent(output).flatMap((d) => d.items);
+          const simItems = processStreamingContent(output).flatMap(
+            (d) => d.items,
+          );
+
           setConversation((prevConv) => {
             const convCopy = [...prevConv];
             let lastSim = convCopy[convCopy.length - 1];
-            if (!lastSim || lastSim.type !== "simulation") {
+
+            const isLastMessageSimulation =
+              lastSim &&
+              lastSim.type === "simulation" &&
+              Array.isArray(lastSim.message) &&
+              lastSim.message.length > 0 &&
+              lastSim.message[0]?.type === "simulation";
+
+            if (!isLastMessageSimulation) {
               lastSim = newAiMessage("simulation");
               convCopy.push(lastSim);
             }
+
+            if (!lastSim.message || lastSim.message.length === 0) {
+              lastSim.message = [{ type: "simulation", items: [] }];
+            }
+
             lastSim.message[0].items.push(...simItems);
             return convCopy;
           });
@@ -545,14 +693,25 @@ function Chat() {
 
       /* 2. finalResponse → streaming message */
       if (event.type === "finalResponse" && event.content) {
-        if (!last || (last.type !== "quick")) {
+        console.log(
+          "socket event received 1293871298379108237",
+          event.content,
+          messageReplayRef.current,
+        );
+        if (isAboartController.current) return;
+        if (!last || last.type !== "quick") {
           last = newAiMessage("quick");
           conv.push(last);
         }
-        if (agentCitations && agentCitations.length > 0) {
-          last.agentCitations = agentCitations;
-          console.log(last, "added agent citations to last message");
-          setAgentCitations([]);
+        last.agenticCitations = agentCitationsRef.current || [];
+        if (searchCitationsRef.current !== last?.citations || []) {
+          last.citations = searchCitationsRef.current || [];
+        }
+        if (
+          last?.agentCitations &&
+          agentCitationsRef.current !== last?.agentCitations
+        ) {
+          last.agenticCitations = agentCitationsRef.current || [];
         }
         if (last.isOpen) last.isOpen = false;
         appendChunk(last, event.content);
@@ -562,53 +721,72 @@ function Chat() {
 
       /* 3. finish → mark last complete */
       if (event.type === "finish") {
+        console.log(last.citations, "last citations");
         if (last) completeStreaming(last);
-        setIsNextChatLoading(false);
-        setCurrLoadingStatus("");
+        convesationCleanup();
         return conv;
       }
 
       /* 4. searchUrls → attach citations to last */
       if (event.type === "searchUrls") {
-        if (!last || (last.type !== "quick")) {
-          const newMsg = newAiMessage("quick");
-          conv.push({ ...newMsg, citations: event.urls });
-        } else {
-          last.citations = event.urls;
-        }
-        console.log("Search URLs updated:", event.urls, conv);
+        searchCitationsRef.current = [
+          ...(searchCitationsRef.current || []),
+          ...(event.urls || []),
+        ];
+
+        console.log("got search urls", searchCitationsRef.current);
         return conv;
       }
 
       /* 5. nextThought → add thought to last if open */
       if (event.type === "nextThought") {
+        if (!last || last.type !== "quick") {
+          last = newAiMessage("quick");
+          conv.push(last);
+        }
         if (last) {
+          console.log("last thought", last, event);
           if (!last.isOpen) last.isOpen = true;
           last.cot = (last.cot || "") + (event.nextThought || "");
         }
         return conv;
       }
 
-      // agentic citation
-      if (event.type = "agenticCitation") {
-        setAgentCitations(event.agentCitations)
-        console.log(event.agentCitations, "agentic citations");
+      if (event.type == "conversationId") {
+        if (!isNextChatLoading) {
+          setIsNextChatLoading(true);
+        }
+        setCurrConversationId(event.conversationId);
       }
 
-      return prev; // default return if no match
+      if (event.type == "successAbort") {
+        if (last) completeStreaming(last);
+        setIsNextChatLoading(false);
+        setIsChatLoading(false);
+        setIsAborting(false);
+        last.isAbortManually = true;
+      }
+      // agentic citation
+      if (event.type == "agenticCitation") {
+        agentCitationsRef.current = event.agentCitations;
+        console.log(event.agentCitations, "agentic citations");
+      }
+      return conv; // default return if no match
     });
 
-
-
-
     /* 6. Error & flag handlers */
-    if (event.type === "error") {
-      if (isError) return; // Avoid duplicate error handling
+    if (event.type == "error") {
+      if (
+        isError ||
+        (event?.message && event?.message.toLowerCase().includes("abort"))
+      )
+        return; // Avoid duplicate error handling
       console.error("Error event received:", event);
       setIsError(true);
-      setErrorMessage(event.message || "An error occurred during the chat.");
-      setIsNextChatLoading(false);
-      setIsChatLoading(false);
+      setErrorMessage(
+        errorMessage + event.message || "An error occurred during the chat.",
+      );
+      convesationCleanup();
       return;
     }
 
@@ -617,8 +795,6 @@ function Chat() {
       else if (event.sessionBan) setIsSessionExploited(true);
     }
   };
-
-
 
   // persers.
   function parseAgentBlock(agentContent) {
@@ -781,7 +957,6 @@ function Chat() {
         regex: /<automationCard>([\s\S]*?)<\/automationCard>/gi,
         handler: (m, start, end) => {
           const inner = m[1];
-          console.log(inner, "aahsdkj387498");
           const tag = (t) =>
             new RegExp(`<${t}>([\\s\\S]*?)<\/${t}>`, "i")
               .exec(inner)?.[1]
@@ -847,8 +1022,9 @@ function Chat() {
           const rawContent = m[1].trim();
 
           // Important: Don't use m[1] directly for parsing — use rawContent + manually remove tail
-          const parsed = parseAgentBlock(rawContent.replaceAll("<visual>", '').replaceAll("</visual>", ''));
-          console.log(parsed, "parsed persona block");
+          const parsed = parseAgentBlock(
+            rawContent.replaceAll("<visual>", "").replaceAll("</visual>", ""),
+          );
           return {
             type: "persona",
             ...parsed,
@@ -857,8 +1033,7 @@ function Chat() {
             end,
           };
         },
-      }
-
+      },
     ];
 
     // --- 4. Find other blocks in masked content ---
@@ -932,7 +1107,7 @@ function Chat() {
 
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
-      if (!prompt.trim()) return;
+      if (!prompt.trim() || prompt.length == 0) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
 
@@ -984,7 +1159,9 @@ function Chat() {
         if (Date.now() - lastMessageTime > 18000) {
           console.warn("⚠️ Stream inactive for 15s");
           setIsError(true);
-          setErrorMessage("The connection is too slow or has stalled. Please Check your internet connection or try again later. check your internet speed on https://www.fast.com");
+          setErrorMessage(
+            "The connection is too slow or has stalled. Please Check your internet connection or try again later. check your internet speed on https://www.fast.com",
+          );
           setIsNextChatLoading(false);
           clearInterval(activityTimeout);
         }
@@ -1111,6 +1288,42 @@ function Chat() {
     isRetryTrigger.current = true;
   }, [conversation]);
 
+  const onAbort = useCallback(async () => {
+    setIsAborting(true);
+
+    try {
+      const conversationId = currConversationId;
+
+      if (!conversationId) {
+        toast({
+          title: "Error Stopping Response",
+          description: "No Current Conversation Loading",
+          variant: "destructive",
+        });
+      }
+
+      const abort = await abortSSEChat(conversationId);
+
+      if (abort.success) {
+        convesationCleanup();
+      } else {
+        setIsError(true);
+        setErrorMessage(
+          abort.message || "An error occurred while stopping the response.",
+        );
+      }
+    } catch (error) {
+      console.error("Error during abort:", error);
+      toast({
+        title: "Abort Error",
+        description: error.message,
+        variant: "destructive",
+      });
+
+      setIsError(true);
+      setErrorMessage("Can't Stop Response" + error.message);
+    }
+  }, [currConversationId]);
 
   useEffect(() => {
     if (isError && isRetryTrigger.current) {
@@ -1123,7 +1336,6 @@ function Chat() {
       setErrorMessage("");
     }
   }, [conversation]);
-
 
   const conversationRef = useRef(conversation);
   useEffect(() => {
@@ -1197,10 +1409,11 @@ function Chat() {
             setInput={setPrompt}
             handleSubmit={() => handleSubmit(prompt)}
             isLoading={isNextChatLoading}
-            setLoading={setIsNextChatLoading}
             onScrollToBottom={scrollToBottom}
+            onAbort={onAbort}
+            isAborting={isAborting}
+            currConversationId={currConversationId}
           />
-
         </div>
       </div>
     </div>

@@ -42,7 +42,7 @@ export default function Page() {
 
   return (
     <SidebarProvider>
-      <div className="bg-slate-950">
+      <div className="bg-g1">
         <AppSidebar />
       </div>
       <SidebarInset>
@@ -54,8 +54,8 @@ export default function Page() {
           <p className="text-white font-medium">{currentActiveChat}</p>
           <div className="w-1/4"></div>
         </header>
-        <div className="flex gap-2 flex-1 w-full bg-black">
-          <div className="flex text-white flex-1 mt-12 flex-col gap-2 p-2 pt-0">
+        <div className="flex gap-2 flex-1 w-full ">
+          <div className="flex text-white bg-black flex-1 mt-12 flex-col gap-2 p-2 pt-0">
             {pathname === "/dashboard" && <Dashboard />}
             {pathname.startsWith("/chat/") && <Chat />}
             {pathname.startsWith("/workshop") && <Workshop />}

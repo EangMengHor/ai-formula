@@ -2,6 +2,7 @@ import {
   ArrowDownToDot,
   ArrowLeftRight,
   ArrowRight,
+  ArrowUp,
   AudioLines,
   AudioWaveform,
   BrainCog,
@@ -9,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   CircleFadingPlus,
+  CirclePause,
   DiamondPlus,
   FileText,
   Flame,
@@ -72,17 +74,16 @@ function ChatInput({
   setInput,
   handleSubmit,
   isLoading,
-  onScrollToBottom = () => { },
+  onScrollToBottom = () => {},
+  onAbort,
+  isAborting,
+  currConversationId,
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
   const { pathname } = useLocation();
-  const {
-    fileCount,
-    memorizedFiles,
-    resetAllStates,
-    files,
-  } = useFilesUploadMetadata();
+  const { fileCount, memorizedFiles, resetAllStates, files } =
+    useFilesUploadMetadata();
   const {
     isSwarmMode,
     setIsSwarmMode,
@@ -210,7 +211,6 @@ function ChatInput({
       setIsWorkflowCreatorLoading(false);
     }
   }, [conversationProp, user, workflowPrompt, toast]);
-
 
   // Memoize the prompt enhancer function
   const enchancePrompt = useCallback(async () => {
@@ -395,43 +395,48 @@ function ChatInput({
   const AttachmentCard = ({
     title = "",
     type = "",
-    icon = () => { },
+    icon = () => {},
     showIsRemove = true,
-    onRemove = () => { },
+    onRemove = () => {},
   }) => {
-
     return (
       <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
-        <div className=" p-2 pl-3">
-          {icon}
-        </div>
+        <div className=" p-2 pl-3">{icon}</div>
         <div className="flex items-center gap-2 py-2 pr-4">
           <span className=" text-white text-xs h-full min-w-max">
             {title}
             <p className="text-slate-400">{type}</p>
           </span>
         </div>
-        {
-          showIsRemove && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-slate-800 rounded-xl p-2 m-2 hover:bg-slate-700 text-white"
-              onClick={onRemove}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )
-        }
+        {showIsRemove && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-slate-800 rounded-xl p-2 m-2 hover:bg-slate-700 text-white"
+            onClick={onRemove}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        )}
       </div>
-    )
-
-  }
-
+    );
+  };
 
   useEffect(() => {
     console.log(selectedCollections, "Selected Collections in ChatInput");
-  }, [])
+  }, []);
+  const handleClick = useCallback(() => {
+    console.log("Click:", { isLoading, currConversationId, isAborting });
+
+    if (isLoading && currConversationId && !isAborting) {
+      console.log("Calling onAbort");
+      onAbort();
+    } else {
+      console.log("Calling handleSubmit");
+      handleSubmit();
+    }
+  }, [isLoading, currConversationId, isAborting, onAbort, handleSubmit]);
+
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative mb-3">
@@ -510,14 +515,13 @@ function ChatInput({
           </div>
         )} */}
 
-
-
         <div
           className={`rounded-3xl p-2 hide-scrollbar bg-gray-900 trans
-                         ${isSwarmMode
-              ? "border-2  border-blue-500 glow-outline-soft"
-              : ""
-            }`}
+                         ${
+                           isSwarmMode
+                             ? "border-2  border-blue-500 glow-outline-soft"
+                             : ""
+                         }`}
         >
           <motion.div
             className={`relative flex items-center `}
@@ -529,7 +533,8 @@ function ChatInput({
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
             <div className="flex gap-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
-              {files.filter((file) => memorizedFiles.includes(file.name)).length > 0 &&
+              {files.filter((file) => memorizedFiles.includes(file.name))
+                .length > 0 &&
                 files
                   .filter((file) => memorizedFiles.includes(file.name))
                   .map((file, index) => (
@@ -563,7 +568,6 @@ function ChatInput({
                 />
               ))}
             </div>
-
           </motion.div>
 
           {/* <SelectedCollectionsDisplay /> */}
@@ -628,8 +632,9 @@ function ChatInput({
                       {/* Star (z-10 above text, on right) */}
                       <div className="z-10">
                         <CircleFadingPlus
-                          className={`w-5 h-5 ${selectedWorkflowId ? "text-white " : "text-white"
-                            } drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
+                          className={`w-5 h-5 ${
+                            selectedWorkflowId ? "text-white " : "text-white"
+                          } drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
                         />
                       </div>
                     </div>
@@ -903,9 +908,9 @@ function ChatInput({
                           url =
                             files.length > 0
                               ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-                                .slice(0, 20)
-                                .map((file) => file.name)
-                                .join("||||")}&namespace=${id || ""}`
+                                  .slice(0, 20)
+                                  .map((file) => file.name)
+                                  .join("||||")}&namespace=${id || ""}`
                               : id && id != undefined
                                 ? `${url}?namespace=${id}`
                                 : url;
@@ -1002,17 +1007,30 @@ function ChatInput({
                   </DialogContent>
                 </Dialog>
               </div>
+              {console.log(
+                isAborting,
+                input.length === 0,
+                isLoading,
+                !currConversationId,
+                "asdhlk120983",
+              )}
               <button
-                disabled={input.length === 0 || isLoading} // Disable if loading
-                onClick={() => {
-                  isLoading ? null : handleSubmit();
-                }}
-                className={` ${input.length === 0 || isLoading ? "bg-gray-600 border-slate-600 hover:bg-gray-600 cursor-not-allowed" : "bg-white hover:bg-slate-300"} rounded-md `}
+                disabled={isAborting || (isLoading && !currConversationId)}
+                onClick={handleClick}
+                className={`${
+                  isAborting ||
+                  input.length === 0 ||
+                  (isLoading && !currConversationId)
+                    ? "bg-white border-slate-600 hover:bg-gray-300 cursor-not-allowed"
+                    : "bg-white hover:bg-slate-300"
+                } rounded-2xl p-1 cursor-pointer`}
               >
-                {isLoading ? (
-                  <LoaderCircle className="animate-spin  w-5 h-5 m-2 text-black mx-3" />
+                {isLoading && (!currConversationId || isAborting) ? (
+                  <LoaderCircle className="animate-spin w-5 h-5 m-2 text-black" />
+                ) : isLoading && currConversationId && !isAborting ? (
+                  <CirclePause className="w-5 h-5 text-black m-2" />
                 ) : (
-                  <ArrowRight className="text-black font-thin w-5 h-5 m-2" />
+                  <ArrowUp className="text-black font-thin w-5 h-5 m-2" />
                 )}
               </button>
             </div>
@@ -1088,11 +1106,11 @@ function ChatInput({
                               {index <
                                 recentlyCreatedWorkflowResponse.workflow
                                   .length -
-                                1 && (
-                                  <div className="absolute left-1 top-5 h-6">
-                                    <div className="w-px h-full bg-slate-600 opacity-50"></div>
-                                  </div>
-                                )}
+                                  1 && (
+                                <div className="absolute left-1 top-5 h-6">
+                                  <div className="w-px h-full bg-slate-600 opacity-50"></div>
+                                </div>
+                              )}
                             </div>
                           ),
                         )}
@@ -1101,10 +1119,10 @@ function ChatInput({
 
                     <div className="mt-6 space-y-4">
                       {recentlyCreatedWorkflowResponse &&
-                        Object.keys(recentlyCreatedWorkflowResponse).includes(
-                          "personaList",
-                        ) &&
-                        recentlyCreatedWorkflowResponse.personaList.length > 0 ? (
+                      Object.keys(recentlyCreatedWorkflowResponse).includes(
+                        "personaList",
+                      ) &&
+                      recentlyCreatedWorkflowResponse.personaList.length > 0 ? (
                         <div>
                           <p className="py-2 font-semibold mb-2">Agents</p>
                           <ul className="space-y-2">
