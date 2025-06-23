@@ -45,6 +45,7 @@ import AutomationCard from "./blocks/AutomationCard";
 import { handlePdfDownload } from "./PdfDownload";
 import CitationHoverCard from "./CitationsHoverCard";
 import AgentCitationsHoverCard from "./AgentCitationsHoverCard";
+import Visualization from "@/components/custom/DynamicCharts/Visualization";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -641,6 +642,19 @@ const Conversation = forwardRef(
                       } else if (block.type == "automationDaily") {
                         return (
                           <AutomationCard block={block} blockIdx={blockIdx} />
+                        );
+                      } else if (block.type == "chart") {
+                        const dataId = block.dataId;
+                        const dataName = block.dataName;
+                        const dataLabel = block.dataLabel;
+                        const type = block.chartType;
+                        return (
+                          <Visualization
+                            dataId={dataId}
+                            chartType={type}
+                            dataName={dataName}
+                            dataLabel={dataLabel}
+                          />
                         );
                       }
                     })}
