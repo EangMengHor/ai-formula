@@ -67,6 +67,7 @@
     "react-router-dom": "^7.1.1",
     "react-window": "^1.8.11",
     "reactflow": "^11.11.4",
+    "recharts": "^3.0.0",
     "rehype-highlight": "^7.0.1",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",

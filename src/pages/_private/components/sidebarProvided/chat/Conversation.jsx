@@ -45,6 +45,7 @@ import AutomationCard from "./blocks/AutomationCard";
 import { handlePdfDownload } from "./PdfDownload";
 import CitationHoverCard from "./CitationsHoverCard";
 import AgentCitationsHoverCard from "./AgentCitationsHoverCard";
+import Visualization from "@/components/custom/DynamicCharts/Visualization";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -652,6 +653,7 @@ const Conversation = forwardRef(
                       </div>
                     </div>
                   )}
+                  {/* <Visualization /> */}
                   {/* error */}
                   {item && item.isError && !item?.isAbortManually && (
                     <div className="bg-red-900 flex gap-2 items-center justify-between text-white p-3 px-4 rounded-2xl">
