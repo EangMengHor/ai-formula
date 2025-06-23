@@ -18,7 +18,7 @@ export async function SSEChatCall(payload, refreshAccessToken,) {
                 body: JSON.stringify(payload),
             },
         );
-
+        console.log("SSEChatCall response:", response);
         // If unauthorized or forbidden, try refreshing token and retrying once
         if (response.status === 401 || response.status === 403) {
             console.warn("❗ Unauthorized or forbidden, refreshing token");
