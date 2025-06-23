@@ -1,76 +1,121 @@
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 import DynamicBarChart from "./variant/Bar";
-export default function Visualization() {
-  const chartData = [
-    { month: "January 2019", stock: 350 },
-    { month: "February 2019", stock: 370 },
-    { month: "March 2019", stock: 360 },
-    { month: "April 2019", stock: 380 },
-    { month: "May 2019", stock: 400 },
-    { month: "June 2019", stock: 420 },
-    { month: "July 2019", stock: 410 },
-    { month: "August 2019", stock: 430 },
-    { month: "September 2019", stock: 440 },
-    { month: "October 2019", stock: 450 },
-    { month: "November 2019", stock: 460 },
-    { month: "December 2019", stock: 470 },
-    { month: "January 2020", stock: 480 },
-    { month: "February 2020", stock: 490 },
-    { month: "March 2020", stock: 500 },
-    { month: "April 2020", stock: 510 },
-    { month: "May 2020", stock: 520 },
-    { month: "June 2020", stock: 530 },
-    { month: "July 2020", stock: 540 },
-    { month: "August 2020", stock: 550 },
-    { month: "September 2020", stock: 560 },
-    { month: "October 2020", stock: 570 },
-    { month: "November 2020", stock: 580 },
-    { month: "December 2020", stock: 590 },
-    { month: "January 2021", stock: 600 },
-    { month: "February 2021", stock: 610 },
-    { month: "March 2021", stock: 620 },
-    { month: "April 2021", stock: 630 },
-    { month: "May 2021", stock: 640 },
-    { month: "June 2021", stock: 650 },
-    { month: "July 2021", stock: 660 },
-    { month: "August 2021", stock: 670 },
-    { month: "September 2021", stock: 680 },
-    { month: "October 2021", stock: 690 },
-    { month: "November 2021", stock: 700 },
-    { month: "December 2021", stock: 710 },
-    { month: "January 2022", stock: 720 },
-    { month: "February 2022", stock: 730 },
-    { month: "March 2022", stock: 740 },
-    { month: "April 2022", stock: 750 },
-    { month: "May 2022", stock: 760 },
-    { month: "June 2022", stock: 770 },
-    { month: "July 2022", stock: 780 },
-    { month: "August 2022", stock: 790 },
-    { month: "September 2022", stock: 800 },
-    { month: "October 2022", stock: 810 },
-    { month: "November 2022", stock: 820 },
-    { month: "December 2022", stock: 830 },
-    { month: "January 2023", stock: 840 },
-    { month: "February 2023", stock: 850 },
-    { month: "March 2023", stock: 860 },
-    { month: "April 2023", stock: 870 },
-    { month: "May 2023", stock: 880 },
-  ];
+import DynamicLineChart from "./variant/Line";
+import DynamicAreaChart from "./variant/Area";
+import DynamicPieChart from "./variant/PieChart";
+import DynamicRadarChart from "./variant/RadarChart";
+import { memo, useEffect, useState } from "react";
+import { getGeneratedVisualization } from "@/services/getGeneratedVisualization";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
-  const chartConfig = {
-    stock: { label: "Tesla Stock Price", color: "#E4E77" },
-  };
+const generateChartConfig = (data, colorPalette) => {
+  if (!Array.isArray(data) || data.length === 0) return {};
+
+  const firstItem = data[0];
+  const xAxisKey = Object.keys(firstItem).find(
+    (key) => typeof firstItem[key] === "string",
+  );
+
+  const numericKeys = Object.keys(firstItem).filter(
+    (key) => key !== xAxisKey && typeof firstItem[key] === "number",
+  );
+
+  const config = {};
+  numericKeys.forEach((key, index) => {
+    config[key] = {
+      label: key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (c) => c.toUpperCase()),
+      color: colorPalette[index % colorPalette.length],
+    };
+  });
+
+  return config;
+};
+function Visualization({
+  dataId = "",
+  chartType = "line",
+  dataName = "Chart",
+  dataLabel = "Dynamic Chart",
+}) {
+  const [isGraphdataLoading, setIsGraphdataLoading] = useState(false);
+  const [chartData, setChartData] = useState([]);
+  const [isError, setIsError] = useState(false);
+  const [chartConfig, setChartConfig] = useState({});
+
+  useEffect(() => {
+    async function fetchVisualizationData() {
+      setIsGraphdataLoading(true);
+      try {
+        const response = await getGeneratedVisualization(dataId);
+        if (response.success && response.data) {
+          const rawData = response.data;
+          const colorPalette = response.chartConfig;
+          setChartData(rawData.data);
+          setChartConfig(generateChartConfig(rawData.data, colorPalette));
+        }
+      } catch (error) {
+        console.error("Error fetching visualization data:", error);
+        setIsError(true);
+      } finally {
+        setIsGraphdataLoading(false);
+      }
+    }
+    if (dataId) {
+      fetchVisualizationData();
+    }
+  }, [dataId]);
+
+  if (isGraphdataLoading) {
+    return (
+      <div className="flex items-center justify-center w-full h-96">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-g1"></div>
+      </div>
+    );
+  }
+
+  // Choose the proper chart component based on chartType
+  let ChartComponent;
+  switch (chartType) {
+    case "bar":
+      ChartComponent = DynamicBarChart;
+      break;
+    case "line":
+      ChartComponent = DynamicLineChart;
+      break;
+    case "area":
+      ChartComponent = DynamicAreaChart;
+      break;
+    case "pie":
+      ChartComponent = DynamicPieChart;
+      break;
+    case "radar":
+      ChartComponent = DynamicRadarChart;
+      break;
+    default:
+      ChartComponent = DynamicLineChart;
+  }
 
   return (
-    <ChartContainer config={chartConfig} className=" w-full">
-      <DynamicBarChart data={chartData} className="w-full h-96" />
-    </ChartContainer>
+    <Card className="w-full shadow-lg border-2 border-g1">
+      <CardHeader className="border-b">
+        <CardTitle>{dataName}</CardTitle>
+        <CardDescription>{dataLabel}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={chartConfig} className="w-full">
+          <ChartComponent data={chartData} className="w-full h-96" />
+        </ChartContainer>
+      </CardContent>
+    </Card>
   );
 }
+
+export default memo(Visualization);

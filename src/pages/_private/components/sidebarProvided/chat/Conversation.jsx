@@ -643,6 +643,19 @@ const Conversation = forwardRef(
                         return (
                           <AutomationCard block={block} blockIdx={blockIdx} />
                         );
+                      } else if (block.type == "chart") {
+                        const dataId = block.dataId;
+                        const dataName = block.dataName;
+                        const dataLabel = block.dataLabel;
+                        const type = block.chartType;
+                        return (
+                          <Visualization
+                            dataId={dataId}
+                            chartType={type}
+                            dataName={dataName}
+                            dataLabel={dataLabel}
+                          />
+                        );
                       }
                     })}
                   {item && item?.isAbortManually && (
@@ -653,7 +666,6 @@ const Conversation = forwardRef(
                       </div>
                     </div>
                   )}
-                  {/* <Visualization /> */}
                   {/* error */}
                   {item && item.isError && !item?.isAbortManually && (
                     <div className="bg-red-900 flex gap-2 items-center justify-between text-white p-3 px-4 rounded-2xl">

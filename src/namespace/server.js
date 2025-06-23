@@ -91,3 +91,5 @@ export const abortConversation = `${import.meta.env.VITE_SOCKET_URL}/api/core/st
 export const isRelayMessageUrl = `${import.meta.env.VITE_SOCKET_URL}/api/core/isReplayMessage`;
 
 export const replayStreamUrl = `${import.meta.env.VITE_SOCKET_URL}/api/core/replayContinueStream`;
+
+export const getGeneratedVisualizationUrl = `${import.meta.env.VITE_SOCKET_URL}/api/utils/getDataVisualizationData`;

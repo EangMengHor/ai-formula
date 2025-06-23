@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
   ChartLegend,
@@ -8,12 +8,12 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-export default function DynamicBarChart({
+export default function DynamicAreaChart({
   data = [],
   className = "w-full h-96",
   colors = ["#E94E77", "#4D91CD", "#57C293", "#F2B53C", "#AB63EB", "#FF9E64"],
 }) {
-  // 🧠 Identify x-axis key: the only string key (all others should be numeric)
+  // Identify x-axis key: the only string key (all others should be numeric)
   const xAxisKey = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0) return "";
     const sample = data[0];
@@ -21,7 +21,7 @@ export default function DynamicBarChart({
     return keys.find((key) => typeof sample[key] === "string") || keys[0];
   }, [data]);
 
-  // 📊 Identify numeric data keys (exclude x-axis string key)
+  // Identify numeric data keys (exclude x-axis string key)
   const dataKeys = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0) return [];
     const sample = data[0];
@@ -30,7 +30,7 @@ export default function DynamicBarChart({
     );
   }, [data, xAxisKey]);
 
-  // 🎨 Generate chart config with dynamic colors + labels
+  // Generate chart config with dynamic colors + labels
   const chartConfig = useMemo(() => {
     const config = {};
     dataKeys.forEach((key, index) => {
@@ -42,34 +42,33 @@ export default function DynamicBarChart({
     return config;
   }, [dataKeys, colors]);
 
-  // 🚫 Handle no data
+  // Handle no data
   if (!data.length || !dataKeys.length) {
     return <div className="p-4 text-center">No data available to display</div>;
   }
 
   return (
     <ChartContainer config={chartConfig} className={className}>
-      <BarChart accessibilityLayer data={data}>
+      <AreaChart data={data}>
         <CartesianGrid vertical={false} />
         <XAxis
           dataKey={xAxisKey}
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => value}
         />
         <YAxis axisLine={false} tickLine={false} tickMargin={10} />
         <ChartLegend content={<ChartLegendContent />} />
         <ChartTooltip content={<ChartTooltipContent />} />
         {dataKeys.map((key) => (
-          <Bar
+          <Area
             key={key}
             dataKey={key}
             fill={chartConfig[key].color}
-            radius={4}
+            stroke={chartConfig[key].color}
           />
         ))}
-      </BarChart>
+      </AreaChart>
     </ChartContainer>
   );
 }

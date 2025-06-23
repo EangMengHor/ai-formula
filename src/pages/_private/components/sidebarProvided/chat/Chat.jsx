@@ -991,25 +991,34 @@ function Chat() {
       },
       {
         type: "chart",
-        regex: /<chart>([\s\S]*?)<\/chart>/gi,
+        regex: /<dataChart>([\s\S]*?)<\/dataChart>/gi,
         handler: (m, start, end) => {
           let inner = m[1].trim();
-          let chartType = "";
-          const tp = /<type>([\s\S]*?)<\/type>/i.exec(inner);
-          if (tp) {
-            chartType = tp[1].trim();
-            inner = inner.replace(tp[0], "").trim();
-          }
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          const chartType = extractTag("chartType", inner);
+          const dataId = extractTag("dataId", inner);
+          const dataName = extractTag("dataName", inner);
+          const dataLabel = extractTag("dataLabel", inner);
+
           return {
             type: "chart",
             chartType,
-            content: inner,
+            dataId,
+            dataName,
+            dataLabel,
             isComplete: true,
             start,
             end,
           };
         },
       },
+
       {
         type: "persona",
         regex: /<\|agent\|([\s\S]*?)<\|end\|>/gi,
@@ -1231,7 +1240,7 @@ function Chat() {
           title: "Streaming error",
           description: error.message,
           variant: "destructive",
-        })  ;
+        });
         setPrompt(prevPrompt);
         setIsError(true);
         setErrorMessage(error.message);
