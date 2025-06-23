@@ -29,6 +29,7 @@ import { SSEChatCall } from "../../../../../services/SSEChat";
 import { abortSSEChat } from "@/services/abortSSEChat";
 import { isReplay } from "@/services/isReplay";
 import { replayStream } from "@/services/replayStream";
+import { sanitizeFileName } from "@/lib/utils";
 
 function Chat() {
   // exploitation
@@ -283,56 +284,53 @@ function Chat() {
           <div className="p-4">
             {type == "document" && (
               <div className="overflow-scroll h-[calc(100vh-10rem)]">
-                <p>
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath, remarkGfm]}
-                    rehypePlugins={[rehypeKatex]}
-                    className="module text-wrap overflow-scroll"
-                    components={{
-                      p: ({ children }) => <p>{children}</p>,
-                      table: ({ children }) => (
-                        <table
-                          style={{
-                            borderCollapse: "collapse",
-                            width: "100%",
-                            color: "#e0e0e0",
-                          }}
-                        >
-                          {children}
-                        </table>
-                      ),
-                      th: ({ children }) => (
-                        <th
-                          style={{
-                            border: "1px solid #444",
-                            padding: "8px",
-                            backgroundColor: "#333",
-                            color: "#e0e0e0",
-                          }}
-                        >
-                          {children}
-                        </th>
-                      ),
-                      td: ({ children }) => (
-                        <td
-                          style={{
-                            border: "1px solid #444",
-                            padding: "8px",
-                            backgroundColor: "#222",
-                            color: "#e0e0e0",
-                          }}
-                        >
-                          {children}
-                        </td>
-                      ),
-                    }}
-                  >
-                    {block}
-                  </ReactMarkdown>
-                </p>
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath, remarkGfm]}
+                  rehypePlugins={[rehypeKatex]}
+                  className="module text-wrap overflow-scroll"
+                  components={{
+                    p: ({ children }) => <p>{children}</p>,
+                    table: ({ children }) => (
+                      <table
+                        style={{
+                          borderCollapse: "collapse",
+                          width: "100%",
+                          color: "#e0e0e0",
+                        }}
+                      >
+                        {children}
+                      </table>
+                    ),
+                    th: ({ children }) => (
+                      <th
+                        style={{
+                          border: "1px solid #444",
+                          padding: "8px",
+                          backgroundColor: "#333",
+                          color: "#e0e0e0",
+                        }}
+                      >
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td
+                        style={{
+                          border: "1px solid #444",
+                          padding: "8px",
+                          backgroundColor: "#222",
+                          color: "#e0e0e0",
+                        }}
+                      >
+                        {children}
+                      </td>
+                    ),
+                  }}
+                >
+                  {block}
+                </ReactMarkdown>
               </div>
             )}
-
             {type == "visual" && (
               <Mermaid
                 className="module overflow-scroll"
@@ -1147,21 +1145,6 @@ function Chat() {
         newAiMessage("quick"),
       ]);
 
-      let activityTimeout = null;
-      let lastMessageTime = Date.now();
-
-      const checkInactivity = () => {
-        if (Date.now() - lastMessageTime > 18000) {
-          console.warn("⚠️ Stream inactive for 15s");
-          setIsError(true);
-          setErrorMessage(
-            "The connection is too slow or has stalled. Please Check your internet connection or try again later. check your internet speed on https://www.fast.com",
-          );
-          setIsNextChatLoading(false);
-          clearInterval(activityTimeout);
-        }
-      };
-
       try {
         let response = await SSEChatCall(payload, refreshAccessToken);
         const reader = response.body.getReader();
@@ -1169,7 +1152,6 @@ function Chat() {
         let buffer = "";
 
         // Start inactivity check
-        activityTimeout = setInterval(checkInactivity, 5000);
 
         const processStream = async () => {
           while (true) {
@@ -1194,8 +1176,6 @@ function Chat() {
                   dataStr += line.replace("data:", "").trim();
               }
 
-              lastMessageTime = Date.now();
-
               let data = {};
               try {
                 data = JSON.parse(dataStr);
@@ -1204,11 +1184,6 @@ function Chat() {
               }
 
               handleSocketEvent({ type: eventType, ...data });
-
-              if (eventType === "end") {
-                clearInterval(activityTimeout);
-                return;
-              }
             }
           }
         };
@@ -1231,12 +1206,11 @@ function Chat() {
           title: "Streaming error",
           description: error.message,
           variant: "destructive",
-        })  ;
+        });
         setPrompt(prevPrompt);
         setIsError(true);
         setErrorMessage(error.message);
       } finally {
-        clearInterval(activityTimeout);
         setIsNextChatLoading(false);
       }
     },
