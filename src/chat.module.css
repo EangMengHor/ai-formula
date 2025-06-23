@@ -1,5 +1,6 @@
 .module {
   font-family: "Figtree", sans-serif;
+ font-size: 0.975rem;
 }
 
 .module h1,
@@ -21,7 +22,11 @@
 .module .custom-p {
   margin-bottom: 0.5rem;
 }
-
+citation {
+  display: inline;
+  font-style: italic;
+  color: gray;
+}
 .module li {
   margin: 0px;
   padding: 0;

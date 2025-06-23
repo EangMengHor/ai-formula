@@ -99,6 +99,7 @@ export const UserProvider = ({ children }) => {
 
   async function refreshAccessToken() {
     try {
+      console.log("Refreshing access token...");
       const data = await refreshApi();
       if (!data.success) {
         throw new Error(data.message || "Failed to refresh access token");

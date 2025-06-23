@@ -27,6 +27,7 @@ export default function SourcesIndicator({ citations, maxIcons = 3, onClick }) {
       aria-label={`${citations.length} sources`}
     >
       <div className="flex -space-x-1.5">
+        {console.log("item.favImage", citations)}
         {displayIcons.map((item, index) => (
           <div
             key={index}

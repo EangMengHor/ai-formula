@@ -3,20 +3,17 @@
 import {
   Codesandbox,
   Delete,
+  DeleteIcon,
+  Ellipsis,
   Loader,
   MoreHorizontal,
+  Pencil,
   Search,
   SquareDashed,
   Trash,
   X,
 } from "lucide-react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   SidebarGroup,
   SidebarMenu,
@@ -32,10 +29,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { _useSidebar } from "../../../../context/SidebarContext";
 import { useWorkflow } from "../../../../context/WorkflowContext";
-import { useEffect, useState } from "react";
+import { act, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -54,12 +59,27 @@ export function NavMain({ items, isClickedWorkflows }) {
     isSidebarChatHistoryLoading,
     currentActiveChat,
     setCurrentActiveChat,
+    onDeleteChatThread,
+    onEditChatThreadName,
+    isDeleteLoading,
+    isEditingLoading,
   } = _useSidebar();
   const [isHovered, setIsHovered] = useState(false);
   const [isWorkflowMoreInfoDialogOpen, setIsWorkflowMoreInfoDialogOpen] =
     useState();
   const [searchQuery, setSearchQuery] = useState("");
 
+  //   chat session options
+
+  const [isShowChatSessionOptions, setIsShowChatSessionOptions] =
+    useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [clickedDropdown, setClickedDropdown] = useState(null);
+  const [activeOptionSectionSession, setActiveOptionSectionSession] =
+    useState(null);
+  const [deleteSessionIdModel, setDeleteSessionIdModel] = useState(false);
+  const [editSessionIdModel, setEditSessionIdModel] = useState(false);
+  const [newChatName, setNewChatName] = useState("");
   // Filter workflows based on search query
   const filteredWorkflows =
     searchQuery.trim() === ""
@@ -72,7 +92,7 @@ export function NavMain({ items, isClickedWorkflows }) {
                 .toLowerCase()
                 .includes(searchQuery.toLowerCase())),
         );
-
+  console.log("chatHistory", chatHistory);
   return (
     <SidebarGroup>
       <SidebarMenu>
@@ -100,18 +120,164 @@ export function NavMain({ items, isClickedWorkflows }) {
                   uniqueItems.map((item, index) => (
                     <div
                       onClick={() => {
+                        if (clickedDropdown == item.sessionid) {
+                          return;
+                        }
                         setCurrentActiveChat(item.chatname);
                         navigate(`/chat/${item.sessionid}`);
                       }}
+                      onMouseEnter={() =>
+                        setIsShowChatSessionOptions(item.sessionid)
+                      }
                       key={index}
                       className={`${String(id) == item.sessionid ? "bg-slate-600" : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-800 rounded-md cursor-pointer px-2 items-center`}
                     >
                       <p className="truncate max-w-xs py-1">{item.chatname}</p>
+                      {!isShowChatSessionOptions == item.sessionid
+                        ? clickedDropdown == item.sessionid
+                        : isShowChatSessionOptions == item.sessionid && (
+                            <DropdownMenu
+                              onOpenChange={(open) => {
+                                if (!open) {
+                                  setIsShowChatSessionOptions(null);
+                                  setClickedDropdown(null);
+                                } else {
+                                  setClickedDropdown(item.sessionid);
+                                  setActiveDropdown(item.sessionid);
+                                }
+                              }}
+                            >
+                              <DropdownMenuTrigger>
+                                <div>
+                                  <Ellipsis className="w-5 h-5" />
+                                </div>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                side=""
+                                className="ml-10 bg-g2  text-white border-0"
+                              >
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setActiveOptionSectionSession(item);
+                                    setEditSessionIdModel(true);
+                                  }}
+                                  className="hover:bg-g1 text-white"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Pencil className="w-4 h-4 mr-1" />
+                                    <p>Rename</p>
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setActiveOptionSectionSession(item);
+                                    setDeleteSessionIdModel(true);
+                                  }}
+                                  className="  hover:bg-red-800 text-red-400"
+                                >
+                                  <div className="flex items-center gap-2 ">
+                                    <DeleteIcon className="w-4 h-4 mr-1" />
+                                    <p>Delete</p>
+                                  </div>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                     </div>
                   ))}
               </div>
             );
           })}
+        {
+          <Dialog
+            open={editSessionIdModel}
+            onOpenChange={setEditSessionIdModel}
+          >
+            <DialogContent className="max-w-xl bg-slate-800 text-white rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Chat Name</DialogTitle>
+                <DialogDescription>
+                  <input
+                    type="text"
+                    value={newChatName}
+                    onChange={(e) => setNewChatName(e.target.value)}
+                    placeholder="Enter new chat name"
+                    className="w-full bg-slate-700 mt-3 text-white p-2 rounded-md focus:outline-none "
+                  />
+                  <button
+                    onClick={async () => {
+                      if (newChatName.trim() === "") {
+                        return;
+                      }
+                      const data = await onEditChatThreadName(
+                        activeOptionSectionSession.sessionid,
+                        newChatName,
+                      );
+                      console.log("dataasdasdasdasdwe12", data);
+                      if (data) {
+                        setEditSessionIdModel(false);
+                        setActiveOptionSectionSession(null);
+                        setIsShowChatSessionOptions(null);
+                        setClickedDropdown(null);
+                        setNewChatName("");
+                      }
+                    }}
+                    className="mt-4 bg-slate-700 hover:bg-slate-900 text-white px-4 py-2 rounded-xl  transition-colors duration-200 w-fit"
+                  >
+                    {isEditingLoading ? (
+                      <Loader className="animate-spin h-4 w-4" />
+                    ) : (
+                      <p>Save</p>
+                    )}
+                  </button>
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+        }
+
+        {
+          <Dialog
+            open={deleteSessionIdModel}
+            onOpenChange={setDeleteSessionIdModel}
+          >
+            <DialogContent className="max-w-xl bg-slate-800 text-white rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  You are going to delete Chat "
+                  {activeOptionSectionSession &&
+                    activeOptionSectionSession.chatname}
+                  "
+                </DialogTitle>
+                <DialogDescription className="flex flex-col">
+                  All the related data will be lost. Are you sure you want to
+                  proceed?
+                  <button
+                    onClick={async () => {
+                      const data = await onDeleteChatThread(
+                        activeOptionSectionSession,
+                      );
+                      if (data) {
+                        setDeleteSessionIdModel(false);
+                        setActiveOptionSectionSession(null);
+                        setIsShowChatSessionOptions(null);
+                        setClickedDropdown(null);
+                      }
+                      console.log("data", data);
+                    }}
+                    className="mt-4 bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors duration-200 w-fit"
+                  >
+                    {isDeleteLoading ? (
+                      <Loader className="animate-spin h-4 w-4" />
+                    ) : (
+                      <p>Delete</p>
+                    )}
+                  </button>
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+        }
         {isClickedWorkflows &&
           (selectedWorkflowId !== null || selectedWorkflowId > 0) && (
             <div

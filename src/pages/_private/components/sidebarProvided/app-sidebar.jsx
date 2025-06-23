@@ -197,7 +197,7 @@ export function AppSidebar({ ...props }) {
   };
 
   return (
-    <Sidebar {...props} className="">
+    <Sidebar {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="mx-3 items-center justify-center ">
@@ -208,7 +208,7 @@ export function AppSidebar({ ...props }) {
               onClick={() => {
                 navigate("/dashboard");
               }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-700 bg-gray-800 mt-2 mx-2 rounded-md"
+              className="cursor-pointer px-2 py-1 hover:bg-g2/60 bg-g2 mt-2 mx-2 rounded-md"
               size="lg"
               asChild
             >
@@ -225,7 +225,7 @@ export function AppSidebar({ ...props }) {
               onClick={() => {
                 navigate("/workshop");
               }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              className="cursor-pointer px-2 py-1 hover:bg-g1/80 mt-2 mx-2 rounded-md"
               size="lg"
               asChild
             >

@@ -111,22 +111,20 @@ export default function ChainOfThoughtVisualizer({ data }) {
           <div className="bg-slate-900 p-1 rounded-full flex items-center">
             <button
               onClick={() => setActiveView("workflow")}
-              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${
-                activeView === "workflow"
+              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${activeView === "workflow"
                   ? "bg-slate-700 text-white"
                   : "text-slate-400 hover:text-slate-200"
-              }`}
+                }`}
             >
               <Workflow className="h-4 w-4 mr-2" />
               Workflow View
             </button>
             <button
               onClick={() => setActiveView("single")}
-              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${
-                activeView === "single"
+              className={`flex items-center px-3 py-1.5 rounded-full transition-all ${activeView === "single"
                   ? "bg-slate-700 text-white"
                   : "text-slate-400 hover:text-slate-200"
-              }`}
+                }`}
             >
               <Eye className="h-4 w-4 mr-2" />
               Single View
@@ -213,11 +211,10 @@ export default function ChainOfThoughtVisualizer({ data }) {
 
                     <div
                       ref={(el) => (expandRefs.current[index] = el)}
-                      className={`relative bg-slate-900 p-4 rounded-lg transition-all duration-300 ease-in-out ${
-                        expandedItems.includes(index)
+                      className={`relative bg-slate-900 p-4 rounded-lg transition-all duration-300 ease-in-out ${expandedItems.includes(index)
                           ? "h-fit"
                           : "max-h-32 overflow-hidden"
-                      }`}
+                        }`}
                     >
                       <div className="whitespace-pre-wrap text-sm ">
                         <ParseMd text={item.content} />

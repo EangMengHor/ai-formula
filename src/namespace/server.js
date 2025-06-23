@@ -83,5 +83,11 @@ export const getJobDataByIdUrl = `${import.meta.env.VITE_SOCKET_URL}/api/automat
 // is file password correct
 export const isFilePasswordCorrectUrl = `${url}/isFilePasswordCorrect`;
 
+export const deleteChatThread = `${import.meta.env.VITE_SOCKET_URL}/api/sidebar/deleteChatThread`;
 
-// personal knowledge base
+export const editChatThreadApiUrl = `${import.meta.env.VITE_SOCKET_URL}/api/sidebar/updateChatThreadName`;
+
+export const abortConversation = `${import.meta.env.VITE_SOCKET_URL}/api/core/stopChating`;
+export const isRelayMessageUrl = `${import.meta.env.VITE_SOCKET_URL}/api/core/isReplayMessage`;
+
+export const replayStreamUrl = `${import.meta.env.VITE_SOCKET_URL}/api/core/replayContinueStream`;
