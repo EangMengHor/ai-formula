@@ -64,7 +64,7 @@ function Chat() {
   const [fallBackPrompt, setFallBackPrompt] = useState("");
   const [conversation, setConversation] = useState([]);
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
-  const [prompt, setPrompt] = useState("large eassy on pm modi");
+  const [prompt, setPrompt] = useState("");
 
   const [streamingResponse, setStreamingResponse] = useState("");
 
@@ -776,11 +776,6 @@ function Chat() {
 
     /* 6. Error & flag handlers */
     if (event.type == "error") {
-      if (
-        isError ||
-        (event?.message && event?.message.toLowerCase().includes("abort"))
-      )
-        return; // Avoid duplicate error handling
       console.error("Error event received:", event);
       setIsError(true);
       setErrorMessage(
@@ -1169,7 +1164,6 @@ function Chat() {
 
       try {
         let response = await SSEChatCall(payload, refreshAccessToken);
-
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let buffer = "";
@@ -1237,7 +1231,7 @@ function Chat() {
           title: "Streaming error",
           description: error.message,
           variant: "destructive",
-        });
+        })  ;
         setPrompt(prevPrompt);
         setIsError(true);
         setErrorMessage(error.message);

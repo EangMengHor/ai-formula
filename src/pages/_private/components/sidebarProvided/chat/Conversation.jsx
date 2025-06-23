@@ -653,7 +653,7 @@ const Conversation = forwardRef(
                     </div>
                   )}
                   {/* error */}
-                  {item && item.isError && !(item?.isAbortManually || true) && (
+                  {item && item.isError && !item?.isAbortManually && (
                     <div className="bg-red-900 flex gap-2 items-center justify-between text-white p-3 px-4 rounded-2xl">
                       <div>
                         <h2 className="text-lg font-semibold mb-2">
