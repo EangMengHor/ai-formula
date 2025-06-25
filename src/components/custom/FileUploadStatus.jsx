@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, Upload, AlertCircle, LoaderCircle } from "lucide-react";
+import { CheckCircle, Upload, AlertCircle, LoaderCircle, Clock } from "lucide-react";
 
 const FileUploadStatus = ({ 
   memorizationQueue, 
@@ -7,13 +7,22 @@ const FileUploadStatus = ({
   fileQueueError,
   files 
 }) => {
-  const processingCount = memorizationQueue;
+  // Count files by their current status
+  const processingCount = Object.values(memorizationStatuses).filter(
+    status => status === "memorizing"
+  ).length;
+  
+  const queuedCount = Object.values(memorizationStatuses).filter(
+    status => status === "queued"
+  ).length;
+  
   const errorCount = fileQueueError.length;
+  
   const successCount = Object.values(memorizationStatuses).filter(
     status => status === "memorized"
   ).length;
 
-  if (processingCount === 0 && errorCount === 0 && successCount === 0) {
+  if (processingCount === 0 && errorCount === 0 && successCount === 0 && queuedCount === 0) {
     return null;
   }
 
@@ -29,6 +38,13 @@ const FileUploadStatus = ({
           <div className="flex items-center gap-1">
             <LoaderCircle className="w-3 h-3 animate-spin" />
             <span>{processingCount} processing</span>
+          </div>
+        )}
+        
+        {queuedCount > 0 && (
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3 text-yellow-400" />
+            <span>{queuedCount} queued</span>
           </div>
         )}
         
