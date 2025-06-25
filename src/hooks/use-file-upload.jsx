@@ -1,18 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFilesUploadMetadata } from "../context/FilesUploadMetadata";
 import { useToast } from "./use-toast";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { vectorizeOneFile } from "../services/n8n-apis/_core/vectorizeOneFile.api";
-import { getNewSession } from "../services/n8n-apis/_core/getNewSession.api";
-import { useUser } from "../context/UserContext";
-import { _useSidebar } from "../context/SidebarContext";
 
 export const useFileUpload = () => {
-  const { pathname } = useLocation();
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { user } = useUser();
-  const { appendToChatHistory } = _useSidebar();
   const { toast } = useToast();
 
   const {
@@ -110,30 +103,7 @@ export const useFileUpload = () => {
     }
   }, [filterUniqueFiles, setFiles, toast]);
 
-  // Handle new session creation for dashboard
-  const handleOpenNewSession = useCallback(async () => {
-    try {
-      toast({
-        title: "Creating New Session",
-        description: "Please wait while we create a new session for you...",
-      });
-      const res = await getNewSession("New Document Uploaded", user.id);
-      if (res.success) {
-        appendToChatHistory(res.data);
-        localStorage.setItem("filesFallBack", "true");
-        navigate(`/chat/${res.data.sessionid}`);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return false;
-    }
-  }, [user, appendToChatHistory, navigate, toast]);
+
 
   // Drag event handlers
   const handleDragEnter = useCallback((e) => {
@@ -177,20 +147,10 @@ export const useFileUpload = () => {
     
     if (droppedFiles.length > 0) {
       setIsProcessing(true);
-      
-      // If on dashboard, create new session first
-      if (pathname === "/dashboard") {
-        const sessionCreated = await handleOpenNewSession();
-        if (!sessionCreated) {
-          setIsProcessing(false);
-          return;
-        }
-      }
-      
       addFiles(droppedFiles);
       setIsProcessing(false);
     }
-  }, [pathname, handleOpenNewSession, addFiles]);
+  }, [addFiles]);
 
   // Paste event handler
   const handlePaste = useCallback(async (e) => {
@@ -201,20 +161,11 @@ export const useFileUpload = () => {
       e.preventDefault();
       setIsProcessing(true);
       
-      // If on dashboard, create new session first
-      if (pathname === "/dashboard") {
-        const sessionCreated = await handleOpenNewSession();
-        if (!sessionCreated) {
-          setIsProcessing(false);
-          return;
-        }
-      }
-      
       const pastedFiles = fileItems.map(item => item.getAsFile()).filter(Boolean);
       addFiles(pastedFiles);
       setIsProcessing(false);
     }
-  }, [pathname, handleOpenNewSession, addFiles]);
+  }, [addFiles]);
 
   // Initialize memorization queue
   useEffect(() => {

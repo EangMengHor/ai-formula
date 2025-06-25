@@ -448,11 +448,13 @@ function ChatInput({
   return (
     <div 
       className="relative mb-3"
-      onDragEnter={fileUpload.handleDragEnter}
-      onDragLeave={fileUpload.handleDragLeave}
-      onDragOver={fileUpload.handleDragOver}
-      onDrop={fileUpload.handleDrop}
-      onPaste={fileUpload.handlePaste}
+      {...(pathname !== "/dashboard" && {
+        onDragEnter: fileUpload.handleDragEnter,
+        onDragLeave: fileUpload.handleDragLeave,
+        onDragOver: fileUpload.handleDragOver,
+        onDrop: fileUpload.handleDrop,
+        onPaste: fileUpload.handlePaste,
+      })}
     >
       {pathname !== "/dashboard" && (
         <div className="w-full absolute -top-14 flex justify-end items-center">
@@ -1182,17 +1184,21 @@ function ChatInput({
         </Dialog>
       </div>
       
-      {/* Drag and Drop Overlay */}
-      <DragDropOverlay 
-        isDragging={fileUpload.isDragging} 
-        isProcessing={fileUpload.isProcessing} 
-      />
+      {/* Drag and Drop Overlay - Only show when not on dashboard */}
+      {pathname !== "/dashboard" && (
+        <DragDropOverlay 
+          isDragging={fileUpload.isDragging} 
+          isProcessing={fileUpload.isProcessing} 
+        />
+      )}
       
-      {/* File Drop Notification */}
-      <FileDropNotification
-        files={fileUpload.recentlyAddedFiles}
-        onDismiss={fileUpload.clearRecentlyAddedFiles}
-      />
+      {/* File Drop Notification - Only show when not on dashboard */}
+      {pathname !== "/dashboard" && (
+        <FileDropNotification
+          files={fileUpload.recentlyAddedFiles}
+          onDismiss={fileUpload.clearRecentlyAddedFiles}
+        />
+      )}
     </div>
   );
 }
