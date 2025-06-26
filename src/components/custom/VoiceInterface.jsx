@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { X, Mic, MicOff, Loader2, Volume2, VolumeX, Bot, BotOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useWebRTCVoice } from "@/hooks/use-webrtc-voice";
+import { debounce } from "lodash";
 
 export default function VoiceInterface({ 
   sessionId, 
@@ -15,6 +16,7 @@ export default function VoiceInterface({
   const audioQueueRef = useRef([]);
   const currentAudioRef = useRef(null);
   const isPlayingRef = useRef(false);
+  const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   
   // Use the WebRTC hook
   const {
@@ -30,7 +32,7 @@ export default function VoiceInterface({
     toggleMute,
     toggleSpeakerMute,
     toggleAssistantMute,
-  } = useWebRTCVoice(sessionId, onTranscript);
+  } = useWebRTCVoice(sessionId, onTranscript, integratedMode);
 
   // Auto-start session when enabled
   useEffect(() => {
@@ -53,18 +55,15 @@ export default function VoiceInterface({
     }
   }, [isEnabled, isSessionActive, stopSession]);
 
-  // In integrated mode, mute the assistant by default
-  useEffect(() => {
-    if (integratedMode && !isAssistantMuted && isSessionActive) {
-      toggleAssistantMute();
-    }
-  }, [integratedMode, isAssistantMuted, isSessionActive, toggleAssistantMute]);
-
-  // TTS playback function
+  // TTS playback function with better error handling and queue management
   const playTTS = async (text) => {
     if (!text || text.trim() === "") return;
 
+    console.log("🔊 TTS playTTS called with:", text.substring(0, 100));
+
     try {
+      console.log("🔊 Making TTS request to:", `${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`);
+      
       const response = await fetch(`${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`, {
         method: "POST",
         headers: {
@@ -80,34 +79,61 @@ export default function VoiceInterface({
         }),
       });
 
+      console.log("🔊 TTS response status:", response.status, response.ok);
+
       if (!response.ok) {
-        throw new Error("TTS request failed");
+        throw new Error(`TTS request failed: ${response.status}`);
       }
 
       const blob = await response.blob();
+      console.log("🔊 TTS blob received, size:", blob.size);
+      
       const audioUrl = URL.createObjectURL(blob);
       
       // Add to queue
       audioQueueRef.current.push(audioUrl);
+      console.log("🔊 Added to audio queue, queue length:", audioQueueRef.current.length);
       
       // Start playing if not already playing
       if (!isPlayingRef.current) {
+        console.log("🔊 Starting audio playback");
         playNextInQueue();
       }
     } catch (error) {
-      console.error("TTS Error:", error);
+      console.error("🔊 TTS Error:", error);
+      toast({
+        title: "TTS Error",
+        description: "Failed to play audio response",
+        variant: "destructive",
+      });
     }
   };
 
-  // Play next audio in queue
+  // Debounced TTS function to prevent too many rapid calls
+  const debouncedPlayTTS = useCallback(
+    debounce((text) => {
+      console.log("🔊 Debounced TTS called with:", text.substring(0, 50));
+      playTTS(text);
+    }, 100),
+    []
+  );
+
+  // Play next audio in queue with better state management
   const playNextInQueue = () => {
+    console.log("🔊 playNextInQueue called, queue length:", audioQueueRef.current.length);
+    
     if (audioQueueRef.current.length === 0) {
       isPlayingRef.current = false;
+      setIsPlayingTTS(false);
+      console.log("🔊 Audio queue empty, stopping playback");
       return;
     }
 
     isPlayingRef.current = true;
+    setIsPlayingTTS(true);
     const audioUrl = audioQueueRef.current.shift();
+    
+    console.log("🔊 Playing audio from URL");
     
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
@@ -118,49 +144,142 @@ export default function VoiceInterface({
     currentAudioRef.current.volume = isSpeakerMuted ? 0 : 1;
     
     currentAudioRef.current.onended = () => {
+      console.log("🔊 Audio playback ended");
       URL.revokeObjectURL(audioUrl);
       playNextInQueue();
     };
 
-    currentAudioRef.current.play().catch(console.error);
+    currentAudioRef.current.onerror = (error) => {
+      console.error("🔊 Audio playback error:", error);
+      URL.revokeObjectURL(audioUrl);
+      playNextInQueue();
+    };
+
+    currentAudioRef.current.play().then(() => {
+      console.log("🔊 Audio playback started successfully");
+    }).catch(error => {
+      console.error("🔊 Audio play error:", error);
+      URL.revokeObjectURL(audioUrl);
+      playNextInQueue();
+    });
+  };
+
+  // Stop all TTS playback
+  const stopTTS = () => {
+    // Clear queue
+    audioQueueRef.current.forEach(url => URL.revokeObjectURL(url));
+    audioQueueRef.current = [];
+    
+    // Stop current audio
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      URL.revokeObjectURL(currentAudioRef.current.src);
+      currentAudioRef.current = null;
+    }
+    
+    isPlayingRef.current = false;
+    setIsPlayingTTS(false);
   };
 
   // Handle close
   const handleClose = () => {
-    // Stop any playing audio
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current = null;
-    }
-    audioQueueRef.current = [];
-    isPlayingRef.current = false;
-    
+    stopTTS();
     stopSession();
     onClose?.();
   };
 
-  // Expose TTS function to parent
+  // Handle retry/reset
+  const handleRetry = useCallback(() => {
+    console.log("Retrying voice session...");
+    stopTTS();
+    stopSession();
+    
+    // Wait a moment then restart
+    setTimeout(() => {
+      startSession().catch(error => {
+        console.error("Failed to restart voice session:", error);
+        toast({
+          title: "Voice Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      });
+    }, 1000);
+  }, [stopTTS, stopSession, startSession, toast]);
+
+  // Expose TTS functions to parent with better error handling
   useEffect(() => {
     if (integratedMode && window) {
-      window.voiceInterfaceTTS = playTTS;
+      console.log("🔧 Exposing TTS functions to window in integrated mode");
+      
+      // Wrap functions with error handling
+      window.voiceInterfaceTTS = (text) => {
+        try {
+          console.log("🔧 window.voiceInterfaceTTS called with:", text?.substring(0, 50));
+          if (text && text.trim()) {
+            debouncedPlayTTS(text.trim());
+          }
+        } catch (error) {
+          console.error("🔧 Error in voiceInterfaceTTS:", error);
+        }
+      };
+      
+      window.voiceInterfaceStopTTS = () => {
+        try {
+          console.log("🔧 window.voiceInterfaceStopTTS called");
+          stopTTS();
+        } catch (error) {
+          console.error("🔧 Error in voiceInterfaceStopTTS:", error);
+        }
+      };
+      
+      console.log("🔧 Voice interface TTS functions exposed successfully");
     }
+    
     return () => {
       if (window.voiceInterfaceTTS) {
+        console.log("🔧 Cleaning up TTS functions from window");
         delete window.voiceInterfaceTTS;
       }
+      if (window.voiceInterfaceStopTTS) {
+        delete window.voiceInterfaceStopTTS;
+      }
     };
-  }, [integratedMode]);
+  }, [integratedMode, debouncedPlayTTS]);
 
   if (!isEnabled) return null;
 
   // Get status color based on current state
   const getStatusColor = () => {
-    if (!isSessionActive) return "bg-red-500";
+    if (!isSessionActive || status.includes("Error")) return "bg-red-500";
     if (status.includes("speaking")) return "bg-green-400 animate-pulse";
     if (isMuted) return "bg-yellow-500";
+    if (isPlayingTTS) return "bg-purple-400 animate-pulse";
     if (currentVolume > 0.1) return "bg-blue-400 animate-pulse";
     return "bg-green-400";
   };
+
+  // Check if we're in an error state
+  const isErrorState = status.includes("Error") || status.includes("error");
+
+  // Debug information (only in development)
+  const isDev = import.meta.env.DEV;
+  
+  if (isDev) {
+    console.log("Voice Interface Debug:", {
+      isEnabled,
+      isSessionActive,
+      status,
+      isPlayingTTS,
+      isMuted,
+      isSpeakerMuted,
+      currentUserTranscript,
+      hasVoiceTTSFunction: !!window.voiceInterfaceTTS,
+      hasStopTTSFunction: !!window.voiceInterfaceStopTTS,
+      queueLength: audioQueueRef.current?.length || 0,
+      isPlaying: isPlayingRef.current
+    });
+  }
 
   return (
     <div className="flex items-center justify-center w-full py-4">
@@ -183,11 +302,28 @@ export default function VoiceInterface({
               <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
               <span className="text-base text-gray-300">Connecting...</span>
             </div>
+          ) : isErrorState ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-red-500" />
+              <span className="text-base text-red-400">{status}</span>
+              <Button
+                onClick={handleRetry}
+                variant="ghost"
+                size="sm"
+                className="text-red-400 hover:text-white hover:bg-red-800 rounded-md px-2 py-1"
+              >
+                Retry
+              </Button>
+            </div>
           ) : isSessionActive ? (
             <div className="flex items-center gap-2">
               <div className={`w-4 h-4 rounded-full ${getStatusColor()}`} />
               <span className="text-base text-gray-300">
-                {integratedMode ? "Voice Input Active" : status}
+                {integratedMode ? (
+                  isPlayingTTS ? "AI Speaking..." : 
+                  status.includes("speaking") ? "Listening..." : 
+                  "Voice Mode Active"
+                ) : status}
               </span>
             </div>
           ) : (
@@ -245,6 +381,19 @@ export default function VoiceInterface({
               <Volume2 className="w-6 h-6" />
             )}
           </Button>
+
+          {/* Stop TTS button (only in integrated mode) */}
+          {integratedMode && isPlayingTTS && (
+            <Button
+              onClick={stopTTS}
+              variant="ghost"
+              size="lg"
+              className="rounded-full p-4 bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+              title="Stop AI speech"
+            >
+              <BotOff className="w-6 h-6" />
+            </Button>
+          )}
 
           {/* Assistant toggle (only in non-integrated mode) */}
           {!integratedMode && (

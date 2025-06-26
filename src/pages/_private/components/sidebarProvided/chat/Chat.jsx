@@ -72,6 +72,13 @@ function Chat() {
   
   // Voice to Voice state
   const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const isVoiceModeRef = useRef(false);
+
+  // Debug voice mode state changes
+  useEffect(() => {
+    console.log("🎤 Voice mode state changed to:", isVoiceMode);
+    isVoiceModeRef.current = isVoiceMode; // Keep ref in sync
+  }, [isVoiceMode]);
 
   const [streamingResponse, setStreamingResponse] = useState("");
 
@@ -108,13 +115,20 @@ function Chat() {
   
   // Voice transcript handler - using ref to avoid dependency cycle
   const handleVoiceTranscript = useCallback((transcript, speaker) => {
-    if (speaker === "user") {
-      // For user speech, just log during accumulation
+    console.log("🎤 Voice transcript received:", { transcript: transcript?.substring(0, 50), speaker });
+    
+    if (speaker === "user_partial") {
+      // For user speech during accumulation, just log
       console.log("User is saying:", transcript);
     } else if (speaker === "user_complete") {
       // When user finishes speaking, submit the complete transcript
       console.log("User finished saying:", transcript);
       if (transcript.trim() && !isNextChatLoading) {
+        // Stop any current TTS before processing new input
+        if (window.voiceInterfaceStopTTS) {
+          window.voiceInterfaceStopTTS();
+        }
+        
         // Use a setTimeout to ensure handleSubmit is available
         setTimeout(() => {
           if (typeof handleSubmitRef.current === 'function') {
@@ -129,14 +143,146 @@ function Chat() {
     }
   }, [isNextChatLoading]);
   
+  // TTS Integration - moved to a separate function for better control
+  const handleTTSForVoice = useCallback((content, messageObj) => {
+    const currentVoiceMode = isVoiceModeRef.current;
+    console.log("🗣️ TTS Check Current Voice Mode State:", {
+      stateValue: isVoiceMode,
+      refValue: currentVoiceMode,
+      usingRefValue: currentVoiceMode
+    });
+    
+    if (!currentVoiceMode || !content) return;
+
+    console.log("🗣️ TTS Check:", {
+      isVoiceMode: currentVoiceMode,
+      hasContent: !!content,
+      contentLength: content.length,
+      hasTTSFunction: !!window.voiceInterfaceTTS,
+      contentPreview: content.substring(0, 100)
+    });
+
+    // Ensure TTS function is available
+    if (!window.voiceInterfaceTTS) {
+      console.warn("🗣️ Voice mode active but voiceInterfaceTTS not available!");
+      return;
+    }
+
+    console.log("🗣️ Processing TTS for chunk:", content.substring(0, 50));
+    
+    // Initialize TTS buffer if not exists
+    if (!messageObj._ttsBuffer) {
+      messageObj._ttsBuffer = "";
+      messageObj._lastSentIndex = 0;
+      messageObj._ttsQueue = [];
+      console.log("🗣️ TTS buffer initialized");
+    }
+    
+    messageObj._ttsBuffer += content;
+    
+    // Send complete sentences to TTS for natural speech flow
+    const sentencePattern = /[.!?]\s+/g;
+    let match;
+    let lastCompleteIndex = messageObj._lastSentIndex;
+    
+    while ((match = sentencePattern.exec(messageObj._ttsBuffer)) !== null) {
+      lastCompleteIndex = match.index + match[0].length;
+    }
+    
+    // If we have complete sentences to send
+    if (lastCompleteIndex > messageObj._lastSentIndex) {
+      const textToSpeak = messageObj._ttsBuffer.substring(messageObj._lastSentIndex, lastCompleteIndex);
+      const plainText = textToSpeak
+        .replace(/<[^>]*>/g, '') // Remove HTML tags
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+        .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+        .replace(/`([^`]+)`/g, '$1') // Remove inline code
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert markdown links to text
+        .replace(/#{1,6}\s+/g, '') // Remove markdown headers
+        .trim();
+      
+      if (plainText) {
+        console.log("🗣️ Sending to TTS:", plainText.substring(0, 100));
+        
+        // Add to queue instead of immediately sending
+        messageObj._ttsQueue.push(plainText);
+        
+        // Process queue with delay to prevent overwhelming TTS
+        if (!messageObj._ttsProcessing) {
+          messageObj._ttsProcessing = true;
+          setTimeout(() => {
+            const processQueue = () => {
+              if (messageObj._ttsQueue.length > 0 && window.voiceInterfaceTTS) {
+                const nextText = messageObj._ttsQueue.shift();
+                console.log("🗣️ Actually calling TTS function with:", nextText.substring(0, 50));
+                window.voiceInterfaceTTS(nextText);
+                
+                if (messageObj._ttsQueue.length > 0) {
+                  setTimeout(processQueue, 200); // Small delay between TTS calls
+                } else {
+                  messageObj._ttsProcessing = false;
+                }
+              } else {
+                messageObj._ttsProcessing = false;
+              }
+            };
+            processQueue();
+          }, 100);
+        }
+      }
+      
+      messageObj._lastSentIndex = lastCompleteIndex;
+    }
+  }, []); // Remove dependency on isVoiceMode since we're using ref
+
+  // Handle completion of TTS for voice mode
+  const finalizeTTSForVoice = useCallback((messageObj) => {
+    const currentVoiceMode = isVoiceModeRef.current;
+    if (!currentVoiceMode || !messageObj._ttsBuffer) return;
+
+    // Speak any remaining content
+    const remainingText = messageObj._ttsBuffer.substring(messageObj._lastSentIndex || 0);
+    const plainText = remainingText
+      .replace(/<[^>]*>/g, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/#{1,6}\s+/g, '')
+      .trim();
+    
+    if (plainText && window.voiceInterfaceTTS) {
+      console.log("🗣️ Sending final TTS chunk:", plainText.substring(0, 100));
+      window.voiceInterfaceTTS(plainText);
+    }
+    
+    // Clean up TTS buffer
+    delete messageObj._ttsBuffer;
+    delete messageObj._lastSentIndex;
+    delete messageObj._ttsQueue;
+    delete messageObj._ttsProcessing;
+    console.log("🗣️ TTS buffer cleaned up");
+  }, []); // Remove dependency since we're using ref
+
   // Toggle voice mode
   const toggleVoiceMode = useCallback(() => {
-    setIsVoiceMode((prev) => !prev);
+    setIsVoiceMode((prev) => {
+      const newValue = !prev;
+      console.log("🎤 Toggle voice mode:", prev, "→", newValue);
+      console.log("🎤 Voice mode state will be:", newValue);
+      return newValue;
+    });
   }, []);
   
   // Exit voice mode
   const exitVoiceMode = useCallback(() => {
-    setIsVoiceMode(false);
+    console.log("🎤 Exit voice mode called");
+    setIsVoiceMode((prev) => {
+      console.log("🎤 Exit voice mode: current state:", prev, "→ false");
+      return false;
+    });
   }, []);
 
   // when sessionId changes then reset the state
@@ -752,6 +898,15 @@ function Chat() {
           event.content,
           messageReplayRef.current,
         );
+        console.log("🎤 Debug finalResponse - isVoiceMode:", isVoiceMode, "content length:", event.content?.length);
+        console.log("🎤 Real-time voice mode check:", {
+          stateValue: isVoiceMode,
+          refValue: isVoiceModeRef.current,
+          currentStateValue: isVoiceMode,
+          eventContent: event.content?.substring(0, 20),
+          timestamp: new Date().toISOString()
+        });
+        
         if (isAboartController.current) return;
         if (!last || last.type !== "quick") {
           last = newAiMessage("quick");
@@ -771,27 +926,15 @@ function Chat() {
         appendChunk(last, event.content);
         setIsNextChatLoading(true);
         
-        // If in voice mode, speak the response chunk
-        if (isVoiceMode && window.voiceInterfaceTTS) {
-          // Accumulate chunks for better TTS
-          if (!last._ttsBuffer) last._ttsBuffer = "";
-          last._ttsBuffer += event.content;
-          
-          // Send to TTS when we have a sentence or paragraph
-          const sentenceEnders = /[.!?]\s/g;
-          const matches = last._ttsBuffer.match(sentenceEnders);
-          if (matches) {
-            const lastIndex = last._ttsBuffer.lastIndexOf(matches[matches.length - 1]);
-            const completeSentences = last._ttsBuffer.substring(0, lastIndex + matches[matches.length - 1].length);
-            last._ttsBuffer = last._ttsBuffer.substring(lastIndex + matches[matches.length - 1].length);
-            
-            // Extract plain text from complete sentences for TTS
-            const plainText = completeSentences.replace(/<[^>]*>/g, '').trim();
-            if (plainText) {
-              window.voiceInterfaceTTS(plainText);
-            }
-          }
-        }
+        // Handle TTS for voice mode
+        console.log("🎤 About to call handleTTSForVoice with:", {
+          stateValue: isVoiceMode,
+          refValue: isVoiceModeRef.current,
+          content: event.content?.substring(0, 50),
+          lastMessage: !!last,
+          timestamp: new Date().toISOString()
+        });
+        handleTTSForVoice(event.content, last);
         
         return conv;
       }
@@ -802,14 +945,8 @@ function Chat() {
         if (last) {
           completeStreaming(last);
           
-          // Speak any remaining TTS buffer
-          if (isVoiceMode && window.voiceInterfaceTTS && last._ttsBuffer) {
-            const plainText = last._ttsBuffer.replace(/<[^>]*>/g, '').trim();
-            if (plainText) {
-              window.voiceInterfaceTTS(plainText);
-            }
-            delete last._ttsBuffer;
-          }
+          // Finalize TTS for voice mode
+          finalizeTTSForVoice(last);
         }
         convesationCleanup();
         return conv;
@@ -1499,7 +1636,7 @@ function Chat() {
 
       <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
         <div className="max-w-4xl bg-black w-full mx-auto">
-          {!isVoiceMode ? (
+          <div className={isVoiceMode ? "opacity-0 pointer-events-none" : ""}>
             <ChatInput
               conversationProp={conversationRef}
               input={prompt}
@@ -1514,13 +1651,18 @@ function Chat() {
               onVoiceModeToggle={toggleVoiceMode}
               isVoiceMode={isVoiceMode}
             />
-          ) : (
-            <VoiceInterface
-              sessionId={id}
-              onClose={exitVoiceMode}
-              onTranscript={handleVoiceTranscript}
-              isEnabled={isVoiceMode}
-            />
+          </div>
+          
+          {/* Voice Interface overlay when voice mode is active */}
+          {isVoiceMode && (
+            <div className="absolute inset-0 z-10">
+              <VoiceInterface
+                sessionId={id}
+                onClose={exitVoiceMode}
+                onTranscript={handleVoiceTranscript}
+                isEnabled={isVoiceMode}
+              />
+            </div>
           )}
         </div>
       </div>
