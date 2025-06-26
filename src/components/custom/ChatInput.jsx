@@ -79,6 +79,8 @@ function ChatInput({
   isAborting,
   currConversationId,
   processingFiles = new Set(),
+  onVoiceModeToggle,
+  isVoiceMode = false,
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
@@ -879,147 +881,38 @@ function ChatInput({
                   </div>
 
                   {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
+                  
+                  {/* voice to voice */}
+                  <div
+                    onClick={() => {
+                      if (onVoiceModeToggle) {
+                        onVoiceModeToggle();
+                      }
+                    }}
+                    className="rounded-md px-2 cursor-pointer flex gap-2"
+                  >
+                    <div className="flex gap-2 font-semibold">
+                      <TooltipProvider>
+                        <Tooltip delayDuration={0}>
+                          <TooltipTrigger>
+                            <div className={`w-9 h-9 flex items-center justify-center rounded-md transition-colors ${
+                              isVoiceMode 
+                                ? "bg-blue-600 hover:bg-blue-700" 
+                                : "hover:bg-gray-800"
+                            }`}>
+                              <AudioLines className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isVoiceMode ? "Exit Voice Mode" : "Voice to Voice Talk"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
                 </div>
               }
               {/* right side */}
-
-              <div>
-                <Dialog>
-                  <DialogTrigger>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={0}>
-                        <TooltipTrigger
-                          className={`${isPublicDomain ? "hidden" : "flex"}`}
-                        >
-                          <div className="cursor-pointer gap-2 items-center p-2 rounded-md hover:bg-gray-800 mr-2">
-                            <AudioLines className="w-5 h-5" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Use ARX Voice Technology</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-5xl bg-slate-700">
-                    <DialogHeader>
-                      <DialogTitle className="font-semibold text-white text-2xl">
-                        Select Suitable Voice Agent
-                      </DialogTitle>
-                      <DialogDescription>
-                        Choose a voice agent to enhance your conversation
-                        experience
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer transition-all">
-                      <div
-                        onClick={() => {
-                          let url = domainState
-                            ? import.meta.env.VITE_OPENAI_REALTIME_URL
-                            : import.meta.env.VITE_OPENAI_REALTIME_URL2;
-
-                          url =
-                            files.length > 0
-                              ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-                                  .slice(0, 20)
-                                  .map((file) => file.name)
-                                  .join("||||")}&namespace=${id || ""}`
-                              : id && id != undefined
-                                ? `${url}?namespace=${id}`
-                                : url;
-
-                          window.open(url, "_blank");
-                        }}
-                        className="flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full mt-2"
-                      >
-                        {/* left */}
-                        <div className="flex gap-2">
-                          {/* image */}
-                          <div className="flex items-center px-1 py-1 rounded-md bg-green-400 w-fit">
-                            <img
-                              src="/small-log.png"
-                              alt="Stream Realtime API"
-                              className="w-6 h-6 m-1 rounded-md"
-                            />
-                          </div>
-                          {/* content */}
-                          <div className="flex flex-col leading-5">
-                            <p className="font-semibold text-white">
-                              {isPublicDomain
-                                ? "Beta Voice Agent"
-                                : "ARX Next Voice Agent (Highly Recommended)"}
-                            </p>
-                            <p className="text-slate-300">
-                              {isPublicDomain
-                                ? "Beta Can Access Voice • Most Superior And Fast • Automation Features"
-                                : "ARX Next Can Access Voice • Most Superior And Fast • Automation Features"}
-                            </p>
-                          </div>
-                        </div>
-                        {/* right */}
-                        <div className="flex gap-1">
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <AudioWaveform className="text-white" />
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        onClick={() => {
-                          const url = domainState
-                            ? import.meta.env.VITE_GEMINI_REALTIME_URL
-                            : import.meta.env.VITE_GEMINI_REALTIME_URL2;
-                          window.open(url, "_blank");
-                        }}
-                        className={`flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}
-                      >
-                        {/* left */}
-                        <div className="flex gap-2">
-                          {/* image */}
-                          <div className="flex items-center px-1 py-1 rounded-md bg-red-400 w-fit">
-                            <img
-                              src="/small-log.png"
-                              alt="Stream Realtime API"
-                              className="w-6 h-6 m-1 rounded-md"
-                            />
-                          </div>
-                          {/* content */}
-                          <div className="flex flex-col leading-5">
-                            <p className="font-semibold text-white">
-                              ARX Purle Voice Agent (Coming Soon)
-                            </p>
-                            <p className="text-slate-300">
-                              ARX Pulse Can Access Voice ,Screen And Camara
-                              Sharing • Full Version Coming Soon
-                            </p>
-                          </div>
-                        </div>
-                        {/* right */}
-                        <div className="flex gap-1">
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <AudioWaveform className="text-white" />
-                          </div>
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <Camera className="text-white" />
-                          </div>
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <MonitorUp className="text-white" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    {/* <button
-                                        onClick={() => {
-                                            window.open(import.meta.env.VITE_GEMINI_REALTIME_URL, "_blank")
-                                        }}
-                                        className="flex items-center px-1 py-1 rounded-md bg-red-400 border border-gray-600 hover:bg-slate-600 w-fit"
-                                    >
-                                        <div className="flex w-fit">
-                                            <img src="/small-log.png" alt="Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
-                                        </div>
-                                    </button> */}
-                  </DialogContent>
-                </Dialog>
-              </div>
               {console.log(
                 isAborting,
                 input.length === 0,

@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 
-const TTSPrompt = ({
+const TTSPrompt = forwardRef(({
   startButton,
   loadingButton,
   StopButton,
   prompt = "dsdf",
-}) => {
+}, ref) => {
   const [text, setText] = useState("Error using Audio TTS, please try again.");
   const audioRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -17,6 +17,7 @@ const TTSPrompt = ({
   useEffect(() => {
     setText(prompt);
   });
+
   // Wait for updateend event helper
   async function waitForUpdateEnd(sourceBuffer) {
     return new Promise((resolve) =>
@@ -157,7 +158,7 @@ const TTSPrompt = ({
 
     // Validate non-empty input
     if (!text.trim()) {
-      alert("Please enter text to speak.");
+      console.warn("TTSPrompt: No text to speak");
       return;
     }
 
@@ -221,7 +222,10 @@ const TTSPrompt = ({
             `${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`,
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { 
+                "Content-Type": "application/json",
+                "X-Voice-Interface": "true" // Mark as voice interface request
+              },
               body: JSON.stringify({
                 text,
                 response_format: "mp3",
@@ -314,6 +318,14 @@ const TTSPrompt = ({
     }
   };
 
+  // Expose methods to parent component through ref
+  useImperativeHandle(ref, () => ({
+    startTTS,
+    stopTTS,
+    isPlaying,
+    isLoading: loading
+  }), [isPlaying, loading]);
+
   // Clean up resources when component unmounts
   useEffect(() => {
     return () => {
@@ -358,6 +370,8 @@ const TTSPrompt = ({
       />
     </>
   );
-};
+});
+
+TTSPrompt.displayName = 'TTSPrompt';
 
 export default TTSPrompt;
