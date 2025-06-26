@@ -98,12 +98,20 @@ export default function VoiceInterface({
     setCurrentTTSText(cleanText);
     
     // Trigger the TTS by programmatically calling the TTSPrompt start function
-    // We'll do this through a ref after the component updates
+    // Pass the text directly to avoid timing issues
     setTimeout(() => {
-      if (ttsPromptRef.current && ttsPromptRef.current.startTTS) {
-        ttsPromptRef.current.startTTS();
+      if (ttsPromptRef.current && ttsPromptRef.current.startTTS && cleanText.trim()) {
+        console.log("🔊 Triggering TTS with text:", cleanText.substring(0, 100));
+        ttsPromptRef.current.startTTS(cleanText); // Pass text directly
+      } else {
+        console.warn("🔊 Cannot trigger TTS:", {
+          hasRef: !!ttsPromptRef.current,
+          hasStartTTS: !!ttsPromptRef.current?.startTTS,
+          hasCleanText: !!cleanText.trim(),
+          cleanText: cleanText.substring(0, 50)
+        });
       }
-    }, 100);
+    }, 100); // Reduced delay since we're passing text directly
   }, []);
 
   // Debounced TTS function to prevent too many rapid calls

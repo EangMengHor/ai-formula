@@ -4,9 +4,9 @@ const TTSPrompt = forwardRef(({
   startButton,
   loadingButton,
   StopButton,
-  prompt = "dsdf",
+  prompt = "",
 }, ref) => {
-  const [text, setText] = useState("Error using Audio TTS, please try again.");
+  const [text, setText] = useState(prompt || "");
   const audioRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -15,8 +15,10 @@ const TTSPrompt = forwardRef(({
   const shouldContinueRef = useRef(true);
 
   useEffect(() => {
-    setText(prompt);
-  });
+    if (prompt && prompt.trim()) {
+      setText(prompt);
+    }
+  }, [prompt]);
 
   // Wait for updateend event helper
   async function waitForUpdateEnd(sourceBuffer) {
@@ -152,16 +154,20 @@ const TTSPrompt = forwardRef(({
     }
   };
 
-  const startTTS = async () => {
+  const startTTS = async (overrideText = null) => {
     // Reset stop flag
     shouldContinueRef.current = true;
 
-    // Validate non-empty input
-    if (!text.trim()) {
-      console.warn("TTSPrompt: No text to speak");
+    // Use override text if provided, otherwise use component state
+    const textToSpeak = overrideText || text;
+
+    // Validate non-empty input and ensure it's not a default error message
+    if (!textToSpeak.trim() || textToSpeak.includes("Sorry, I'm having trouble") || textToSpeak.includes("Error using Audio TTS")) {
+      console.warn("TTSPrompt: No valid text to speak or using default error text:", textToSpeak);
       return;
     }
 
+    console.log("🔊 TTSPrompt starting TTS with text:", textToSpeak.substring(0, 100));
     setLoading(true);
 
     try {
@@ -217,23 +223,23 @@ const TTSPrompt = forwardRef(({
 
         try {
           setLoading(true);
-          // Call the backend TTS endpoint with response_format "mp3"
-          const response = await fetch(
-            `${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`,
-            {
-              method: "POST",
-              headers: { 
-                "Content-Type": "application/json",
-                "X-Voice-Interface": "true" // Mark as voice interface request
-              },
-              body: JSON.stringify({
-                text,
-                response_format: "mp3",
-                // optionally pass voice, model, instructions if needed
-              }),
-              signal: abortControllerRef.current.signal, // Add the abort signal
-            },
-          );
+                          // Call the backend TTS endpoint with response_format "mp3"
+                const response = await fetch(
+                  `${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`,
+                  {
+                    method: "POST",
+                    headers: { 
+                      "Content-Type": "application/json",
+                      "X-Voice-Interface": "true" // Mark as voice interface request
+                    },
+                    body: JSON.stringify({
+                      text: textToSpeak,
+                      response_format: "mp3",
+                      // optionally pass voice, model, instructions if needed
+                    }),
+                    signal: abortControllerRef.current.signal, // Add the abort signal
+                  },
+                );
           if (!response.ok || !response.body) {
             throw new Error("TTS request failed");
           }
