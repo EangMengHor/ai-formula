@@ -59,7 +59,10 @@ export default function VoiceInterface({
   const playTTS = async (text) => {
     if (!text || text.trim() === "") return;
 
-    console.log("🔊 TTS playTTS called with:", text.substring(0, 100));
+    console.log("🔊 TTS playTTS called with:", text.substring(0, 200));
+    console.log("🔊 Full text length:", text.length);
+    console.log("🔊 First 300 characters:", text.substring(0, 300));
+    console.log("🔊 Last 100 characters:", text.substring(Math.max(0, text.length - 100)));
 
     try {
       console.log("🔊 Making TTS request to:", `${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`);
@@ -320,9 +323,10 @@ export default function VoiceInterface({
               <div className={`w-4 h-4 rounded-full ${getStatusColor()}`} />
               <span className="text-base text-gray-300">
                 {integratedMode ? (
-                  isPlayingTTS ? "AI Speaking..." : 
+                  isPlayingTTS ? "Speaking..." : 
                   status.includes("speaking") ? "Listening..." : 
-                  "Voice Mode Active"
+                  status.includes("Processing") ? "AI Thinking..." :
+                  "Voice Active"
                 ) : status}
               </span>
             </div>

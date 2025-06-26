@@ -143,23 +143,83 @@ function Chat() {
     }
   }, [isNextChatLoading]);
   
-  // TTS Integration - moved to a separate function for better control
-  const handleTTSForVoice = useCallback((content, messageObj) => {
+  // Helper function to extract text in exact order from message blocks
+  const extractTextInOrder = useCallback((messageBlocks) => {
+    if (!Array.isArray(messageBlocks)) return "";
+    
+    let extractedText = "";
+    
+    // Process blocks in their exact array order
+    for (let i = 0; i < messageBlocks.length; i++) {
+      const block = messageBlocks[i];
+      
+      if (block.type === "text" && block.content) {
+        // Add the text content exactly as it appears
+        extractedText += block.content;
+        
+        // Add proper spacing between text blocks
+        if (i < messageBlocks.length - 1) {
+          // Check if the content already ends with proper punctuation/spacing
+          const trimmedContent = block.content.trim();
+          if (!trimmedContent.match(/[.!?]\s*$/)) {
+            extractedText += " ";
+          } else {
+            extractedText += " ";
+          }
+        }
+      }
+      // For non-text blocks, add brief descriptions
+      else if (block.type === "document" && block.name) {
+        extractedText += `Document ${block.name} presented. `;
+      }
+      else if (block.type === "visual" && block.name) {
+        extractedText += `Visualization ${block.name} shown. `;
+      }
+      else if (block.type === "chart" && block.dataName) {
+        extractedText += `Chart ${block.dataName} displayed. `;
+      }
+      else if (block.type === "mermaid") {
+        extractedText += "Diagram presented. ";
+      }
+      else if (block.type === "simulation") {
+        extractedText += "Agent simulation results shown. ";
+      }
+    }
+    
+    return extractedText.trim();
+  }, []);
+
+  // TTS Integration - now handles complete messages only
+  const handleTTSForVoice = useCallback((aiMessage) => {
     const currentVoiceMode = isVoiceModeRef.current;
-    console.log("🗣️ TTS Check Current Voice Mode State:", {
+    console.log("🗣️ TTS Check for completed message:", {
       stateValue: isVoiceMode,
       refValue: currentVoiceMode,
-      usingRefValue: currentVoiceMode
+      usingRefValue: currentVoiceMode,
+      messageComplete: aiMessage?.isComplete,
+      messageType: aiMessage?.type,
+      messageBlocks: aiMessage?.message?.length
     });
     
-    if (!currentVoiceMode || !content) return;
+    if (!currentVoiceMode || !aiMessage?.isComplete || !aiMessage?.message) return;
 
-    console.log("🗣️ TTS Check:", {
-      isVoiceMode: currentVoiceMode,
-      hasContent: !!content,
-      contentLength: content.length,
+    console.log("🗣️ Raw message structure:", JSON.stringify(aiMessage.message, null, 2));
+
+    // Extract text content using the order-preserving function
+    const fullText = extractTextInOrder(aiMessage.message);
+    
+    console.log("🗣️ Extracted full text in order:", fullText);
+    
+    if (!fullText) {
+      console.log("🗣️ No text content found in completed message");
+      return;
+    }
+
+    console.log("🗣️ Processing complete message for TTS:", {
+      hasContent: !!fullText,
+      contentLength: fullText.length,
       hasTTSFunction: !!window.voiceInterfaceTTS,
-      contentPreview: content.substring(0, 100)
+      contentPreview: fullText.substring(0, 200)
     });
 
     // Ensure TTS function is available
@@ -168,103 +228,40 @@ function Chat() {
       return;
     }
 
-    console.log("🗣️ Processing TTS for chunk:", content.substring(0, 50));
-    
-    // Initialize TTS buffer if not exists
-    if (!messageObj._ttsBuffer) {
-      messageObj._ttsBuffer = "";
-      messageObj._lastSentIndex = 0;
-      messageObj._ttsQueue = [];
-      console.log("🗣️ TTS buffer initialized");
-    }
-    
-    messageObj._ttsBuffer += content;
-    
-    // Send complete sentences to TTS for natural speech flow
-    const sentencePattern = /[.!?]\s+/g;
-    let match;
-    let lastCompleteIndex = messageObj._lastSentIndex;
-    
-    while ((match = sentencePattern.exec(messageObj._ttsBuffer)) !== null) {
-      lastCompleteIndex = match.index + match[0].length;
-    }
-    
-    // If we have complete sentences to send
-    if (lastCompleteIndex > messageObj._lastSentIndex) {
-      const textToSpeak = messageObj._ttsBuffer.substring(messageObj._lastSentIndex, lastCompleteIndex);
-      const plainText = textToSpeak
-        .replace(/<[^>]*>/g, '') // Remove HTML tags
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-        .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-        .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-        .replace(/`([^`]+)`/g, '$1') // Remove inline code
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert markdown links to text
-        .replace(/#{1,6}\s+/g, '') // Remove markdown headers
-        .trim();
-      
-      if (plainText) {
-        console.log("🗣️ Sending to TTS:", plainText.substring(0, 100));
-        
-        // Add to queue instead of immediately sending
-        messageObj._ttsQueue.push(plainText);
-        
-        // Process queue with delay to prevent overwhelming TTS
-        if (!messageObj._ttsProcessing) {
-          messageObj._ttsProcessing = true;
-          setTimeout(() => {
-            const processQueue = () => {
-              if (messageObj._ttsQueue.length > 0 && window.voiceInterfaceTTS) {
-                const nextText = messageObj._ttsQueue.shift();
-                console.log("🗣️ Actually calling TTS function with:", nextText.substring(0, 50));
-                window.voiceInterfaceTTS(nextText);
-                
-                if (messageObj._ttsQueue.length > 0) {
-                  setTimeout(processQueue, 200); // Small delay between TTS calls
-                } else {
-                  messageObj._ttsProcessing = false;
-                }
-              } else {
-                messageObj._ttsProcessing = false;
-              }
-            };
-            processQueue();
-          }, 100);
-        }
-      }
-      
-      messageObj._lastSentIndex = lastCompleteIndex;
-    }
-  }, []); // Remove dependency on isVoiceMode since we're using ref
-
-  // Handle completion of TTS for voice mode
-  const finalizeTTSForVoice = useCallback((messageObj) => {
-    const currentVoiceMode = isVoiceModeRef.current;
-    if (!currentVoiceMode || !messageObj._ttsBuffer) return;
-
-    // Speak any remaining content
-    const remainingText = messageObj._ttsBuffer.substring(messageObj._lastSentIndex || 0);
-    const plainText = remainingText
-      .replace(/<[^>]*>/g, '')
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`([^`]+)`/g, '$1')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/#{1,6}\s+/g, '')
+    // Clean the text for TTS while preserving structure and order
+    const cleanText = fullText
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/`([^`]+)`/g, '$1') // Remove inline code
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert markdown links to text
+      .replace(/#{1,6}\s+/g, '') // Remove markdown headers
+      .replace(/\$\$[\s\S]*?\$\$/g, '') // Remove LaTeX math blocks
+      .replace(/\$[^$]+\$/g, '') // Remove inline LaTeX
+      .replace(/\|[^|]*\|/g, '') // Remove table syntax (basic)
+      .replace(/^\s*[-*+]\s+/gm, '') // Remove bullet points
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+      .replace(/\n\s*\n\s*\n/g, ' ') // Replace multiple newlines with space
+      .replace(/\n\s*\n/g, ' ') // Replace double newlines with space
+      .replace(/\n/g, ' ') // Replace single newlines with space
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/\.\s*\./g, '.') // Remove duplicate periods
       .trim();
-    
-    if (plainText && window.voiceInterfaceTTS) {
-      console.log("🗣️ Sending final TTS chunk:", plainText.substring(0, 100));
-      window.voiceInterfaceTTS(plainText);
+
+    console.log("🗣️ Cleaned text for TTS:", cleanText);
+
+    if (!cleanText) {
+      console.log("🗣️ No valid text content after cleaning");
+      return;
     }
+
+    console.log("🗣️ Sending complete response to TTS:", cleanText.substring(0, 100));
     
-    // Clean up TTS buffer
-    delete messageObj._ttsBuffer;
-    delete messageObj._lastSentIndex;
-    delete messageObj._ttsQueue;
-    delete messageObj._ttsProcessing;
-    console.log("🗣️ TTS buffer cleaned up");
-  }, []); // Remove dependency since we're using ref
+    // Send the complete cleaned text to TTS
+    window.voiceInterfaceTTS(cleanText);
+    
+  }, [extractTextInOrder]); // Add extractTextInOrder as dependency
 
   // Toggle voice mode
   const toggleVoiceMode = useCallback(() => {
@@ -926,15 +923,7 @@ function Chat() {
         appendChunk(last, event.content);
         setIsNextChatLoading(true);
         
-        // Handle TTS for voice mode
-        console.log("🎤 About to call handleTTSForVoice with:", {
-          stateValue: isVoiceMode,
-          refValue: isVoiceModeRef.current,
-          content: event.content?.substring(0, 50),
-          lastMessage: !!last,
-          timestamp: new Date().toISOString()
-        });
-        handleTTSForVoice(event.content, last);
+        // TTS will be handled by useEffect when message is completed
         
         return conv;
       }
@@ -945,8 +934,7 @@ function Chat() {
         if (last) {
           completeStreaming(last);
           
-          // Finalize TTS for voice mode
-          finalizeTTSForVoice(last);
+          // TTS will be handled by useEffect when message is completed
         }
         convesationCleanup();
         return conv;
@@ -1560,6 +1548,29 @@ function Chat() {
       scrollToBottom();
     }
   }, [isChatLoading]);
+
+  // Monitor conversation changes for TTS in voice mode
+  useEffect(() => {
+    if (!isVoiceModeRef.current) return;
+    
+    // Get the last AI message that was just completed
+    const lastMessage = conversation[conversation.length - 1];
+    
+    if (lastMessage && 
+        lastMessage.role === "ai" && 
+        lastMessage.isComplete && 
+        !lastMessage.isStreaming &&
+        !lastMessage._ttsProcessed) { // Prevent duplicate processing
+      
+      console.log("🗣️ Detected completed AI message, triggering TTS");
+      
+      // Mark as processed to prevent duplicate TTS
+      lastMessage._ttsProcessed = true;
+      
+      // Trigger TTS for the completed message
+      handleTTSForVoice(lastMessage);
+    }
+  }, [conversation, handleTTSForVoice]);
 
   // --- UI Render hook boundary ---
   if (isChatLoading) {
