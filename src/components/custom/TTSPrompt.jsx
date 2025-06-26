@@ -5,6 +5,7 @@ const TTSPrompt = forwardRef(({
   loadingButton,
   StopButton,
   prompt = "",
+  onComplete,
 }, ref) => {
   const [text, setText] = useState(prompt || "");
   const audioRef = useRef(null);
@@ -151,6 +152,12 @@ const TTSPrompt = forwardRef(({
 
       setIsPlaying(false);
       setLoading(false);
+      
+      // Call the completion callback when manually stopped
+      if (onComplete) {
+        console.log("🔊 TTSPrompt manually stopped, calling onComplete");
+        onComplete();
+      }
     }
   };
 
@@ -341,23 +348,6 @@ const TTSPrompt = forwardRef(({
     };
   }, []);
 
-  // Add event listener to update isPlaying state when audio ends naturally
-  useEffect(() => {
-    const handleAudioEnd = () => {
-      setIsPlaying(false);
-    };
-
-    if (audioRef.current) {
-      audioRef.current.addEventListener("ended", handleAudioEnd);
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener("ended", handleAudioEnd);
-      }
-    };
-  }, []);
-
   return (
     <>
       {!isPlaying ? (
@@ -372,7 +362,13 @@ const TTSPrompt = forwardRef(({
         className="hidden"
         ref={audioRef}
         controls
-        onEnded={() => setIsPlaying(false)}
+        onEnded={() => {
+          console.log("🔊 TTSPrompt JSX onEnded handler");
+          setIsPlaying(false);
+          if (onComplete) {
+            onComplete();
+          }
+        }}
       />
     </>
   );

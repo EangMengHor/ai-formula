@@ -132,6 +132,12 @@ export default function VoiceInterface({
     setCurrentTTSText("");
   }, []);
 
+  // Handle TTS completion
+  const handleTTSComplete = useCallback(() => {
+    console.log("🔊 TTS completed, clearing TTS text");
+    setCurrentTTSText("");
+  }, []);
+
   // Handle close
   const handleClose = () => {
     stopTTS();
@@ -378,6 +384,7 @@ export default function VoiceInterface({
                 startButton={null}
                 loadingButton={null}
                 StopButton={null}
+                onComplete={handleTTSComplete}
               />
             </div>
           )}
