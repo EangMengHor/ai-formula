@@ -31,6 +31,7 @@ import { isReplay } from "@/services/isReplay";
 import { replayStream } from "@/services/replayStream";
 import { sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
+import VoiceInterface from "@/components/custom/VoiceInterface";
 
 function Chat() {
   // exploitation
@@ -68,6 +69,9 @@ function Chat() {
   const [conversation, setConversation] = useState([]);
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
   const [prompt, setPrompt] = useState("");
+  
+  // Voice to Voice state
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
 
   const [streamingResponse, setStreamingResponse] = useState("");
 
@@ -100,6 +104,70 @@ function Chat() {
   //   replay message
   const messageReplayRef = useRef(null);
   const lastReadedRelayIndex = useRef(null);
+  const handleSubmitRef = useRef(null);
+  
+  // Voice transcript handler - using ref to avoid dependency cycle
+  const handleVoiceTranscript = useCallback((transcript, speaker) => {
+    if (speaker === "user") {
+      // For user speech, just log during accumulation
+      console.log("User is saying:", transcript);
+    } else if (speaker === "user_complete") {
+      // When user finishes speaking, submit the complete transcript
+      console.log("User finished saying:", transcript);
+      if (transcript.trim() && !isNextChatLoading) {
+        // Use a setTimeout to ensure handleSubmit is available
+        setTimeout(() => {
+          if (typeof handleSubmitRef.current === 'function') {
+            handleSubmitRef.current(transcript.trim());
+          }
+        }, 0);
+      }
+    } else if (speaker === "assistant") {
+      // Handle assistant response - add to conversation in real-time
+      setConversation((prev) => {
+        const conv = [...prev];
+        let last = conv[conv.length - 1];
+        
+        if (!last || last.role !== "ai") {
+          last = {
+            role: "ai",
+            type: "quick",
+            isStreaming: true,
+            isComplete: false,
+            message: [],
+            tempContent: "",
+            cot: "",
+            isOpen: false,
+          };
+          conv.push(last);
+        }
+        
+        // Append transcript to the AI message
+        if (!last.message || last.message.length === 0) {
+          last.message = [{ type: "text", content: transcript, isComplete: false }];
+        } else {
+          const lastBlock = last.message[last.message.length - 1];
+          if (lastBlock.type === "text") {
+            lastBlock.content += transcript;
+          } else {
+            last.message.push({ type: "text", content: transcript, isComplete: false });
+          }
+        }
+        
+        return conv;
+      });
+    }
+  }, [isNextChatLoading]);
+  
+  // Toggle voice mode
+  const toggleVoiceMode = useCallback(() => {
+    setIsVoiceMode((prev) => !prev);
+  }, []);
+  
+  // Exit voice mode
+  const exitVoiceMode = useCallback(() => {
+    setIsVoiceMode(false);
+  }, []);
 
   // when sessionId changes then reset the state
   useEffect(() => {
@@ -391,7 +459,12 @@ function Chat() {
       });
     }
     if (fallBackPrompt.length > 0) {
-      handleSubmit(fallBackPrompt);
+      // Use setTimeout to ensure handleSubmit is available
+      setTimeout(() => {
+        if (typeof handleSubmitRef.current === 'function') {
+          handleSubmitRef.current(fallBackPrompt);
+        }
+      }, 0);
     }
   }, [fallBackPrompt]);
 
@@ -1249,6 +1322,11 @@ function Chat() {
     ],
   );
 
+  // Update the ref whenever handleSubmit changes
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
+
   const lastContent = useRef("");
 
   const onRetry = useCallback(() => {
@@ -1320,7 +1398,11 @@ function Chat() {
       isRetryTrigger.current = false;
       const lastHumanMessageContent = lastContent.current;
       // setPrompt(lastHumanMessageContent);
-      handleSubmit(lastHumanMessageContent, true);
+      setTimeout(() => {
+        if (typeof handleSubmitRef.current === 'function') {
+          handleSubmitRef.current(lastHumanMessageContent, true);
+        }
+      }, 0);
       setIsNextChatLoading(true);
       setIsError(false);
       setErrorMessage("");
@@ -1413,18 +1495,37 @@ function Chat() {
 
       <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
         <div className="max-w-4xl bg-black w-full mx-auto">
-          <ChatInput
-            conversationProp={conversationRef}
-            input={prompt}
-            setInput={setPrompt}
-            handleSubmit={() => handleSubmit(prompt)}
-            isLoading={isNextChatLoading}
-            onScrollToBottom={scrollToBottom}
-            onAbort={onAbort}
-            isAborting={isAborting}
-            currConversationId={currConversationId}
-            processingFiles={processingFiles}
-          />
+          {!isVoiceMode ? (
+            <ChatInput
+              conversationProp={conversationRef}
+              input={prompt}
+              setInput={setPrompt}
+              handleSubmit={() => handleSubmit(prompt)}
+              isLoading={isNextChatLoading}
+              onScrollToBottom={scrollToBottom}
+              onAbort={onAbort}
+              isAborting={isAborting}
+              currConversationId={currConversationId}
+              processingFiles={processingFiles}
+              onVoiceModeToggle={toggleVoiceMode}
+              isVoiceMode={isVoiceMode}
+            />
+          ) : (
+            <div className="space-y-2">
+              <div className="text-center text-sm text-gray-400 bg-gray-800 rounded-lg p-3 border border-gray-700">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span>🎙️ Voice mode active - Speak naturally to chat with AI</span>
+                </div>
+              </div>
+              <VoiceInterface
+                sessionId={id}
+                onClose={exitVoiceMode}
+                onTranscript={handleVoiceTranscript}
+                isEnabled={isVoiceMode}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
