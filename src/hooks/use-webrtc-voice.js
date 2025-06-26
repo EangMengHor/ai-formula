@@ -7,6 +7,7 @@ export function useWebRTCVoice(sessionId, onTranscript) {
   const [currentVolume, setCurrentVolume] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
+  const [isAssistantMuted, setIsAssistantMuted] = useState(false);
 
   // WebRTC references
   const peerConnectionRef = useRef(null);
@@ -78,13 +79,13 @@ export function useWebRTCVoice(sessionId, onTranscript) {
           silence_duration_ms: 800
         },
         temperature: 0.8,
-        max_response_output_tokens: 4096
+        max_response_output_tokens: isAssistantMuted ? 1 : 4096
       }
     };
     
     dataChannel.send(JSON.stringify(sessionUpdate));
     console.log("Session update sent:", sessionUpdate);
-  }, []);
+  }, [isAssistantMuted]);
 
   /**
    * Handle data channel messages
@@ -114,6 +115,12 @@ export function useWebRTCVoice(sessionId, onTranscript) {
           if (currentUserTranscript.trim() && onTranscript) {
             onTranscript(currentUserTranscript.trim(), "user_complete");
           }
+          if (isAssistantMuted && dataChannelRef.current) {
+            const cancelResponse = {
+              type: "response.cancel"
+            };
+            dataChannelRef.current.send(JSON.stringify(cancelResponse));
+          }
           break;
 
         case "conversation.item.input_audio_transcription":
@@ -132,7 +139,7 @@ export function useWebRTCVoice(sessionId, onTranscript) {
           break;
 
         case "response.audio_transcript.delta":
-          if (onTranscript && msg.delta) {
+          if (!isAssistantMuted && onTranscript && msg.delta) {
             onTranscript(msg.delta, "assistant");
           }
           break;
@@ -153,7 +160,7 @@ export function useWebRTCVoice(sessionId, onTranscript) {
     } catch (error) {
       console.error("Error handling data channel message:", error);
     }
-  }, [onTranscript, currentUserTranscript]);
+  }, [onTranscript, currentUserTranscript, isAssistantMuted]);
 
   /**
    * Calculate volume from audio
@@ -354,6 +361,16 @@ export function useWebRTCVoice(sessionId, onTranscript) {
   }, []);
 
   /**
+   * Toggle assistant mute (prevents OpenAI from generating voice responses)
+   */
+  const toggleAssistantMute = useCallback(() => {
+    setIsAssistantMuted(prev => !prev);
+    if (dataChannelRef.current && dataChannelRef.current.readyState === "open") {
+      configureDataChannel(dataChannelRef.current);
+    }
+  }, [configureDataChannel]);
+
+  /**
    * Send text message through data channel
    */
   const sendTextMessage = useCallback((text) => {
@@ -395,11 +412,13 @@ export function useWebRTCVoice(sessionId, onTranscript) {
     currentVolume,
     isMuted,
     isSpeakerMuted,
+    isAssistantMuted,
     currentUserTranscript,
     startSession,
     stopSession,
     toggleMute,
     toggleSpeakerMute,
+    toggleAssistantMute,
     sendTextMessage,
   };
 } 

@@ -123,39 +123,9 @@ function Chat() {
         }, 0);
       }
     } else if (speaker === "assistant") {
-      // Handle assistant response - add to conversation in real-time
-      setConversation((prev) => {
-        const conv = [...prev];
-        let last = conv[conv.length - 1];
-        
-        if (!last || last.role !== "ai") {
-          last = {
-            role: "ai",
-            type: "quick",
-            isStreaming: true,
-            isComplete: false,
-            message: [],
-            tempContent: "",
-            cot: "",
-            isOpen: false,
-          };
-          conv.push(last);
-        }
-        
-        // Append transcript to the AI message
-        if (!last.message || last.message.length === 0) {
-          last.message = [{ type: "text", content: transcript, isComplete: false }];
-        } else {
-          const lastBlock = last.message[last.message.length - 1];
-          if (lastBlock.type === "text") {
-            lastBlock.content += transcript;
-          } else {
-            last.message.push({ type: "text", content: transcript, isComplete: false });
-          }
-        }
-        
-        return conv;
-      });
+      // In integrated mode, we'll ignore OpenAI's direct assistant responses
+      // The response will come through our chat pipeline instead
+      console.log("OpenAI assistant response (ignored in integrated mode):", transcript);
     }
   }, [isNextChatLoading]);
   
@@ -800,13 +770,47 @@ function Chat() {
         if (last.isOpen) last.isOpen = false;
         appendChunk(last, event.content);
         setIsNextChatLoading(true);
+        
+        // If in voice mode, speak the response chunk
+        if (isVoiceMode && window.voiceInterfaceTTS) {
+          // Accumulate chunks for better TTS
+          if (!last._ttsBuffer) last._ttsBuffer = "";
+          last._ttsBuffer += event.content;
+          
+          // Send to TTS when we have a sentence or paragraph
+          const sentenceEnders = /[.!?]\s/g;
+          const matches = last._ttsBuffer.match(sentenceEnders);
+          if (matches) {
+            const lastIndex = last._ttsBuffer.lastIndexOf(matches[matches.length - 1]);
+            const completeSentences = last._ttsBuffer.substring(0, lastIndex + matches[matches.length - 1].length);
+            last._ttsBuffer = last._ttsBuffer.substring(lastIndex + matches[matches.length - 1].length);
+            
+            // Extract plain text from complete sentences for TTS
+            const plainText = completeSentences.replace(/<[^>]*>/g, '').trim();
+            if (plainText) {
+              window.voiceInterfaceTTS(plainText);
+            }
+          }
+        }
+        
         return conv;
       }
 
       /* 3. finish → mark last complete */
       if (event.type === "finish") {
         console.log(last.citations, "last citations");
-        if (last) completeStreaming(last);
+        if (last) {
+          completeStreaming(last);
+          
+          // Speak any remaining TTS buffer
+          if (isVoiceMode && window.voiceInterfaceTTS && last._ttsBuffer) {
+            const plainText = last._ttsBuffer.replace(/<[^>]*>/g, '').trim();
+            if (plainText) {
+              window.voiceInterfaceTTS(plainText);
+            }
+            delete last._ttsBuffer;
+          }
+        }
         convesationCleanup();
         return conv;
       }
