@@ -180,7 +180,7 @@ export function useFileUpload({
       toast({
         title: "Files Processed",
         description: `Successfully processed ${successCount} out of ${validFiles.length} file${validFiles.length > 1 ? 's' : ''}`,
-        variant: successCount === validFiles.length ? "default" : "destructive",
+        variant: successCount === validFiles.length ? "success" : "destructive",
       });
     }
   }, [files, maxFiles, validateFile, setFiles, setFileCount, setFileName, setMemorizedFiles, vectorizeFile, onFilesAdded, toast]);

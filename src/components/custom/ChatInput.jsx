@@ -78,6 +78,7 @@ function ChatInput({
   onAbort,
   isAborting,
   currConversationId,
+  isVectorizing = false,
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
@@ -571,6 +572,16 @@ function ChatInput({
           </motion.div>
 
           {/* <SelectedCollectionsDisplay /> */}
+
+          {/* File Processing Indicator */}
+          {isVectorizing && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md mb-2">
+              <LoaderCircle className="w-4 h-4 text-blue-600 animate-spin" />
+              <span className="text-sm text-blue-700 dark:text-blue-300">
+                Processing files for AI analysis...
+              </span>
+            </div>
+          )}
 
           <Textarea
             value={input}

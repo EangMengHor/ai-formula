@@ -92,7 +92,7 @@ function Chat() {
       console.log("Files added via drag and drop:", files);
       // Files are automatically added to context by the hook
     },
-    excludeSelector: '[data-sidebar], .sidebar, [data-exclude-drop]'
+    excludeSelector: '[data-sidebar], .sidebar'
   });
   // Use the hook properly
   const { showScrollButton, scrollToBottom, endRef } =
@@ -1393,18 +1393,7 @@ function Chat() {
         </div>
       )}
 
-      {/* Vectorization Progress Overlay */}
-      {isVectorizing && (
-        <div className="fixed top-4 right-4 z-50 bg-blue-900/90 backdrop-blur-md border border-blue-300 rounded-lg p-4 max-w-sm">
-          <div className="flex items-center gap-3">
-            <LoaderCircle className="w-5 h-5 text-blue-300 animate-spin" />
-            <div>
-              <h4 className="font-semibold text-white">Processing Files</h4>
-              <p className="text-blue-200 text-sm">Vectorizing files for AI analysis...</p>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <Conversation
         conversation={conversation}
@@ -1422,7 +1411,7 @@ function Chat() {
         onRetry={onRetry}
       />
 
-      <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center" data-exclude-drop>
+      <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
         <div className="max-w-4xl bg-black w-full mx-auto">
           <ChatInput
             conversationProp={conversationRef}
@@ -1434,6 +1423,7 @@ function Chat() {
             onAbort={onAbort}
             isAborting={isAborting}
             currConversationId={currConversationId}
+            isVectorizing={isVectorizing}
           />
         </div>
       </div>
