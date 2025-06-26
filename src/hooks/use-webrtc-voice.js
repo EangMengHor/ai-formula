@@ -111,6 +111,10 @@ export function useWebRTCVoice(sessionId, onTranscript, integratedMode = true) {
           setStatus("You're speaking...");
           setCurrentUserTranscript("");
           console.log("Speech started detected");
+          // Notify about new speech start for debouncing
+          if (onTranscript) {
+            onTranscript("", "speech_started");
+          }
           break;
 
         case "input_audio_buffer.speech_stopped":
