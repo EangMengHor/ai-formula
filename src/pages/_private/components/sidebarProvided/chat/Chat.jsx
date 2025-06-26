@@ -85,7 +85,7 @@ function Chat() {
   const isAboartController = useRef(null);
 
   // --- File Upload Hook ---
-  const { isDragActive, dragDepth } = useFileUpload({
+  const { isDragActive, dragDepth, isVectorizing } = useFileUpload({
     enabled: !isChatLoading && !isSessionExploited && id, // Only enable when chat is loaded and session is valid
     maxFiles: 20,
     onFilesAdded: (files) => {
@@ -1388,6 +1388,19 @@ function Chat() {
             </p>
             <div className="mt-4 text-xs text-blue-300">
               Supported: PDF, TXT, DOCX, XLSX, PPTX, MD, CSV
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vectorization Progress Overlay */}
+      {isVectorizing && (
+        <div className="fixed top-4 right-4 z-50 bg-blue-900/90 backdrop-blur-md border border-blue-300 rounded-lg p-4 max-w-sm">
+          <div className="flex items-center gap-3">
+            <LoaderCircle className="w-5 h-5 text-blue-300 animate-spin" />
+            <div>
+              <h4 className="font-semibold text-white">Processing Files</h4>
+              <p className="text-blue-200 text-sm">Vectorizing files for AI analysis...</p>
             </div>
           </div>
         </div>

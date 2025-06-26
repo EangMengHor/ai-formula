@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useFilesUploadMetadata } from "../context/FilesUploadMetadata";
 import { useToast } from "./use-toast";
+import { vectorizeOneFile } from "../services/n8n-apis/_core/vectorizeOneFile.api";
+import { useParams } from "react-router-dom";
 
 /**
  * Custom hook for handling file upload via drag and drop
@@ -22,8 +24,10 @@ export function useFileUpload({
 } = {}) {
   const [isDragActive, setIsDragActive] = useState(false);
   const [dragDepth, setDragDepth] = useState(0);
+  const [isVectorizing, setIsVectorizing] = useState(false);
   const dragCounter = useRef(0);
   const { toast } = useToast();
+  const { id } = useParams();
   
   const {
     files,
@@ -62,9 +66,27 @@ export function useFileUpload({
   }, [acceptedTypes, maxFileSize]);
 
   /**
-   * Processes and adds files to the context
+   * Vectorizes a file using the existing vectorization API
    */
-  const processFiles = useCallback((fileList) => {
+  const vectorizeFile = useCallback(async (file) => {
+    if (!id) {
+      console.warn("No session ID available for vectorization");
+      return { success: false, message: "No session ID available" };
+    }
+
+    try {
+      const result = await vectorizeOneFile(file, id);
+      return result;
+    } catch (error) {
+      console.error("Error vectorizing file:", error);
+      return { success: false, message: error.message };
+    }
+  }, [id]);
+
+  /**
+   * Processes and adds files to the context, then vectorizes them
+   */
+  const processFiles = useCallback(async (fileList) => {
     const newFiles = Array.from(fileList);
     const validFiles = [];
     const errors = [];
@@ -120,16 +142,48 @@ export function useFileUpload({
       setFileCount(prevCount => prevCount + processedFiles.length);
       setFileName(prevNames => [...prevNames, ...processedFiles.map(f => f.name)]);
       
+      // Start vectorization process
+      setIsVectorizing(true);
+      const vectorizationResults = [];
+      
+      for (const file of validFiles) {
+        try {
+          const result = await vectorizeFile(file);
+          vectorizationResults.push(result);
+          
+          if (result.success) {
+            setMemorizedFiles(prevMemo => [...prevMemo, result.data?.vectorizedDocumentName || file.name]);
+          } else {
+            console.error(`Failed to vectorize ${file.name}:`, result.message);
+            toast({
+              title: "Vectorization Error",
+              description: `Failed to process ${file.name}: ${result.message}`,
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing ${file.name}:`, error);
+          toast({
+            title: "Processing Error",
+            description: `Error processing ${file.name}: ${error.message}`,
+            variant: "destructive",
+          });
+        }
+      }
+      
+      setIsVectorizing(false);
+      
       // Call success callback
       onFilesAdded(processedFiles);
       
+      const successCount = vectorizationResults.filter(r => r.success).length;
       toast({
-        title: "Files Uploaded",
-        description: `Successfully uploaded ${validFiles.length} file${validFiles.length > 1 ? 's' : ''}`,
-        variant: "default",
+        title: "Files Processed",
+        description: `Successfully processed ${successCount} out of ${validFiles.length} file${validFiles.length > 1 ? 's' : ''}`,
+        variant: successCount === validFiles.length ? "default" : "destructive",
       });
     }
-  }, [files, maxFiles, validateFile, setFiles, setFileCount, setFileName, onFilesAdded, toast]);
+  }, [files, maxFiles, validateFile, setFiles, setFileCount, setFileName, setMemorizedFiles, vectorizeFile, onFilesAdded, toast]);
 
   /**
    * Checks if the target element should be excluded from drop handling
@@ -275,6 +329,7 @@ export function useFileUpload({
   return {
     isDragActive,
     dragDepth,
+    isVectorizing,
     files,
     fileCount,
     selectFiles,
