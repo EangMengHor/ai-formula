@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useWebRTCVoice } from "@/hooks/use-webrtc-voice";
 import { debounce } from "lodash";
+import TTSPrompt from "./TTSPrompt";
 
 export default function VoiceInterface({ 
   sessionId, 
@@ -13,10 +14,8 @@ export default function VoiceInterface({
   integratedMode = true // New prop to control whether to use integrated chat pipeline
 }) {
   const { toast } = useToast();
-  const audioQueueRef = useRef([]);
-  const currentAudioRef = useRef(null);
-  const isPlayingRef = useRef(false);
-  const [isPlayingTTS, setIsPlayingTTS] = useState(false);
+  const [currentTTSText, setCurrentTTSText] = useState("");
+  const ttsPromptRef = useRef(null);
   
   // Use the WebRTC hook
   const {
@@ -55,8 +54,8 @@ export default function VoiceInterface({
     }
   }, [isEnabled, isSessionActive, stopSession]);
 
-  // TTS playback function with better error handling and queue management
-  const playTTS = async (text) => {
+  // TTS function that uses TTSPrompt component
+  const playTTS = useCallback((text) => {
     if (!text || text.trim() === "") return;
 
     console.log("🔊 TTS playTTS called with:", text.substring(0, 200));
@@ -64,53 +63,45 @@ export default function VoiceInterface({
     console.log("🔊 First 300 characters:", text.substring(0, 300));
     console.log("🔊 Last 100 characters:", text.substring(Math.max(0, text.length - 100)));
 
-    try {
-      console.log("🔊 Making TTS request to:", `${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`);
-      
-      const response = await fetch(`${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Voice-Interface": "true" // Indicate this is from voice interface
-        },
-        body: JSON.stringify({
-          text: text,
-          voice: "alloy",
-          model: "tts-1",
-          response_format: "mp3",
-          speed: 1.0
-        }),
-      });
+    // Clean the text for TTS
+    const cleanText = text
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/`([^`]+)`/g, '$1') // Remove inline code
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert markdown links to text
+      .replace(/#{1,6}\s+/g, '') // Remove markdown headers
+      .replace(/\$\$[\s\S]*?\$\$/g, '') // Remove LaTeX math blocks
+      .replace(/\$[^$]+\$/g, '') // Remove inline LaTeX
+      .replace(/\|[^|]*\|/g, '') // Remove table syntax (basic)
+      .replace(/^\s*[-*+]\s+/gm, '') // Remove bullet points
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
+      .replace(/\n\s*\n\s*\n/g, ' ') // Replace multiple newlines with space
+      .replace(/\n\s*\n/g, ' ') // Replace double newlines with space
+      .replace(/\n/g, ' ') // Replace single newlines with space
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/\.\s*\./g, '.') // Remove duplicate periods
+      .trim();
 
-      console.log("🔊 TTS response status:", response.status, response.ok);
+    console.log("🔊 Cleaned text for TTS:", cleanText);
 
-      if (!response.ok) {
-        throw new Error(`TTS request failed: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      console.log("🔊 TTS blob received, size:", blob.size);
-      
-      const audioUrl = URL.createObjectURL(blob);
-      
-      // Add to queue
-      audioQueueRef.current.push(audioUrl);
-      console.log("🔊 Added to audio queue, queue length:", audioQueueRef.current.length);
-      
-      // Start playing if not already playing
-      if (!isPlayingRef.current) {
-        console.log("🔊 Starting audio playback");
-        playNextInQueue();
-      }
-    } catch (error) {
-      console.error("🔊 TTS Error:", error);
-      toast({
-        title: "TTS Error",
-        description: "Failed to play audio response",
-        variant: "destructive",
-      });
+    if (!cleanText) {
+      console.log("🔊 No valid text content after cleaning");
+      return;
     }
-  };
+
+    // Set the text for TTSPrompt component
+    setCurrentTTSText(cleanText);
+    
+    // Trigger the TTS by programmatically calling the TTSPrompt start function
+    // We'll do this through a ref after the component updates
+    setTimeout(() => {
+      if (ttsPromptRef.current && ttsPromptRef.current.startTTS) {
+        ttsPromptRef.current.startTTS();
+      }
+    }, 100);
+  }, []);
 
   // Debounced TTS function to prevent too many rapid calls
   const debouncedPlayTTS = useCallback(
@@ -118,71 +109,17 @@ export default function VoiceInterface({
       console.log("🔊 Debounced TTS called with:", text.substring(0, 50));
       playTTS(text);
     }, 100),
-    []
+    [playTTS]
   );
 
-  // Play next audio in queue with better state management
-  const playNextInQueue = () => {
-    console.log("🔊 playNextInQueue called, queue length:", audioQueueRef.current.length);
-    
-    if (audioQueueRef.current.length === 0) {
-      isPlayingRef.current = false;
-      setIsPlayingTTS(false);
-      console.log("🔊 Audio queue empty, stopping playback");
-      return;
+  // Stop TTS function
+  const stopTTS = useCallback(() => {
+    console.log("🔊 Stop TTS called");
+    if (ttsPromptRef.current && ttsPromptRef.current.stopTTS) {
+      ttsPromptRef.current.stopTTS();
     }
-
-    isPlayingRef.current = true;
-    setIsPlayingTTS(true);
-    const audioUrl = audioQueueRef.current.shift();
-    
-    console.log("🔊 Playing audio from URL");
-    
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      URL.revokeObjectURL(currentAudioRef.current.src);
-    }
-
-    currentAudioRef.current = new Audio(audioUrl);
-    currentAudioRef.current.volume = isSpeakerMuted ? 0 : 1;
-    
-    currentAudioRef.current.onended = () => {
-      console.log("🔊 Audio playback ended");
-      URL.revokeObjectURL(audioUrl);
-      playNextInQueue();
-    };
-
-    currentAudioRef.current.onerror = (error) => {
-      console.error("🔊 Audio playback error:", error);
-      URL.revokeObjectURL(audioUrl);
-      playNextInQueue();
-    };
-
-    currentAudioRef.current.play().then(() => {
-      console.log("🔊 Audio playback started successfully");
-    }).catch(error => {
-      console.error("🔊 Audio play error:", error);
-      URL.revokeObjectURL(audioUrl);
-      playNextInQueue();
-    });
-  };
-
-  // Stop all TTS playback
-  const stopTTS = () => {
-    // Clear queue
-    audioQueueRef.current.forEach(url => URL.revokeObjectURL(url));
-    audioQueueRef.current = [];
-    
-    // Stop current audio
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      URL.revokeObjectURL(currentAudioRef.current.src);
-      currentAudioRef.current = null;
-    }
-    
-    isPlayingRef.current = false;
-    setIsPlayingTTS(false);
-  };
+    setCurrentTTSText("");
+  }, []);
 
   // Handle close
   const handleClose = () => {
@@ -248,7 +185,7 @@ export default function VoiceInterface({
         delete window.voiceInterfaceStopTTS;
       }
     };
-  }, [integratedMode, debouncedPlayTTS]);
+  }, [integratedMode, debouncedPlayTTS, stopTTS]);
 
   if (!isEnabled) return null;
 
@@ -257,7 +194,7 @@ export default function VoiceInterface({
     if (!isSessionActive || status.includes("Error")) return "bg-red-500";
     if (status.includes("speaking")) return "bg-green-400 animate-pulse";
     if (isMuted) return "bg-yellow-500";
-    if (isPlayingTTS) return "bg-purple-400 animate-pulse";
+    if (currentTTSText) return "bg-purple-400 animate-pulse"; // Show purple when TTS is active
     if (currentVolume > 0.1) return "bg-blue-400 animate-pulse";
     return "bg-green-400";
   };
@@ -273,14 +210,13 @@ export default function VoiceInterface({
       isEnabled,
       isSessionActive,
       status,
-      isPlayingTTS,
       isMuted,
       isSpeakerMuted,
       currentUserTranscript,
       hasVoiceTTSFunction: !!window.voiceInterfaceTTS,
       hasStopTTSFunction: !!window.voiceInterfaceStopTTS,
-      queueLength: audioQueueRef.current?.length || 0,
-      isPlaying: isPlayingRef.current
+      currentTTSText: currentTTSText?.substring(0, 50),
+      hasTTSPromptRef: !!ttsPromptRef.current
     });
   }
 
@@ -323,7 +259,7 @@ export default function VoiceInterface({
               <div className={`w-4 h-4 rounded-full ${getStatusColor()}`} />
               <span className="text-base text-gray-300">
                 {integratedMode ? (
-                  isPlayingTTS ? "Speaking..." : 
+                  currentTTSText ? "Speaking..." : 
                   status.includes("speaking") ? "Listening..." : 
                   status.includes("Processing") ? "AI Thinking..." :
                   "Voice Active"
@@ -362,13 +298,7 @@ export default function VoiceInterface({
 
           {/* Speaker toggle */}
           <Button
-            onClick={() => {
-              toggleSpeakerMute();
-              // Also mute current playing audio
-              if (currentAudioRef.current) {
-                currentAudioRef.current.volume = !isSpeakerMuted ? 0 : 1;
-              }
-            }}
+            onClick={toggleSpeakerMute}
             variant="ghost"
             size="lg"
             className={`rounded-full p-4 transition-colors ${
@@ -386,8 +316,21 @@ export default function VoiceInterface({
             )}
           </Button>
 
-          {/* Stop TTS button (only in integrated mode) */}
-          {integratedMode && isPlayingTTS && (
+          {/* TTS Control using TTSPrompt */}
+          {integratedMode && (
+            <div className="hidden">
+              <TTSPrompt
+                ref={ttsPromptRef}
+                prompt={currentTTSText}
+                startButton={null}
+                loadingButton={null}
+                StopButton={null}
+              />
+            </div>
+          )}
+
+          {/* Stop TTS button (only in integrated mode and when TTS is active) */}
+          {integratedMode && currentTTSText && (
             <Button
               onClick={stopTTS}
               variant="ghost"

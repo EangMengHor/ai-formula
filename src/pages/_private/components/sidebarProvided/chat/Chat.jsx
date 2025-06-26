@@ -189,7 +189,7 @@ function Chat() {
     return extractedText.trim();
   }, []);
 
-  // TTS Integration - now handles complete messages only
+  // TTS Integration - now handles complete messages only and delegates to VoiceInterface
   const handleTTSForVoice = useCallback((aiMessage) => {
     const currentVoiceMode = isVoiceModeRef.current;
     console.log("🗣️ TTS Check for completed message:", {
@@ -222,46 +222,18 @@ function Chat() {
       contentPreview: fullText.substring(0, 200)
     });
 
-    // Ensure TTS function is available
+    // Ensure TTS function is available (delegated to VoiceInterface)
     if (!window.voiceInterfaceTTS) {
       console.warn("🗣️ Voice mode active but voiceInterfaceTTS not available!");
       return;
     }
 
-    // Clean the text for TTS while preserving structure and order
-    const cleanText = fullText
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-      .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-      .replace(/`([^`]+)`/g, '$1') // Remove inline code
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert markdown links to text
-      .replace(/#{1,6}\s+/g, '') // Remove markdown headers
-      .replace(/\$\$[\s\S]*?\$\$/g, '') // Remove LaTeX math blocks
-      .replace(/\$[^$]+\$/g, '') // Remove inline LaTeX
-      .replace(/\|[^|]*\|/g, '') // Remove table syntax (basic)
-      .replace(/^\s*[-*+]\s+/gm, '') // Remove bullet points
-      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
-      .replace(/\n\s*\n\s*\n/g, ' ') // Replace multiple newlines with space
-      .replace(/\n\s*\n/g, ' ') // Replace double newlines with space
-      .replace(/\n/g, ' ') // Replace single newlines with space
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .replace(/\.\s*\./g, '.') // Remove duplicate periods
-      .trim();
-
-    console.log("🗣️ Cleaned text for TTS:", cleanText);
-
-    if (!cleanText) {
-      console.log("🗣️ No valid text content after cleaning");
-      return;
-    }
-
-    console.log("🗣️ Sending complete response to TTS:", cleanText.substring(0, 100));
+    console.log("🗣️ Sending complete response to TTS via VoiceInterface:", fullText.substring(0, 100));
     
-    // Send the complete cleaned text to TTS
-    window.voiceInterfaceTTS(cleanText);
+    // Send the complete text to VoiceInterface TTS (which will handle cleaning)
+    window.voiceInterfaceTTS(fullText);
     
-  }, [extractTextInOrder]); // Add extractTextInOrder as dependency
+  }, [extractTextInOrder]);
 
   // Toggle voice mode
   const toggleVoiceMode = useCallback(() => {
