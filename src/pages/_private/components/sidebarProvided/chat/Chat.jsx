@@ -122,15 +122,12 @@ function Chat() {
           }
         }, 0);
       }
-    } else if (speaker === "assistant_acknowledgment") {
-      // This is just the brief acknowledgment from OpenAI
-      console.log("Assistant acknowledgment:", transcript);
+    } else if (speaker === "assistant") {
+      // In integrated mode, we'll ignore OpenAI's direct assistant responses
+      // The response will come through our chat pipeline instead
+      console.log("OpenAI assistant response (ignored in integrated mode):", transcript);
     }
   }, [isNextChatLoading]);
-  
-  // Ref to store the complete response for voice
-  const voiceResponseAccumulatorRef = useRef("");
-  const sendResponseToVoiceRef = useRef(null);
   
   // Toggle voice mode
   const toggleVoiceMode = useCallback(() => {
@@ -140,8 +137,6 @@ function Chat() {
   // Exit voice mode
   const exitVoiceMode = useCallback(() => {
     setIsVoiceMode(false);
-    // Clear any pending voice response
-    voiceResponseAccumulatorRef.current = "";
   }, []);
 
   // when sessionId changes then reset the state
@@ -777,13 +772,24 @@ function Chat() {
         setIsNextChatLoading(true);
         
         // If in voice mode, speak the response chunk
-        if (isVoiceMode) {
-          // Accumulate the plain text for voice
-          const plainChunk = event.content.replace(/<[^>]*>/g, '').trim();
-          if (plainChunk) {
-            voiceResponseAccumulatorRef.current += plainChunk + " ";
-            console.log("Voice: Accumulated chunk:", plainChunk);
-            console.log("Voice: Total accumulated so far:", voiceResponseAccumulatorRef.current);
+        if (isVoiceMode && window.voiceInterfaceTTS) {
+          // Accumulate chunks for better TTS
+          if (!last._ttsBuffer) last._ttsBuffer = "";
+          last._ttsBuffer += event.content;
+          
+          // Send to TTS when we have a sentence or paragraph
+          const sentenceEnders = /[.!?]\s/g;
+          const matches = last._ttsBuffer.match(sentenceEnders);
+          if (matches) {
+            const lastIndex = last._ttsBuffer.lastIndexOf(matches[matches.length - 1]);
+            const completeSentences = last._ttsBuffer.substring(0, lastIndex + matches[matches.length - 1].length);
+            last._ttsBuffer = last._ttsBuffer.substring(lastIndex + matches[matches.length - 1].length);
+            
+            // Extract plain text from complete sentences for TTS
+            const plainText = completeSentences.replace(/<[^>]*>/g, '').trim();
+            if (plainText) {
+              window.voiceInterfaceTTS(plainText);
+            }
           }
         }
         
@@ -797,34 +803,12 @@ function Chat() {
           completeStreaming(last);
           
           // Speak any remaining TTS buffer
-          if (isVoiceMode && last._ttsBuffer) {
-            delete last._ttsBuffer;
-          }
-          
-          // Send complete response to voice interface
-          if (isVoiceMode && sendResponseToVoiceRef.current && voiceResponseAccumulatorRef.current) {
-            const completeResponse = voiceResponseAccumulatorRef.current
-              .trim()
-              .replace(/\s+/g, ' ') // Normalize whitespace
-              .replace(/[*_~`#]/g, '') // Remove markdown formatting
-              .replace(/\[[^\]]*\]\([^)]*\)/g, (match) => {
-                // Extract link text from markdown links
-                const linkText = match.match(/\[([^\]]*)\]/);
-                return linkText ? linkText[1] : '';
-              });
-            console.log("Voice: Complete response ready:", completeResponse);
-            console.log("Voice: sendResponseToVoiceRef.current exists:", !!sendResponseToVoiceRef.current);
-            if (completeResponse) {
-              console.log("Voice: Sending response to voice interface");
-              sendResponseToVoiceRef.current(completeResponse);
+          if (isVoiceMode && window.voiceInterfaceTTS && last._ttsBuffer) {
+            const plainText = last._ttsBuffer.replace(/<[^>]*>/g, '').trim();
+            if (plainText) {
+              window.voiceInterfaceTTS(plainText);
             }
-            voiceResponseAccumulatorRef.current = "";
-          } else {
-            console.log("Voice: Not sending response - conditions not met", {
-              isVoiceMode,
-              hasSendFunction: !!sendResponseToVoiceRef.current,
-              hasAccumulatedText: !!voiceResponseAccumulatorRef.current
-            });
+            delete last._ttsBuffer;
           }
         }
         convesationCleanup();
@@ -1251,7 +1235,6 @@ function Chat() {
 
       // Reset state
       setStreamingResponse("");
-      voiceResponseAccumulatorRef.current = "";
       setConversation((prev) => [
         ...prev,
         newHumanMessage({
@@ -1441,8 +1424,6 @@ function Chat() {
     }
   }, [isChatLoading]);
 
-
-
   // --- UI Render hook boundary ---
   if (isChatLoading) {
     return (
@@ -1539,10 +1520,6 @@ function Chat() {
               onClose={exitVoiceMode}
               onTranscript={handleVoiceTranscript}
               isEnabled={isVoiceMode}
-              onSendResponseToVoice={(sendFunc) => {
-                console.log("Voice Chat: Received sendFunc from VoiceInterface");
-                sendResponseToVoiceRef.current = sendFunc;
-              }}
             />
           )}
         </div>

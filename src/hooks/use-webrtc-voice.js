@@ -7,7 +7,7 @@ export function useWebRTCVoice(sessionId, onTranscript) {
   const [currentVolume, setCurrentVolume] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
-  const [isWaitingForChatResponse, setIsWaitingForChatResponse] = useState(false);
+  const [isAssistantMuted, setIsAssistantMuted] = useState(false);
 
   // WebRTC references
   const peerConnectionRef = useRef(null);
@@ -65,7 +65,7 @@ export function useWebRTCVoice(sessionId, onTranscript) {
       type: "session.update",
       session: {
         modalities: ["text", "audio"],
-        instructions: "You are a helpful AI assistant. When the user asks you something, respond with a brief acknowledgment like 'Let me check that for you' or 'Let me gather that information' and wait for further instructions. Keep acknowledgments very brief.",
+        instructions: "You are a helpful AI assistant. Respond naturally and conversationally. Keep responses concise and engaging.",
         voice: "alloy",
         input_audio_format: "pcm16",
         output_audio_format: "pcm16",
@@ -79,13 +79,13 @@ export function useWebRTCVoice(sessionId, onTranscript) {
           silence_duration_ms: 800
         },
         temperature: 0.8,
-        max_response_output_tokens: 4096
+        max_response_output_tokens: isAssistantMuted ? 1 : 4096
       }
     };
     
     dataChannel.send(JSON.stringify(sessionUpdate));
     console.log("Session update sent:", sessionUpdate);
-  }, []);
+  }, [isAssistantMuted]);
 
   /**
    * Handle data channel messages
@@ -114,7 +114,12 @@ export function useWebRTCVoice(sessionId, onTranscript) {
           setStatus("Processing...");
           if (currentUserTranscript.trim() && onTranscript) {
             onTranscript(currentUserTranscript.trim(), "user_complete");
-            setIsWaitingForChatResponse(true);
+          }
+          if (isAssistantMuted && dataChannelRef.current) {
+            const cancelResponse = {
+              type: "response.cancel"
+            };
+            dataChannelRef.current.send(JSON.stringify(cancelResponse));
           }
           break;
 
@@ -130,23 +135,17 @@ export function useWebRTCVoice(sessionId, onTranscript) {
         case "conversation.item.input_audio_transcription.completed":
           if (msg.transcript && onTranscript) {
             onTranscript(msg.transcript, "user_complete");
-            setIsWaitingForChatResponse(true);
           }
           break;
 
         case "response.audio_transcript.delta":
-          // Let the acknowledgment play
-          if (onTranscript && msg.delta) {
-            onTranscript(msg.delta, "assistant_acknowledgment");
+          if (!isAssistantMuted && onTranscript && msg.delta) {
+            onTranscript(msg.delta, "assistant");
           }
           break;
 
         case "response.audio_transcript.done":
-          if (isWaitingForChatResponse) {
-            setStatus("Waiting for response...");
-          } else {
-            setStatus("Listening...");
-          }
+          setStatus("Listening...");
           break;
 
         case "error":
@@ -161,7 +160,7 @@ export function useWebRTCVoice(sessionId, onTranscript) {
     } catch (error) {
       console.error("Error handling data channel message:", error);
     }
-  }, [onTranscript, currentUserTranscript, isWaitingForChatResponse]);
+  }, [onTranscript, currentUserTranscript, isAssistantMuted]);
 
   /**
    * Calculate volume from audio
@@ -362,34 +361,29 @@ export function useWebRTCVoice(sessionId, onTranscript) {
   }, []);
 
   /**
-   * Send chat response to be spoken
+   * Toggle assistant mute (prevents OpenAI from generating voice responses)
    */
-  const sendChatResponseToSpeak = useCallback((text) => {
-    console.log("Voice WebRTC: sendChatResponseToSpeak called with:", text);
-    
+  const toggleAssistantMute = useCallback(() => {
+    setIsAssistantMuted(prev => !prev);
+    if (dataChannelRef.current && dataChannelRef.current.readyState === "open") {
+      configureDataChannel(dataChannelRef.current);
+    }
+  }, [configureDataChannel]);
+
+  /**
+   * Send text message through data channel
+   */
+  const sendTextMessage = useCallback((text) => {
     if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") {
-      console.error("Data channel not ready", {
-        exists: !!dataChannelRef.current,
-        state: dataChannelRef.current?.readyState
-      });
+      console.error("Data channel not ready");
       return;
     }
 
-    console.log("Voice WebRTC: Sending response to OpenAI");
-
-    // Clear previous conversation context
-    const truncateMsg = {
-      type: "conversation.item.truncate",
-      item_id: "assistant"
-    };
-    dataChannelRef.current.send(JSON.stringify(truncateMsg));
-
-    // Create a new assistant message with the chat response
     const message = {
       type: "conversation.item.create",
       item: {
         type: "message",
-        role: "assistant",
+        role: "user",
         content: [
           {
             type: "input_text",
@@ -399,17 +393,12 @@ export function useWebRTCVoice(sessionId, onTranscript) {
       },
     };
 
-    // Create response
     const response = {
       type: "response.create",
     };
 
     dataChannelRef.current.send(JSON.stringify(message));
     dataChannelRef.current.send(JSON.stringify(response));
-    
-    setIsWaitingForChatResponse(false);
-    setStatus("Speaking response...");
-    console.log("Voice WebRTC: Response sent successfully");
   }, []);
 
   // Cleanup on unmount
@@ -423,12 +412,13 @@ export function useWebRTCVoice(sessionId, onTranscript) {
     currentVolume,
     isMuted,
     isSpeakerMuted,
-    isWaitingForChatResponse,
+    isAssistantMuted,
     currentUserTranscript,
     startSession,
     stopSession,
     toggleMute,
     toggleSpeakerMute,
-    sendChatResponseToSpeak,
+    toggleAssistantMute,
+    sendTextMessage,
   };
 } 

@@ -9,9 +9,12 @@ export default function VoiceInterface({
   onClose, 
   onTranscript, 
   isEnabled = false,
-  onSendResponseToVoice // New callback to receive the function
+  integratedMode = true // New prop to control whether to use integrated chat pipeline
 }) {
   const { toast } = useToast();
+  const audioQueueRef = useRef([]);
+  const currentAudioRef = useRef(null);
+  const isPlayingRef = useRef(false);
   
   // Use the WebRTC hook
   const {
@@ -20,13 +23,13 @@ export default function VoiceInterface({
     currentVolume,
     isMuted,
     isSpeakerMuted,
-    isWaitingForChatResponse,
+    isAssistantMuted,
     currentUserTranscript,
     startSession,
     stopSession,
     toggleMute,
     toggleSpeakerMute,
-    sendChatResponseToSpeak,
+    toggleAssistantMute,
   } = useWebRTCVoice(sessionId, onTranscript);
 
   // Auto-start session when enabled
@@ -50,24 +53,103 @@ export default function VoiceInterface({
     }
   }, [isEnabled, isSessionActive, stopSession]);
 
-  // Expose sendChatResponseToSpeak function to parent
+  // In integrated mode, mute the assistant by default
   useEffect(() => {
-    console.log("Voice: Setting up callback", {
-      hasCallback: !!onSendResponseToVoice,
-      hasFunction: !!sendChatResponseToSpeak,
-      isSessionActive
-    });
-    if (onSendResponseToVoice && sendChatResponseToSpeak) {
-      console.log("Voice: Calling onSendResponseToVoice with sendChatResponseToSpeak");
-      onSendResponseToVoice(sendChatResponseToSpeak);
+    if (integratedMode && !isAssistantMuted && isSessionActive) {
+      toggleAssistantMute();
     }
-  }, [onSendResponseToVoice, sendChatResponseToSpeak, isSessionActive]);
+  }, [integratedMode, isAssistantMuted, isSessionActive, toggleAssistantMute]);
+
+  // TTS playback function
+  const playTTS = async (text) => {
+    if (!text || text.trim() === "") return;
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SOCKET_URL}/api/utils/tts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Voice-Interface": "true" // Indicate this is from voice interface
+        },
+        body: JSON.stringify({
+          text: text,
+          voice: "alloy",
+          model: "tts-1",
+          response_format: "mp3",
+          speed: 1.0
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("TTS request failed");
+      }
+
+      const blob = await response.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      
+      // Add to queue
+      audioQueueRef.current.push(audioUrl);
+      
+      // Start playing if not already playing
+      if (!isPlayingRef.current) {
+        playNextInQueue();
+      }
+    } catch (error) {
+      console.error("TTS Error:", error);
+    }
+  };
+
+  // Play next audio in queue
+  const playNextInQueue = () => {
+    if (audioQueueRef.current.length === 0) {
+      isPlayingRef.current = false;
+      return;
+    }
+
+    isPlayingRef.current = true;
+    const audioUrl = audioQueueRef.current.shift();
+    
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      URL.revokeObjectURL(currentAudioRef.current.src);
+    }
+
+    currentAudioRef.current = new Audio(audioUrl);
+    currentAudioRef.current.volume = isSpeakerMuted ? 0 : 1;
+    
+    currentAudioRef.current.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      playNextInQueue();
+    };
+
+    currentAudioRef.current.play().catch(console.error);
+  };
 
   // Handle close
   const handleClose = () => {
+    // Stop any playing audio
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
+    
     stopSession();
     onClose?.();
   };
+
+  // Expose TTS function to parent
+  useEffect(() => {
+    if (integratedMode && window) {
+      window.voiceInterfaceTTS = playTTS;
+    }
+    return () => {
+      if (window.voiceInterfaceTTS) {
+        delete window.voiceInterfaceTTS;
+      }
+    };
+  }, [integratedMode]);
 
   if (!isEnabled) return null;
 
@@ -76,7 +158,6 @@ export default function VoiceInterface({
     if (!isSessionActive) return "bg-red-500";
     if (status.includes("speaking")) return "bg-green-400 animate-pulse";
     if (isMuted) return "bg-yellow-500";
-    if (isWaitingForChatResponse) return "bg-blue-400 animate-pulse";
     if (currentVolume > 0.1) return "bg-blue-400 animate-pulse";
     return "bg-green-400";
   };
@@ -106,11 +187,7 @@ export default function VoiceInterface({
             <div className="flex items-center gap-2">
               <div className={`w-4 h-4 rounded-full ${getStatusColor()}`} />
               <span className="text-base text-gray-300">
-                {status.includes("speaking") ? "Listening to you..." : 
-                 status.includes("Processing") ? "Converting speech..." : 
-                 isWaitingForChatResponse ? "Gathering information..." :
-                 status.includes("Speaking response") ? "Speaking..." :
-                 "Ready to listen"}
+                {integratedMode ? "Voice Input Active" : status}
               </span>
             </div>
           ) : (
@@ -145,7 +222,13 @@ export default function VoiceInterface({
 
           {/* Speaker toggle */}
           <Button
-            onClick={toggleSpeakerMute}
+            onClick={() => {
+              toggleSpeakerMute();
+              // Also mute current playing audio
+              if (currentAudioRef.current) {
+                currentAudioRef.current.volume = !isSpeakerMuted ? 0 : 1;
+              }
+            }}
             variant="ghost"
             size="lg"
             className={`rounded-full p-4 transition-colors ${
@@ -162,6 +245,28 @@ export default function VoiceInterface({
               <Volume2 className="w-6 h-6" />
             )}
           </Button>
+
+          {/* Assistant toggle (only in non-integrated mode) */}
+          {!integratedMode && (
+            <Button
+              onClick={toggleAssistantMute}
+              variant="ghost"
+              size="lg"
+              className={`rounded-full p-4 transition-colors ${
+                isAssistantMuted 
+                  ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                  : 'bg-gray-700 hover:bg-gray-600 text-white'
+              }`}
+              disabled={!isSessionActive}
+              title={isAssistantMuted ? 'Enable AI voice' : 'Disable AI voice'}
+            >
+              {isAssistantMuted ? (
+                <BotOff className="w-6 h-6" />
+              ) : (
+                <Bot className="w-6 h-6" />
+              )}
+            </Button>
+          )}
         </div>
 
         {/* User transcript display */}
