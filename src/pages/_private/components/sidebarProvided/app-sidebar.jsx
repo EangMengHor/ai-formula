@@ -197,7 +197,7 @@ export function AppSidebar({ ...props }) {
   };
 
   return (
-    <Sidebar {...props}>
+    <Sidebar {...props} data-sidebar>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem className="mx-3 items-center justify-center ">

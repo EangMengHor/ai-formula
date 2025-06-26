@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileDown, LoaderCircle, Loader2 } from "lucide-react";
+import { FileDown, LoaderCircle, Loader2, Upload, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
@@ -30,6 +30,7 @@ import { abortSSEChat } from "@/services/abortSSEChat";
 import { isReplay } from "@/services/isReplay";
 import { replayStream } from "@/services/replayStream";
 import { sanitizeFileName } from "@/lib/utils";
+import { useFileUpload } from "@/hooks/use-file-upload";
 
 function Chat() {
   // exploitation
@@ -60,6 +61,7 @@ function Chat() {
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
   const { selectedCollectionIds } = useCollection();
+
   // --- State ---
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [fallBackPrompt, setFallBackPrompt] = useState("");
@@ -81,6 +83,17 @@ function Chat() {
   const [currConversationId, setCurrConversationId] = useState("");
   const [isAborting, setIsAborting] = useState(false);
   const isAboartController = useRef(null);
+
+  // --- File Upload Hook ---
+  const { isDragActive, dragDepth } = useFileUpload({
+    enabled: !isChatLoading && !isSessionExploited && id, // Only enable when chat is loaded and session is valid
+    maxFiles: 20,
+    onFilesAdded: (files) => {
+      console.log("Files added via drag and drop:", files);
+      // Files are automatically added to context by the hook
+    },
+    excludeSelector: '[data-sidebar], .sidebar, [data-exclude-drop]'
+  });
   // Use the hook properly
   const { showScrollButton, scrollToBottom, endRef } =
     useScrollToBottom(chatContainerRef);
@@ -1362,6 +1375,24 @@ function Chat() {
   }
   return (
     <div className="flex flex-col h-full w-full relative">
+      {/* Drag and Drop Overlay */}
+      {isDragActive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="bg-white/10 backdrop-blur-md border-2 border-dashed border-blue-300 rounded-xl p-8 max-w-md mx-4 text-center">
+            <Upload className="w-16 h-16 text-blue-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Drop files to upload
+            </h3>
+            <p className="text-blue-200 text-sm">
+              Drop your files anywhere to add them to this conversation
+            </p>
+            <div className="mt-4 text-xs text-blue-300">
+              Supported: PDF, TXT, DOCX, XLSX, PPTX, MD, CSV
+            </div>
+          </div>
+        </div>
+      )}
+
       <Conversation
         conversation={conversation}
         isNextChatLoading={isNextChatLoading}
@@ -1378,7 +1409,7 @@ function Chat() {
         onRetry={onRetry}
       />
 
-      <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
+      <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center" data-exclude-drop>
         <div className="max-w-4xl bg-black w-full mx-auto">
           <ChatInput
             conversationProp={conversationRef}
