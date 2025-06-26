@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { X, Mic, MicOff, Loader2, Volume2, VolumeX, Bot, BotOff } from "lucide-react";
+import { X, Mic, MicOff, Loader2, Volume2, VolumeX, Bot, BotOff, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useWebRTCVoice } from "@/hooks/use-webrtc-voice";
@@ -16,6 +16,9 @@ export default function VoiceInterface({
   const { toast } = useToast();
   const [currentTTSText, setCurrentTTSText] = useState("");
   const ttsPromptRef = useRef(null);
+  const [pendingSubmission, setPendingSubmission] = useState(false);
+  const [countdownTimer, setCountdownTimer] = useState(0);
+  const countdownIntervalRef = useRef(null);
   
   // Use the WebRTC hook
   const {
@@ -147,10 +150,36 @@ export default function VoiceInterface({
     }, 1000);
   }, [stopTTS, stopSession, startSession, toast]);
 
-  // Expose TTS functions to parent with better error handling
+  // Handle pending submission countdown
+  useEffect(() => {
+    if (pendingSubmission && countdownTimer > 0) {
+      countdownIntervalRef.current = setInterval(() => {
+        setCountdownTimer((prev) => {
+          if (prev <= 1) {
+            setPendingSubmission(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+    }
+    
+    return () => {
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, [pendingSubmission, countdownTimer]);
+
+  // Expose TTS and pending submission functions to parent
   useEffect(() => {
     if (integratedMode && window) {
-      console.log("🔧 Exposing TTS functions to window in integrated mode");
+      console.log("🔧 Exposing voice interface functions to window in integrated mode");
       
       // Wrap functions with error handling
       window.voiceInterfaceTTS = (text) => {
@@ -173,16 +202,30 @@ export default function VoiceInterface({
         }
       };
       
-      console.log("🔧 Voice interface TTS functions exposed successfully");
+      // Function to update pending submission state
+      window.voiceInterfaceSetPendingSubmission = (isPending, countdown) => {
+        try {
+          console.log("🔧 window.voiceInterfaceSetPendingSubmission called:", { isPending, countdown });
+          setPendingSubmission(isPending);
+          setCountdownTimer(countdown);
+        } catch (error) {
+          console.error("🔧 Error in voiceInterfaceSetPendingSubmission:", error);
+        }
+      };
+      
+      console.log("🔧 Voice interface functions exposed successfully");
     }
     
     return () => {
       if (window.voiceInterfaceTTS) {
-        console.log("🔧 Cleaning up TTS functions from window");
+        console.log("🔧 Cleaning up voice interface functions from window");
         delete window.voiceInterfaceTTS;
       }
       if (window.voiceInterfaceStopTTS) {
         delete window.voiceInterfaceStopTTS;
+      }
+      if (window.voiceInterfaceSetPendingSubmission) {
+        delete window.voiceInterfaceSetPendingSubmission;
       }
     };
   }, [integratedMode, debouncedPlayTTS, stopTTS]);
@@ -192,6 +235,7 @@ export default function VoiceInterface({
   // Get status color based on current state
   const getStatusColor = () => {
     if (!isSessionActive || status.includes("Error")) return "bg-red-500";
+    if (pendingSubmission) return "bg-orange-400 animate-pulse"; // Show orange when pending submission
     if (status.includes("speaking")) return "bg-green-400 animate-pulse";
     if (isMuted) return "bg-yellow-500";
     if (currentTTSText) return "bg-purple-400 animate-pulse"; // Show purple when TTS is active
@@ -259,6 +303,7 @@ export default function VoiceInterface({
               <div className={`w-4 h-4 rounded-full ${getStatusColor()}`} />
               <span className="text-base text-gray-300">
                 {integratedMode ? (
+                  pendingSubmission ? `Submitting in ${countdownTimer}s...` :
                   currentTTSText ? "Speaking..." : 
                   status.includes("speaking") ? "Listening..." : 
                   status.includes("Processing") ? "AI Thinking..." :
@@ -327,6 +372,28 @@ export default function VoiceInterface({
                 StopButton={null}
               />
             </div>
+          )}
+
+          {/* Submit now button (only when pending submission) */}
+          {integratedMode && pendingSubmission && (
+            <Button
+              onClick={() => {
+                // Force immediate submission by clearing the debounce timer
+                if (window.voiceInterfaceSetPendingSubmission) {
+                  window.voiceInterfaceSetPendingSubmission(false, 0);
+                }
+                // Trigger the submission manually
+                if (window.voiceInterfaceForceSubmit) {
+                  window.voiceInterfaceForceSubmit();
+                }
+              }}
+              variant="ghost"
+              size="lg"
+              className="rounded-full p-4 bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+              title="Submit now"
+            >
+              <ArrowRight className="w-6 h-6" />
+            </Button>
           )}
 
           {/* Stop TTS button (only in integrated mode and when TTS is active) */}

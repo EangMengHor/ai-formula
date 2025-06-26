@@ -113,35 +113,142 @@ function Chat() {
   const lastReadedRelayIndex = useRef(null);
   const handleSubmitRef = useRef(null);
   
-  // Voice transcript handler - using ref to avoid dependency cycle
+  // Voice transcript debouncing refs
+  const voiceDebounceTimerRef = useRef(null);
+  const accumulatedTranscriptRef = useRef("");
+  const lastTranscriptTimeRef = useRef(null);
+
+  // Voice transcript handler with 2-second debouncing
   const handleVoiceTranscript = useCallback((transcript, speaker) => {
     console.log("🎤 Voice transcript received:", { transcript: transcript?.substring(0, 50), speaker });
     
-    if (speaker === "user_partial") {
+    if (speaker === "speech_started") {
+      // User started speaking again - cancel any pending submission
+      console.log("🎤 New speech started, canceling pending submission");
+      if (voiceDebounceTimerRef.current) {
+        clearTimeout(voiceDebounceTimerRef.current);
+        voiceDebounceTimerRef.current = null;
+      }
+      
+      // Clear pending submission state
+      if (window.voiceInterfaceSetPendingSubmission) {
+        window.voiceInterfaceSetPendingSubmission(false, 0);
+      }
+      
+      lastTranscriptTimeRef.current = Date.now();
+      
+    } else if (speaker === "user_partial") {
       // For user speech during accumulation, just log
       console.log("User is saying:", transcript);
+      // Update the accumulated transcript and reset timer
+      accumulatedTranscriptRef.current = transcript;
+      lastTranscriptTimeRef.current = Date.now();
+      
+      // Clear any existing timer
+      if (voiceDebounceTimerRef.current) {
+        clearTimeout(voiceDebounceTimerRef.current);
+        voiceDebounceTimerRef.current = null;
+      }
+      
     } else if (speaker === "user_complete") {
-      // When user finishes speaking, submit the complete transcript
-      console.log("User finished saying:", transcript);
-      if (transcript.trim() && !isNextChatLoading) {
-        // Stop any current TTS before processing new input
-        if (window.voiceInterfaceStopTTS) {
-          window.voiceInterfaceStopTTS();
+      // When user finishes speaking, start the 2-second debounce timer
+      console.log("User speech completed, starting 2-second debounce timer for:", transcript);
+      
+      // Update accumulated transcript with the complete version
+      accumulatedTranscriptRef.current = transcript;
+      lastTranscriptTimeRef.current = Date.now();
+      
+      // Clear any existing timer
+      if (voiceDebounceTimerRef.current) {
+        clearTimeout(voiceDebounceTimerRef.current);
+      }
+      
+      // Notify voice interface about pending submission
+      if (window.voiceInterfaceSetPendingSubmission) {
+        window.voiceInterfaceSetPendingSubmission(true, 2);
+      }
+      
+      // Set a 2-second timer before submitting
+      voiceDebounceTimerRef.current = setTimeout(() => {
+        const finalTranscript = accumulatedTranscriptRef.current;
+        const timeSinceLastUpdate = Date.now() - (lastTranscriptTimeRef.current || 0);
+        
+        console.log("🎤 2-second debounce completed. Submitting transcript:", {
+          transcript: finalTranscript?.substring(0, 50),
+          timeSinceLastUpdate,
+          isLoading: isNextChatLoading
+        });
+        
+        // Clear pending submission state
+        if (window.voiceInterfaceSetPendingSubmission) {
+          window.voiceInterfaceSetPendingSubmission(false, 0);
         }
         
-        // Use a setTimeout to ensure handleSubmit is available
-        setTimeout(() => {
-          if (typeof handleSubmitRef.current === 'function') {
-            handleSubmitRef.current(transcript.trim());
+        if (finalTranscript?.trim() && !isNextChatLoading && timeSinceLastUpdate >= 1800) {
+          // Stop any current TTS before processing new input
+          if (window.voiceInterfaceStopTTS) {
+            window.voiceInterfaceStopTTS();
           }
-        }, 0);
-      }
+          
+          // Submit the transcript
+          if (typeof handleSubmitRef.current === 'function') {
+            handleSubmitRef.current(finalTranscript.trim());
+          }
+          
+          // Clear the accumulated transcript
+          accumulatedTranscriptRef.current = "";
+        }
+        
+        // Clear the timer reference
+        voiceDebounceTimerRef.current = null;
+      }, 2000); // 2-second delay
+      
     } else if (speaker === "assistant") {
       // In integrated mode, we'll ignore OpenAI's direct assistant responses
       // The response will come through our chat pipeline instead
       console.log("OpenAI assistant response (ignored in integrated mode):", transcript);
     }
   }, [isNextChatLoading]);
+
+  // Force submit function for immediate submission
+  const forceSubmitVoiceTranscript = useCallback(() => {
+    console.log("🎤 Force submit called");
+    
+    // Clear any pending timer
+    if (voiceDebounceTimerRef.current) {
+      clearTimeout(voiceDebounceTimerRef.current);
+      voiceDebounceTimerRef.current = null;
+    }
+    
+    // Get the accumulated transcript
+    const finalTranscript = accumulatedTranscriptRef.current;
+    
+    console.log("🎤 Force submitting transcript:", finalTranscript?.substring(0, 50));
+    
+    if (finalTranscript?.trim() && !isNextChatLoading) {
+      // Stop any current TTS before processing new input
+      if (window.voiceInterfaceStopTTS) {
+        window.voiceInterfaceStopTTS();
+      }
+      
+      // Submit the transcript
+      if (typeof handleSubmitRef.current === 'function') {
+        handleSubmitRef.current(finalTranscript.trim());
+      }
+      
+      // Clear the accumulated transcript
+      accumulatedTranscriptRef.current = "";
+    }
+  }, [isNextChatLoading]);
+
+  // Expose force submit function to window
+  useEffect(() => {
+    window.voiceInterfaceForceSubmit = forceSubmitVoiceTranscript;
+    
+    return () => {
+      delete window.voiceInterfaceForceSubmit;
+    };
+  }, [forceSubmitVoiceTranscript]);
   
   // Helper function to extract text in exact order from message blocks
   const extractTextInOrder = useCallback((messageBlocks) => {
@@ -248,6 +355,23 @@ function Chat() {
   // Exit voice mode
   const exitVoiceMode = useCallback(() => {
     console.log("🎤 Exit voice mode called");
+    
+    // Clear any pending voice debounce timer
+    if (voiceDebounceTimerRef.current) {
+      clearTimeout(voiceDebounceTimerRef.current);
+      voiceDebounceTimerRef.current = null;
+      console.log("🎤 Cleared pending voice debounce timer");
+    }
+    
+    // Clear pending submission state
+    if (window.voiceInterfaceSetPendingSubmission) {
+      window.voiceInterfaceSetPendingSubmission(false, 0);
+    }
+    
+    // Clear accumulated transcript
+    accumulatedTranscriptRef.current = "";
+    lastTranscriptTimeRef.current = null;
+    
     setIsVoiceMode((prev) => {
       console.log("🎤 Exit voice mode: current state:", prev, "→ false");
       return false;
@@ -1543,6 +1667,16 @@ function Chat() {
       handleTTSForVoice(lastMessage);
     }
   }, [conversation, handleTTSForVoice]);
+
+  // Cleanup voice debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (voiceDebounceTimerRef.current) {
+        clearTimeout(voiceDebounceTimerRef.current);
+        console.log("🎤 Cleaned up voice debounce timer on unmount");
+      }
+    };
+  }, []);
 
   // --- UI Render hook boundary ---
   if (isChatLoading) {
