@@ -66,46 +66,46 @@ export default function VoiceInterface({
 
   return (
     <div className="flex items-center justify-center w-full py-4">
-      <div className="flex items-center gap-4 bg-gray-900 rounded-3xl px-6 py-4 border border-gray-700 shadow-lg">
+      <div className="flex items-center justify-center gap-6 bg-gray-900 rounded-3xl px-8 py-6 border border-gray-700 shadow-lg">
         
         {/* Close button */}
         <Button
           onClick={handleClose}
           variant="ghost"
-          size="sm"
-          className="text-gray-400 hover:text-white hover:bg-gray-800 rounded-full p-2"
+          size="lg"
+          className="text-gray-400 hover:text-white hover:bg-gray-800 rounded-full p-4"
         >
-          <X className="w-5 h-5" />
+          <X className="w-6 h-6" />
         </Button>
 
         {/* Connection status */}
-        <div className="flex items-center gap-3 min-w-[120px]">
+        <div className="flex items-center gap-3">
           {status.includes("Requesting") || status.includes("Fetching") || status.includes("Establishing") ? (
             <div className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-              <span className="text-sm text-gray-300">Connecting...</span>
+              <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+              <span className="text-base text-gray-300">Connecting...</span>
             </div>
           ) : isSessionActive ? (
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
-              <span className="text-sm text-gray-300">{status}</span>
+              <div className={`w-4 h-4 rounded-full ${getStatusColor()}`} />
+              <span className="text-base text-gray-300">{status}</span>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-sm text-red-400">{status}</span>
+              <div className="w-4 h-4 rounded-full bg-red-500" />
+              <span className="text-base text-red-400">{status}</span>
             </div>
           )}
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {/* Microphone toggle */}
           <Button
             onClick={toggleMute}
             variant="ghost"
-            size="sm"
-            className={`rounded-full p-3 transition-colors ${
+            size="lg"
+            className={`rounded-full p-4 transition-colors ${
               isMuted 
                 ? 'bg-red-600 hover:bg-red-700 text-white' 
                 : 'bg-gray-700 hover:bg-gray-600 text-white'
@@ -114,9 +114,9 @@ export default function VoiceInterface({
             title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
           >
             {isMuted ? (
-              <MicOff className="w-5 h-5" />
+              <MicOff className="w-6 h-6" />
             ) : (
-              <Mic className="w-5 h-5" />
+              <Mic className="w-6 h-6" />
             )}
           </Button>
 
@@ -124,8 +124,8 @@ export default function VoiceInterface({
           <Button
             onClick={toggleSpeakerMute}
             variant="ghost"
-            size="sm"
-            className={`rounded-full p-3 transition-colors ${
+            size="lg"
+            className={`rounded-full p-4 transition-colors ${
               isSpeakerMuted 
                 ? 'bg-red-600 hover:bg-red-700 text-white' 
                 : 'bg-gray-700 hover:bg-gray-600 text-white'
@@ -134,36 +134,21 @@ export default function VoiceInterface({
             title={isSpeakerMuted ? 'Unmute speaker' : 'Mute speaker'}
           >
             {isSpeakerMuted ? (
-              <VolumeX className="w-5 h-5" />
+              <VolumeX className="w-6 h-6" />
             ) : (
-              <Volume2 className="w-5 h-5" />
+              <Volume2 className="w-6 h-6" />
             )}
           </Button>
         </div>
 
-        {/* Status text and debug info */}
-        <div className="flex flex-col items-end">
-          <span className="text-xs text-gray-500">
-            Voice conversation active
-          </span>
-          {currentUserTranscript && (
-            <span className="text-xs text-blue-400 max-w-[200px] truncate">
+        {/* User transcript display */}
+        {currentUserTranscript && (
+          <div className="flex items-center">
+            <span className="text-sm text-blue-400 max-w-[200px] truncate">
               "{currentUserTranscript}"
             </span>
-          )}
-          {/* Volume indicator */}
-          {currentVolume > 0 && (
-            <div className="flex items-center gap-1 mt-1">
-              <div className="text-xs text-gray-500">AI:</div>
-              <div className="w-12 h-1 bg-gray-700 rounded">
-                <div 
-                  className="h-full bg-blue-400 rounded transition-all duration-100"
-                  style={{ width: `${Math.min(currentVolume * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1511,20 +1511,12 @@ function Chat() {
               isVoiceMode={isVoiceMode}
             />
           ) : (
-            <div className="space-y-2">
-              <div className="text-center text-sm text-gray-400 bg-gray-800 rounded-lg p-3 border border-gray-700">
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span>🎙️ Voice mode active - Speak naturally to chat with AI</span>
-                </div>
-              </div>
-              <VoiceInterface
-                sessionId={id}
-                onClose={exitVoiceMode}
-                onTranscript={handleVoiceTranscript}
-                isEnabled={isVoiceMode}
-              />
-            </div>
+            <VoiceInterface
+              sessionId={id}
+              onClose={exitVoiceMode}
+              onTranscript={handleVoiceTranscript}
+              isEnabled={isVoiceMode}
+            />
           )}
         </div>
       </div>
