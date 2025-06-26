@@ -78,7 +78,7 @@ function ChatInput({
   onAbort,
   isAborting,
   currConversationId,
-  isVectorizing = false,
+  processingFiles = new Set(),
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
@@ -399,17 +399,26 @@ function ChatInput({
     icon = () => {},
     showIsRemove = true,
     onRemove = () => {},
+    isProcessing = false,
   }) => {
     return (
       <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
-        <div className=" p-2 pl-3">{icon}</div>
+        <div className="p-2 pl-3">
+          {isProcessing ? (
+            <LoaderCircle className="w-5 h-5 text-blue-400 animate-spin" />
+          ) : (
+            icon
+          )}
+        </div>
         <div className="flex items-center gap-2 py-2 pr-4">
-          <span className=" text-white text-xs h-full min-w-max">
+          <span className="text-white text-xs h-full min-w-max">
             {title}
-            <p className="text-slate-400">{type}</p>
+            <p className={`text-slate-400 ${isProcessing ? 'opacity-70' : ''}`}>
+              {isProcessing ? 'Processing...' : type}
+            </p>
           </span>
         </div>
-        {showIsRemove && (
+        {showIsRemove && !isProcessing && (
           <Button
             variant="outline"
             size="sm"
@@ -534,19 +543,22 @@ function ChatInput({
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
             <div className="flex gap-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
-              {files.filter((file) => memorizedFiles.includes(file.name))
-                .length > 0 &&
-                files
-                  .filter((file) => memorizedFiles.includes(file.name))
-                  .map((file, index) => (
+              {files.length > 0 &&
+                files.map((file, index) => {
+                  const isProcessing = processingFiles.has(file.name);
+                  const isVectorized = memorizedFiles.includes(file.name);
+                  
+                  return (
                     <AttachmentCard
                       key={index}
                       title={file.name}
                       type={file.type.replaceAll("application/", "")}
                       icon={<FileText className="w-5 h-5" />}
                       showIsRemove={false}
+                      isProcessing={isProcessing}
                     />
-                  ))}
+                  );
+                })}
 
               {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
                 <AttachmentCard
@@ -572,16 +584,6 @@ function ChatInput({
           </motion.div>
 
           {/* <SelectedCollectionsDisplay /> */}
-
-          {/* File Processing Indicator */}
-          {isVectorizing && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md mb-2">
-              <LoaderCircle className="w-4 h-4 text-blue-600 animate-spin" />
-              <span className="text-sm text-blue-700 dark:text-blue-300">
-                Processing files for AI analysis...
-              </span>
-            </div>
-          )}
 
           <Textarea
             value={input}

@@ -25,6 +25,7 @@ export function useFileUpload({
   const [isDragActive, setIsDragActive] = useState(false);
   const [dragDepth, setDragDepth] = useState(0);
   const [isVectorizing, setIsVectorizing] = useState(false);
+  const [processingFiles, setProcessingFiles] = useState(new Set());
   const dragCounter = useRef(0);
   const { toast } = useToast();
   const { id } = useParams();
@@ -148,6 +149,9 @@ export function useFileUpload({
       
       for (const file of validFiles) {
         try {
+          // Mark file as processing
+          setProcessingFiles(prev => new Set([...prev, file.name]));
+          
           const result = await vectorizeFile(file);
           vectorizationResults.push(result);
           
@@ -167,6 +171,13 @@ export function useFileUpload({
             title: "Processing Error",
             description: `Error processing ${file.name}: ${error.message}`,
             variant: "destructive",
+          });
+        } finally {
+          // Remove file from processing set
+          setProcessingFiles(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(file.name);
+            return newSet;
           });
         }
       }
@@ -330,6 +341,7 @@ export function useFileUpload({
     isDragActive,
     dragDepth,
     isVectorizing,
+    processingFiles,
     files,
     fileCount,
     selectFiles,

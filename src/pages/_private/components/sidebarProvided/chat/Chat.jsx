@@ -85,7 +85,7 @@ function Chat() {
   const isAboartController = useRef(null);
 
   // --- File Upload Hook ---
-  const { isDragActive, dragDepth, isVectorizing } = useFileUpload({
+  const { isDragActive, dragDepth, isVectorizing, processingFiles } = useFileUpload({
     enabled: !isChatLoading && !isSessionExploited && id, // Only enable when chat is loaded and session is valid
     maxFiles: 20,
     onFilesAdded: (files) => {
@@ -1423,7 +1423,7 @@ function Chat() {
             onAbort={onAbort}
             isAborting={isAborting}
             currConversationId={currConversationId}
-            isVectorizing={isVectorizing}
+            processingFiles={processingFiles}
           />
         </div>
       </div>
