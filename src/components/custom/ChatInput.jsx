@@ -66,10 +66,6 @@ import { debounce } from "lodash";
 import SelectedCollectionsDisplay from "./SelectedCollectionsDisplay";
 import InternalKnowledgeDialog from "./InternalKnowledgeDialog";
 import { useCollection } from "../../context/CollectionContext";
-import { useFileUpload } from "../../hooks/use-file-upload";
-import DragDropOverlay from "./DragDropOverlay";
-import FileUploadStatus from "./FileUploadStatus";
-import FileDropNotification from "./FileDropNotification";
 const maxRows = 30;
 
 function ChatInput({
@@ -110,9 +106,6 @@ function ChatInput({
   const isEnhancerApiUpdateRef = useRef(false);
   const { toggleCollectionSelection, getSelectedCollections } = useCollection();
   const selectedCollections = getSelectedCollections();
-
-  // File upload drag and drop functionality
-  const fileUpload = useFileUpload();
 
   // Get only the necessary workflow states from context
   const {
@@ -446,16 +439,7 @@ function ChatInput({
 
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
-    <div 
-      className="relative mb-3"
-      {...(pathname !== "/dashboard" && {
-        onDragEnter: fileUpload.handleDragEnter,
-        onDragLeave: fileUpload.handleDragLeave,
-        onDragOver: fileUpload.handleDragOver,
-        onDrop: fileUpload.handleDrop,
-        onPaste: fileUpload.handlePaste,
-      })}
-    >
+    <div className="relative mb-3">
       {pathname !== "/dashboard" && (
         <div className="w-full absolute -top-14 flex justify-end items-center">
           <div
@@ -587,14 +571,6 @@ function ChatInput({
           </motion.div>
 
           {/* <SelectedCollectionsDisplay /> */}
-
-          {/* File Upload Status */}
-          <FileUploadStatus
-            memorizationQueue={fileUpload.memorizationQueue}
-            memorizationStatuses={fileUpload.memorizationStatuses}
-            fileQueueError={fileUpload.fileQueueError}
-            files={fileUpload.files}
-          />
 
           <Textarea
             value={input}
@@ -1031,13 +1007,13 @@ function ChatInput({
                   </DialogContent>
                 </Dialog>
               </div>
-              {/* {console.log(
+              {console.log(
                 isAborting,
                 input.length === 0,
                 isLoading,
                 !currConversationId,
                 "asdhlk120983",
-              )} */}
+              )}
               <button
                 disabled={isAborting || (isLoading && !currConversationId)}
                 onClick={handleClick}
@@ -1183,22 +1159,6 @@ function ChatInput({
           </DialogContent>
         </Dialog>
       </div>
-      
-      {/* Drag and Drop Overlay - Only show when not on dashboard */}
-      {pathname !== "/dashboard" && (
-        <DragDropOverlay 
-          isDragging={fileUpload.isDragging} 
-          isProcessing={fileUpload.isProcessing} 
-        />
-      )}
-      
-      {/* File Drop Notification - Only show when not on dashboard */}
-      {pathname !== "/dashboard" && (
-        <FileDropNotification
-          files={fileUpload.recentlyAddedFiles}
-          onDismiss={fileUpload.clearRecentlyAddedFiles}
-        />
-      )}
     </div>
   );
 }
