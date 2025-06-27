@@ -347,22 +347,6 @@ function ChatInput({
     }
   }, [pathname]);
 
-  // toggler
-  // useEffect(() => {
-  //   if (isReconnected) {
-  //     setTimeout(() => {
-  //       setIsReconnected(false);
-  //     }, 1500);
-  //   }
-
-  //   if (isReconnecting) {
-  //     setTimeout(() => {
-  //       setIsReconnecting(false);
-  //     }, 1500);
-  //   }
-  // }, [isReconnected, isReconnecting]);
-
-  // if public or domain state is false, then set isAutoSwarmContextState to false
   useEffect(() => {
     if (isPublicDomain) {
       setIsAutoSwarmContextState(true);
@@ -413,8 +397,8 @@ function ChatInput({
         <div className="flex items-center gap-2 py-2 pr-4">
           <span className="text-white text-xs h-full min-w-max">
             {title}
-            <p className={`text-slate-400 ${isProcessing ? 'opacity-70' : ''}`}>
-              {isProcessing ? 'Processing...' : type}
+            <p className={`text-slate-400 ${isProcessing ? "opacity-70" : ""}`}>
+              {isProcessing ? "Processing..." : type}
             </p>
           </span>
         </div>
@@ -545,9 +529,8 @@ function ChatInput({
             <div className="flex gap-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
               {files.length > 0 &&
                 files.map((file, index) => {
-                  const isProcessing = processingFiles.has(file.name);
                   const isVectorized = memorizedFiles.includes(file.name);
-                  
+
                   return (
                     <AttachmentCard
                       key={index}
@@ -555,7 +538,7 @@ function ChatInput({
                       type={file.type.replaceAll("application/", "")}
                       icon={<FileText className="w-5 h-5" />}
                       showIsRemove={false}
-                      isProcessing={isProcessing}
+                      isProcessing={!isVectorized}
                     />
                   );
                 })}
@@ -1007,16 +990,6 @@ function ChatInput({
                         </div>
                       </div>
                     </div>
-                    {/* <button
-                                        onClick={() => {
-                                            window.open(import.meta.env.VITE_GEMINI_REALTIME_URL, "_blank")
-                                        }}
-                                        className="flex items-center px-1 py-1 rounded-md bg-red-400 border border-gray-600 hover:bg-slate-600 w-fit"
-                                    >
-                                        <div className="flex w-fit">
-                                            <img src="/small-log.png" alt="Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
-                                        </div>
-                                    </button> */}
                   </DialogContent>
                 </Dialog>
               </div>

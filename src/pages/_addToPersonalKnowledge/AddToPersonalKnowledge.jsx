@@ -14,7 +14,9 @@ import { getPersonalKnowledgeFiles } from "@/services/user-setting-apis/getPerso
 import { getUserPersonalKnowledgeCollection } from "@/services/user-setting-apis/getUserPersonalKnowledgeCollection";
 import { Database, DatabaseZap, RefreshCcw } from "lucide-react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { use } from "react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const BUCKET_NAME = "arx-society-file-queue";
 
@@ -32,7 +34,7 @@ export default function AddToPersonalKnowledge() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [activeCollectionId, setActiveCollectionId] = useState(null);
-
+  const navigate = useNavigate();
   const fetchFiles = async () => {
     try {
       const userFiles = await getPersonalKnowledgeFiles(user.id);
@@ -156,6 +158,7 @@ export default function AddToPersonalKnowledge() {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{ minWidth: 320 }}
+        onClick={() => navigate(`/vector-store/${store.id}`)}
       >
         {/* SVG background */}
         <CardBgSVG />

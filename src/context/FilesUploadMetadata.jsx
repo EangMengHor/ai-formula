@@ -8,7 +8,7 @@ export const FilesUploadMetadataProvider = ({ children }) => {
   const [isMemorizationLoading, setIsMemorizationLoading] = useState(false);
   const [fileName, setFileName] = useState([]);
   const [files, setFiles] = useState([]);
-  
+
   function resetAllStates() {
     setFileCount(0);
     setMemorizedFiles([]);

@@ -85,14 +85,14 @@ function Chat() {
   const isAboartController = useRef(null);
 
   // --- File Upload Hook ---
-  const { isDragActive, dragDepth, isVectorizing, processingFiles } = useFileUpload({
+  const { isDragActive, processingFiles } = useFileUpload({
     enabled: !isChatLoading && !isSessionExploited && id, // Only enable when chat is loaded and session is valid
-    maxFiles: 20,
+    maxFiles: 200,
     onFilesAdded: (files) => {
       console.log("Files added via drag and drop:", files);
       // Files are automatically added to context by the hook
     },
-    excludeSelector: '[data-sidebar], .sidebar'
+    excludeSelector: "[data-sidebar], .sidebar",
   });
   // Use the hook properly
   const { showScrollButton, scrollToBottom, endRef } =
@@ -1392,8 +1392,6 @@ function Chat() {
           </div>
         </div>
       )}
-
-
 
       <Conversation
         conversation={conversation}

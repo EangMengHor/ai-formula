@@ -118,7 +118,7 @@ export default function FileUploadDialog() {
         ),
     );
 
-    setFiles((prev) => [...prev, ...uniqueFiles]);
+    setFiles((prev) => [...uniqueFiles, ...prev]);
   };
 
   const removeFile = (fileToRemove) => {
@@ -385,7 +385,6 @@ export default function FileUploadDialog() {
           <Paperclip className="w-5 h-5  rounded-md" />
         </div>
       )}
-   
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="w-[calc(100vw-10rem)] h-[calc(100vh-10rem)] overflow-scroll p-8 bg-[#1a2332] border-0 ">
@@ -531,7 +530,7 @@ export default function FileUploadDialog() {
                   onChange={handleFileChange}
                   className="hidden"
                   id="file-upload"
-                  accept=".pdf,.txt,.json,.docx"
+                  accept=".pdf,.txt,.json,.docx,.png,.jpg,.jpeg"
                 />
                 <label
                   htmlFor="file-upload"

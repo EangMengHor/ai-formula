@@ -16,11 +16,27 @@ import { useParams } from "react-router-dom";
  */
 export function useFileUpload({
   enabled = true,
-  acceptedTypes = ['.pdf', '.txt', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt', '.md', '.csv'],
+  acceptedTypes = [
+    ".pdf",
+    ".txt",
+    ".docx",
+    ".doc",
+    ".xlsx",
+    ".xls",
+    ".pptx",
+    ".ppt",
+    ".md",
+    ".csv",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+  ],
   maxFileSize = 50 * 1024 * 1024, // 50MB
   maxFiles = 10,
   onFilesAdded = () => {},
-  excludeSelector = '[data-sidebar]'
+  excludeSelector = "[data-sidebar]",
 } = {}) {
   const [isDragActive, setIsDragActive] = useState(false);
   const [dragDepth, setDragDepth] = useState(0);
@@ -29,7 +45,7 @@ export function useFileUpload({
   const dragCounter = useRef(0);
   const { toast } = useToast();
   const { id } = useParams();
-  
+
   const {
     files,
     setFiles,
@@ -38,238 +54,271 @@ export function useFileUpload({
     fileName,
     setFileName,
     memorizedFiles,
-    setMemorizedFiles
+    setMemorizedFiles,
   } = useFilesUploadMetadata();
 
   /**
    * Validates if a file is acceptable based on type and size
    */
-  const validateFile = useCallback((file) => {
-    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-    
-    // Check file type
-    if (!acceptedTypes.includes(fileExtension)) {
-      return {
-        isValid: false,
-        error: `File type ${fileExtension} is not supported. Accepted types: ${acceptedTypes.join(', ')}`
-      };
-    }
-    
-    // Check file size
-    if (file.size > maxFileSize) {
-      return {
-        isValid: false,
-        error: `File size exceeds ${Math.round(maxFileSize / (1024 * 1024))}MB limit`
-      };
-    }
-    
-    return { isValid: true };
-  }, [acceptedTypes, maxFileSize]);
+  const validateFile = useCallback(
+    (file) => {
+      const fileExtension = "." + file.name.split(".").pop().toLowerCase();
+
+      // Check file type
+      if (!acceptedTypes.includes(fileExtension)) {
+        return {
+          isValid: false,
+          error: `File type ${fileExtension} is not supported. Accepted types: ${acceptedTypes.join(", ")}`,
+        };
+      }
+
+      // Check file size
+      if (file.size > maxFileSize) {
+        return {
+          isValid: false,
+          error: `File size exceeds ${Math.round(maxFileSize / (1024 * 1024))}MB limit`,
+        };
+      }
+
+      return { isValid: true };
+    },
+    [acceptedTypes, maxFileSize],
+  );
 
   /**
    * Vectorizes a file using the existing vectorization API
    */
-  const vectorizeFile = useCallback(async (file) => {
-    if (!id) {
-      console.warn("No session ID available for vectorization");
-      return { success: false, message: "No session ID available" };
-    }
+  const vectorizeFile = useCallback(
+    async (file) => {
+      if (!id) {
+        console.warn("No session ID available for vectorization");
+        return { success: false, message: "No session ID available" };
+      }
 
-    try {
-      const result = await vectorizeOneFile(file, id);
-      return result;
-    } catch (error) {
-      console.error("Error vectorizing file:", error);
-      return { success: false, message: error.message };
-    }
-  }, [id]);
+      try {
+        const result = await vectorizeOneFile(file, id);
+        return result;
+      } catch (error) {
+        console.error("Error vectorizing file:", error);
+        return { success: false, message: error.message };
+      }
+    },
+    [id],
+  );
 
   /**
    * Processes and adds files to the context, then vectorizes them
    */
-  const processFiles = useCallback(async (fileList) => {
-    const newFiles = Array.from(fileList);
-    const validFiles = [];
-    const errors = [];
+  const processFiles = useCallback(
+    async (fileList) => {
+      const newFiles = Array.from(fileList);
+      const validFiles = [];
+      const errors = [];
 
-    // Check total file limit
-    if (files.length + newFiles.length > maxFiles) {
-      toast({
-        title: "Too Many Files",
-        description: `Maximum ${maxFiles} files allowed. You currently have ${files.length} files.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate each file
-    newFiles.forEach((file) => {
-      const validation = validateFile(file);
-      if (validation.isValid) {
-        // Check for duplicates
-        const isDuplicate = files.some(existingFile => 
-          existingFile.name === file.name && existingFile.size === file.size
-        );
-        
-        if (!isDuplicate) {
-          validFiles.push(file);
-        } else {
-          errors.push(`File "${file.name}" is already uploaded`);
-        }
+      // Check total file limit
+      if (newFiles.length + files.length > maxFiles) {
+        errors.push(`Maximum of ${maxFiles} files allowed`);
       } else {
-        errors.push(validation.error);
-      }
-    });
-
-    // Show errors if any
-    if (errors.length > 0) {
-      toast({
-        title: "File Upload Errors",
-        description: errors.join('. '),
-        variant: "destructive",
-      });
-    }
-
-    // Add valid files
-    if (validFiles.length > 0) {
-      const processedFiles = validFiles.map(file => ({
-        name: file.name,
-        type: file.type || `application/${file.name.split('.').pop()}`,
-        size: file.size,
-        file: file // Keep reference to actual file object
-      }));
-
-      setFiles(prevFiles => [...prevFiles, ...processedFiles]);
-      setFileCount(prevCount => prevCount + processedFiles.length);
-      setFileName(prevNames => [...prevNames, ...processedFiles.map(f => f.name)]);
-      
-      // Start vectorization process
-      setIsVectorizing(true);
-      const vectorizationResults = [];
-      
-      for (const file of validFiles) {
-        try {
-          // Mark file as processing
-          setProcessingFiles(prev => new Set([...prev, file.name]));
-          
-          const result = await vectorizeFile(file);
-          vectorizationResults.push(result);
-          
-          if (result.success) {
-            setMemorizedFiles(prevMemo => [...prevMemo, result.data?.vectorizedDocumentName || file.name]);
+        // Validate each file
+        for (const file of newFiles) {
+          const validation = validateFile(file);
+          if (validation.isValid) {
+            validFiles.push(file);
           } else {
-            console.error(`Failed to vectorize ${file.name}:`, result.message);
+            errors.push(`${file.name}: ${validation.error}`);
+          }
+        }
+      }
+
+      // Show errors if any
+      if (errors.length > 0) {
+        toast({
+          title: "File Upload Errors",
+          description: errors.join(". "),
+          variant: "destructive",
+        });
+      }
+
+      // Add valid files
+      if (validFiles.length > 0) {
+        const processedFiles = validFiles.map((file) => ({
+          name: file.name,
+          type: file.type || `application/${file.name.split(".").pop()}`,
+          size: file.size,
+          file: file, // Keep reference to actual file object
+        }));
+
+        setFiles((prevFiles) => [...processedFiles, ...prevFiles]);
+        setFileCount((prevCount) => prevCount + processedFiles.length);
+        setFileName((prevNames) => [
+          ...processedFiles.map((f) => f.name),
+          ...prevNames,
+        ]);
+
+        // Start vectorization process
+        setIsVectorizing(true);
+        const vectorizationResults = [];
+
+        for (const file of validFiles) {
+          try {
+            // Mark file as processing
+            setProcessingFiles((prev) => new Set([...prev, file.name]));
+
+            const result = await vectorizeFile(file);
+            vectorizationResults.push(result);
+
+            if (result.success) {
+              setMemorizedFiles((prevMemo) => [
+                ...prevMemo,
+                result.data?.vectorizedDocumentName || file.name,
+              ]);
+            } else {
+              console.error(
+                `Failed to vectorize ${file.name}:`,
+                result.message,
+              );
+              toast({
+                title: "Vectorization Error",
+                description: `Failed to process ${file.name}: ${result.message}`,
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            console.error(`Error processing ${file.name}:`, error);
             toast({
-              title: "Vectorization Error",
-              description: `Failed to process ${file.name}: ${result.message}`,
+              title: "Processing Error",
+              description: `Error processing ${file.name}: ${error.message}`,
               variant: "destructive",
             });
+          } finally {
+            // Remove file from processing set
+            setProcessingFiles((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(file.name);
+              return newSet;
+            });
           }
-        } catch (error) {
-          console.error(`Error processing ${file.name}:`, error);
-          toast({
-            title: "Processing Error",
-            description: `Error processing ${file.name}: ${error.message}`,
-            variant: "destructive",
-          });
-        } finally {
-          // Remove file from processing set
-          setProcessingFiles(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(file.name);
-            return newSet;
-          });
         }
+
+        setIsVectorizing(false);
+        console.log("Vectorization results:", vectorizationResults); // Fixed incorrect variable
+        // Call success callback
+        onFilesAdded(processedFiles);
+
+        const successCount = vectorizationResults.filter(
+          (r) => r.success,
+        ).length;
+        toast({
+          title: "Files Processed",
+          description: `Successfully processed ${successCount} out of ${validFiles.length} file${validFiles.length > 1 ? "s" : ""}`,
+          variant:
+            successCount === validFiles.length ? "success" : "destructive",
+        });
       }
-      
-      setIsVectorizing(false);
-      
-      // Call success callback
-      onFilesAdded(processedFiles);
-      
-      const successCount = vectorizationResults.filter(r => r.success).length;
-      toast({
-        title: "Files Processed",
-        description: `Successfully processed ${successCount} out of ${validFiles.length} file${validFiles.length > 1 ? 's' : ''}`,
-        variant: successCount === validFiles.length ? "success" : "destructive",
-      });
-    }
-  }, [files, maxFiles, validateFile, setFiles, setFileCount, setFileName, setMemorizedFiles, vectorizeFile, onFilesAdded, toast]);
+    },
+    [
+      files,
+      maxFiles,
+      validateFile,
+      setFiles,
+      setFileCount,
+      setFileName,
+      setMemorizedFiles,
+      vectorizeFile,
+      onFilesAdded,
+      toast,
+    ],
+  );
 
   /**
    * Checks if the target element should be excluded from drop handling
    */
-  const isExcludedElement = useCallback((element) => {
-    if (!excludeSelector) return false;
-    return element.closest(excludeSelector) !== null;
-  }, [excludeSelector]);
+  const isExcludedElement = useCallback(
+    (element) => {
+      if (!excludeSelector) return false;
+      return element.closest(excludeSelector) !== null;
+    },
+    [excludeSelector],
+  );
 
   /**
    * Handle drag enter event
    */
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!enabled || isExcludedElement(e.target)) return;
-    
-    dragCounter.current++;
-    
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-      setIsDragActive(true);
-      setDragDepth(dragCounter.current);
-    }
-  }, [enabled, isExcludedElement]);
+  const handleDragEnter = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!enabled || isExcludedElement(e.target)) return;
+
+      dragCounter.current++;
+
+      if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        setIsDragActive(true);
+        setDragDepth(dragCounter.current);
+      }
+    },
+    [enabled, isExcludedElement],
+  );
 
   /**
    * Handle drag leave event
    */
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!enabled || isExcludedElement(e.target)) return;
-    
-    dragCounter.current--;
-    
-    if (dragCounter.current === 0) {
-      setIsDragActive(false);
-      setDragDepth(0);
-    }
-  }, [enabled, isExcludedElement]);
+  const handleDragLeave = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!enabled || isExcludedElement(e.target)) return;
+
+      dragCounter.current--;
+
+      if (dragCounter.current === 0) {
+        setIsDragActive(false);
+        setDragDepth(0);
+      }
+    },
+    [enabled, isExcludedElement],
+  );
 
   /**
    * Handle drag over event
    */
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!enabled || isExcludedElement(e.target)) return;
-    
-    // Set the dropEffect to indicate this is a copy operation
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'copy';
-    }
-  }, [enabled, isExcludedElement]);
+  const handleDragOver = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!enabled || isExcludedElement(e.target)) return;
+
+      // Set the dropEffect to indicate this is a copy operation
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+    },
+    [enabled, isExcludedElement],
+  );
 
   /**
    * Handle drop event
    */
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!enabled || isExcludedElement(e.target)) return;
-    
-    setIsDragActive(false);
-    setDragDepth(0);
-    dragCounter.current = 0;
-    
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFiles(e.dataTransfer.files);
-    }
-  }, [enabled, isExcludedElement, processFiles]);
+  const handleDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (!enabled || isExcludedElement(e.target)) return;
+
+      setIsDragActive(false);
+      setDragDepth(0);
+      dragCounter.current = 0;
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processFiles(e.dataTransfer.files);
+      }
+    },
+    [enabled, isExcludedElement, processFiles],
+  );
 
   /**
    * Set up and clean up event listeners
@@ -281,29 +330,29 @@ export function useFileUpload({
     const handleWindowDragLeave = (e) => handleDragLeave(e);
     const handleWindowDragOver = (e) => handleDragOver(e);
     const handleWindowDrop = (e) => handleDrop(e);
-    
+
     // Prevent default drag behaviors on window
     const preventDefaults = (e) => {
       e.preventDefault();
       e.stopPropagation();
     };
 
-    window.addEventListener('dragenter', handleWindowDragEnter);
-    window.addEventListener('dragleave', handleWindowDragLeave);
-    window.addEventListener('dragover', handleWindowDragOver);
-    window.addEventListener('drop', handleWindowDrop);
-    
+    window.addEventListener("dragenter", handleWindowDragEnter);
+    window.addEventListener("dragleave", handleWindowDragLeave);
+    window.addEventListener("dragover", handleWindowDragOver);
+    window.addEventListener("drop", handleWindowDrop);
+
     // Prevent default drag behaviors
-    window.addEventListener('dragover', preventDefaults);
-    window.addEventListener('drop', preventDefaults);
+    window.addEventListener("dragover", preventDefaults);
+    window.addEventListener("drop", preventDefaults);
 
     return () => {
-      window.removeEventListener('dragenter', handleWindowDragEnter);
-      window.removeEventListener('dragleave', handleWindowDragLeave);
-      window.removeEventListener('dragover', handleWindowDragOver);
-      window.removeEventListener('drop', handleWindowDrop);
-      window.removeEventListener('dragover', preventDefaults);
-      window.removeEventListener('drop', preventDefaults);
+      window.removeEventListener("dragenter", handleWindowDragEnter);
+      window.removeEventListener("dragleave", handleWindowDragLeave);
+      window.removeEventListener("dragover", handleWindowDragOver);
+      window.removeEventListener("drop", handleWindowDrop);
+      window.removeEventListener("dragover", preventDefaults);
+      window.removeEventListener("drop", preventDefaults);
     };
   }, [enabled, handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
 
@@ -321,21 +370,31 @@ export function useFileUpload({
   /**
    * Manual file selection (for programmatic use)
    */
-  const selectFiles = useCallback((fileList) => {
-    if (enabled) {
-      processFiles(fileList);
-    }
-  }, [enabled, processFiles]);
+  const selectFiles = useCallback(
+    (fileList) => {
+      if (enabled) {
+        processFiles(fileList);
+      }
+    },
+    [enabled, processFiles],
+  );
 
   /**
    * Remove a file from the upload list
    */
-  const removeFile = useCallback((fileName) => {
-    setFiles(prevFiles => prevFiles.filter(file => file.name !== fileName));
-    setFileCount(prevCount => Math.max(0, prevCount - 1));
-    setFileName(prevNames => prevNames.filter(name => name !== fileName));
-    setMemorizedFiles(prevMemo => prevMemo.filter(name => name !== fileName));
-  }, [setFiles, setFileCount, setFileName, setMemorizedFiles]);
+  const removeFile = useCallback(
+    (fileName) => {
+      setFiles((prevFiles) =>
+        prevFiles.filter((file) => file.name !== fileName),
+      );
+      setFileCount((prevCount) => Math.max(0, prevCount - 1));
+      setFileName((prevNames) => prevNames.filter((name) => name !== fileName));
+      setMemorizedFiles((prevMemo) =>
+        prevMemo.filter((name) => name !== fileName),
+      );
+    },
+    [setFiles, setFileCount, setFileName, setMemorizedFiles],
+  );
 
   return {
     isDragActive,
@@ -346,6 +405,6 @@ export function useFileUpload({
     fileCount,
     selectFiles,
     removeFile,
-    isEnabled: enabled
+    isEnabled: enabled,
   };
 }
