@@ -14,7 +14,9 @@ import { getPersonalKnowledgeFiles } from "@/services/user-setting-apis/getPerso
 import { getUserPersonalKnowledgeCollection } from "@/services/user-setting-apis/getUserPersonalKnowledgeCollection";
 import { Database, DatabaseZap, RefreshCcw } from "lucide-react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { use } from "react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const BUCKET_NAME = "arx-society-file-queue";
 
@@ -32,7 +34,7 @@ export default function AddToPersonalKnowledge() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilesModal, setShowFilesModal] = useState(false);
   const [activeCollectionId, setActiveCollectionId] = useState(null);
-
+  const navigate = useNavigate();
   const fetchFiles = async () => {
     try {
       const userFiles = await getPersonalKnowledgeFiles(user.id);
@@ -156,6 +158,7 @@ export default function AddToPersonalKnowledge() {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{ minWidth: 320 }}
+        onClick={() => navigate(`/vector-store/${store.id}`)}
       >
         {/* SVG background */}
         <CardBgSVG />
@@ -174,31 +177,7 @@ export default function AddToPersonalKnowledge() {
             </div>
           </div>
         </div>
-        {/* Buttons on hover */}
-        <div className="flex gap-3 mt-6 z-10">
-          <button
-            className={`w-10 h-10 flex items-center justify-center rounded-md bg-[#353b50] text-white text-lg transition-colors border border-[#353b50] hover:bg-[#49506a]`}
-            style={{ boxShadow: "none" }}
-            tabIndex={-1}
-            onClick={() => handleShowFiles(store.id)}
-          >
-            <Plus size={20} />
-          </button>
-          <button
-            className={`w-10 h-10 flex items-center justify-center rounded-md bg-[#353b50] text-white text-lg transition-colors border border-[#353b50] hover:bg-[#49506a]`}
-            style={{ boxShadow: "none" }}
-            tabIndex={-1}
-          >
-            <Pencil size={20} />
-          </button>
-          <button
-            className={`w-10 h-10 flex items-center justify-center rounded-md bg-[#a33a3a] text-white text-lg transition-colors border border-[#a33a3a] hover:bg-[#c0392b]`}
-            style={{ boxShadow: "none" }}
-            tabIndex={-1}
-          >
-            <Trash2 size={20} />
-          </button>
-        </div>
+
         {/* Only show buttons on hover */}
         <div
           className={`absolute inset-0 bg-transparent transition-opacity duration-200 ${

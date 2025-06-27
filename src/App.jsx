@@ -45,6 +45,7 @@ import AddToPersonalKnowledgeBase from "./pages/_addToPersonalKnowledge/AddToPer
 import AutomationPage from "./pages/_automations/AutomationPage";
 import AutomationJobDetails from "./pages/_automations/AutomationJobsDetails";
 import PromptTemplateLibrary from "./pages/_private/components/sidebarProvided/components/PromptTemplateLibrary";
+import EachVectorStore from "./pages/_addToPersonalKnowledge/EachVectorStore";
 
 export default function App() {
   const location = useLocation();
@@ -119,6 +120,7 @@ export default function App() {
               path="/addToPersonalKnowledgeBase"
               element={<AddToPersonalKnowledgeBase />}
             />
+            <Route path="/vector-store/:id" element={<EachVectorStore />} />
           </Route>
           {/* agentic automation interface */}
           <Route element={<AgenticAutomationLayout />}>
@@ -147,7 +149,7 @@ export default function App() {
               element={<UserFormProgress />}
             />
           </Route>
-
+          {/* test page */}
           <Route path="*" element={<ComingSoonPage />} />
         </Route>
       </Routes>
