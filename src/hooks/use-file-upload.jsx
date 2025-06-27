@@ -3,6 +3,7 @@ import { useFilesUploadMetadata } from "../context/FilesUploadMetadata";
 import { useToast } from "./use-toast";
 import { vectorizeOneFile } from "../services/n8n-apis/_core/vectorizeOneFile.api";
 import { useParams } from "react-router-dom";
+import { acceptedFiles } from "@/lib/config";
 
 /**
  * Custom hook for handling file upload via drag and drop
@@ -16,23 +17,7 @@ import { useParams } from "react-router-dom";
  */
 export function useFileUpload({
   enabled = true,
-  acceptedTypes = [
-    ".pdf",
-    ".txt",
-    ".docx",
-    ".doc",
-    ".xlsx",
-    ".xls",
-    ".pptx",
-    ".ppt",
-    ".md",
-    ".csv",
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".gif",
-    ".svg",
-  ],
+  acceptedTypes = acceptedFiles,
   maxFileSize = 50 * 1024 * 1024, // 50MB
   maxFiles = 10,
   onFilesAdded = () => {},
@@ -62,25 +47,33 @@ export function useFileUpload({
    */
   const validateFile = useCallback(
     (file) => {
-      const fileExtension = "." + file.name.split(".").pop().toLowerCase();
-
-      // Check file type
-      if (!acceptedTypes.includes(fileExtension)) {
-        return {
-          isValid: false,
-          error: `File type ${fileExtension} is not supported. Accepted types: ${acceptedTypes.join(", ")}`,
-        };
-      }
+      const errors = [];
 
       // Check file size
       if (file.size > maxFileSize) {
-        return {
-          isValid: false,
-          error: `File size exceeds ${Math.round(maxFileSize / (1024 * 1024))}MB limit`,
-        };
+        errors.push(
+          `File "${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is ${(maxFileSize / 1024 / 1024).toFixed(1)}MB`,
+        );
       }
 
-      return { isValid: true };
+      // Check file type
+      const fileExtension = "." + file.name.split(".").pop().toLowerCase();
+      const isAcceptedType = acceptedTypes.some(
+        (type) =>
+          type.toLowerCase() === fileExtension ||
+          file.type.includes(type.replace(".", "")),
+      );
+
+      if (!isAcceptedType) {
+        errors.push(
+          `File type "${fileExtension}" is not supported. Supported types: ${acceptedTypes.join(", ")}`,
+        );
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+      };
     },
     [acceptedTypes, maxFileSize],
   );
@@ -115,20 +108,27 @@ export function useFileUpload({
       const validFiles = [];
       const errors = [];
 
-      // Check total file limit
-      if (newFiles.length + files.length > maxFiles) {
-        errors.push(`Maximum of ${maxFiles} files allowed`);
-      } else {
-        // Validate each file
-        for (const file of newFiles) {
-          const validation = validateFile(file);
-          if (validation.isValid) {
-            validFiles.push(file);
-          } else {
-            errors.push(`${file.name}: ${validation.error}`);
-          }
-        }
+      console.log("Processing files:", newFiles);
+
+      // Check if adding these files would exceed the limit
+      if (fileCount + newFiles.length > maxFiles) {
+        toast({
+          title: "Too Many Files",
+          description: `Cannot add ${newFiles.length} files. Maximum ${maxFiles} files allowed. Currently have ${fileCount} files.`,
+          variant: "destructive",
+        });
+        return;
       }
+
+      // Validate each file
+      newFiles.forEach((file) => {
+        const validation = validateFile(file);
+        if (validation.isValid) {
+          validFiles.push(file);
+        } else {
+          errors.push(...validation.errors);
+        }
+      });
 
       // Show errors if any
       if (errors.length > 0) {
@@ -201,7 +201,8 @@ export function useFileUpload({
         }
 
         setIsVectorizing(false);
-        console.log("Vectorization results:", vectorizationResults); // Fixed incorrect variable
+        console.log("Vectorization results:", vectorizationResults);
+
         // Call success callback
         onFilesAdded(processedFiles);
 
@@ -217,8 +218,8 @@ export function useFileUpload({
       }
     },
     [
-      files,
       maxFiles,
+      fileCount,
       validateFile,
       setFiles,
       setFileCount,

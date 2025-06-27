@@ -22,6 +22,7 @@ import { getNewSession } from "../../../services/n8n-apis/_core/getNewSession.ap
 import { useUser } from "../../../context/UserContext";
 import { _useSidebar } from "../../../context/SidebarContext";
 import { addToPermenentKnowledgeBase } from "../../../namespace/client";
+import { acceptedFiles } from "@/lib/config";
 
 export default function FileUploadDialog() {
   // global states
@@ -530,7 +531,7 @@ export default function FileUploadDialog() {
                   onChange={handleFileChange}
                   className="hidden"
                   id="file-upload"
-                  accept=".pdf,.txt,.json,.docx,.png,.jpg,.jpeg"
+                  accept={acceptedFiles.join(",")}
                 />
                 <label
                   htmlFor="file-upload"

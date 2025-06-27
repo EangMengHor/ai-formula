@@ -1410,7 +1410,7 @@ function Chat() {
       />
 
       <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
-        <div className="max-w-4xl bg-black w-full mx-auto">
+        <div className="max-w-4xl  w-full mx-auto">
           <ChatInput
             conversationProp={conversationRef}
             input={prompt}

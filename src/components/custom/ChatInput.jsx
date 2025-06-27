@@ -433,7 +433,7 @@ function ChatInput({
 
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
-    <div className="relative mb-3">
+    <div className="relative ">
       {pathname !== "/dashboard" && (
         <div className="w-full absolute -top-14 flex justify-end items-center">
           <div
@@ -510,12 +510,9 @@ function ChatInput({
         )} */}
 
         <div
-          className={`rounded-3xl p-2 hide-scrollbar bg-gray-900 trans
-                         ${
-                           isSwarmMode
-                             ? "border-2  border-blue-500 glow-outline-soft"
-                             : ""
-                         }`}
+          className={`rounded-3xl p-2 hide-scrollbar bg-gray-900 
+  ${isSwarmMode ? "border-2 border-blue-500 glow-outline-soft" : ""}
+`}
         >
           <motion.div
             className={`relative flex items-center `}
@@ -1145,6 +1142,7 @@ function ChatInput({
           </DialogContent>
         </Dialog>
       </div>
+      <div className="p-2 bg-black -mt-2"></div>
     </div>
   );
 }
