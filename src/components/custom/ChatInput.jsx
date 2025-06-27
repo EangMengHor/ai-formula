@@ -79,6 +79,8 @@ function ChatInput({
   isAborting,
   currConversationId,
   processingFiles = new Set(),
+  onVoiceModeToggle,
+  isVoiceMode = false,
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
