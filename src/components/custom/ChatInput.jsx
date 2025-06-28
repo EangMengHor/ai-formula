@@ -78,6 +78,9 @@ function ChatInput({
   onAbort,
   isAborting,
   currConversationId,
+  processingFiles = new Set(),
+  onVoiceModeToggle,
+  isVoiceMode = false,
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
@@ -346,22 +349,6 @@ function ChatInput({
     }
   }, [pathname]);
 
-  // toggler
-  // useEffect(() => {
-  //   if (isReconnected) {
-  //     setTimeout(() => {
-  //       setIsReconnected(false);
-  //     }, 1500);
-  //   }
-
-  //   if (isReconnecting) {
-  //     setTimeout(() => {
-  //       setIsReconnecting(false);
-  //     }, 1500);
-  //   }
-  // }, [isReconnected, isReconnecting]);
-
-  // if public or domain state is false, then set isAutoSwarmContextState to false
   useEffect(() => {
     if (isPublicDomain) {
       setIsAutoSwarmContextState(true);
@@ -398,17 +385,26 @@ function ChatInput({
     icon = () => {},
     showIsRemove = true,
     onRemove = () => {},
+    isProcessing = false,
   }) => {
     return (
       <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
-        <div className=" p-2 pl-3">{icon}</div>
+        <div className="p-2 pl-3">
+          {isProcessing ? (
+            <LoaderCircle className="w-5 h-5 text-blue-400 animate-spin" />
+          ) : (
+            icon
+          )}
+        </div>
         <div className="flex items-center gap-2 py-2 pr-4">
-          <span className=" text-white text-xs h-full min-w-max">
+          <span className="text-white text-xs h-full min-w-max">
             {title}
-            <p className="text-slate-400">{type}</p>
+            <p className={`text-slate-400 ${isProcessing ? "opacity-70" : ""}`}>
+              {isProcessing ? "Processing..." : type}
+            </p>
           </span>
         </div>
-        {showIsRemove && (
+        {showIsRemove && !isProcessing && (
           <Button
             variant="outline"
             size="sm"
@@ -439,7 +435,7 @@ function ChatInput({
 
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
-    <div className="relative mb-3">
+    <div className="relative ">
       {pathname !== "/dashboard" && (
         <div className="w-full absolute -top-14 flex justify-end items-center">
           <div
@@ -516,12 +512,9 @@ function ChatInput({
         )} */}
 
         <div
-          className={`rounded-3xl p-2 hide-scrollbar bg-gray-900 trans
-                         ${
-                           isSwarmMode
-                             ? "border-2  border-blue-500 glow-outline-soft"
-                             : ""
-                         }`}
+          className={`rounded-3xl p-2 hide-scrollbar bg-gray-900 
+  ${isSwarmMode ? "border-2 border-blue-500 glow-outline-soft" : ""}
+`}
         >
           <motion.div
             className={`relative flex items-center `}
@@ -533,19 +526,21 @@ function ChatInput({
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
             <div className="flex gap-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
-              {files.filter((file) => memorizedFiles.includes(file.name))
-                .length > 0 &&
-                files
-                  .filter((file) => memorizedFiles.includes(file.name))
-                  .map((file, index) => (
+              {files.length > 0 &&
+                files.map((file, index) => {
+                  const isVectorized = memorizedFiles.includes(file.name);
+
+                  return (
                     <AttachmentCard
                       key={index}
                       title={file.name}
                       type={file.type.replaceAll("application/", "")}
                       icon={<FileText className="w-5 h-5" />}
                       showIsRemove={false}
+                      isProcessing={!isVectorized}
                     />
-                  ))}
+                  );
+                })}
 
               {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
                 <AttachmentCard
@@ -994,16 +989,6 @@ function ChatInput({
                         </div>
                       </div>
                     </div>
-                    {/* <button
-                                        onClick={() => {
-                                            window.open(import.meta.env.VITE_GEMINI_REALTIME_URL, "_blank")
-                                        }}
-                                        className="flex items-center px-1 py-1 rounded-md bg-red-400 border border-gray-600 hover:bg-slate-600 w-fit"
-                                    >
-                                        <div className="flex w-fit">
-                                            <img src="/small-log.png" alt="Stream Realtime API" className="w-6 h-6 m-1 rounded-md" />
-                                        </div>
-                                    </button> */}
                   </DialogContent>
                 </Dialog>
               </div>
@@ -1159,6 +1144,7 @@ function ChatInput({
           </DialogContent>
         </Dialog>
       </div>
+      <div className="p-2 bg-black -mt-2"></div>
     </div>
   );
 }

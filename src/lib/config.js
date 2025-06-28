@@ -3522,3 +3522,28 @@ export const promptTemplateCategories = [
     "IB, PE & Family Office Stacks",
     "Enhanced Stock Analysis"
 ]
+export const acceptedFiles = [
+    ".pdf", // Document
+    ".txt", // Text
+    ".docx",
+    ".doc",
+    ".xlsx",
+    ".xls",
+    ".pptx",
+    ".ppt",
+    ".md",
+    ".csv",
+
+    // Image formats supported by OpenAI Vision
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".webp",
+    ".bmp",
+    ".tiff",
+    ".tif",
+    ".heic",
+    ".zip"
+]

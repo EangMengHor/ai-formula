@@ -93,3 +93,5 @@ export const isRelayMessageUrl = `${import.meta.env.VITE_SOCKET_URL}/api/core/is
 export const replayStreamUrl = `${import.meta.env.VITE_SOCKET_URL}/api/core/replayContinueStream`;
 
 export const getGeneratedVisualizationUrl = `${import.meta.env.VITE_SOCKET_URL}/api/utils/getDataVisualizationData`;
+
+export const getVectorStoreCompleteDataUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/getVectorStoreData/:id`;
