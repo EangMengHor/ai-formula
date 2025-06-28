@@ -149,6 +149,7 @@ export default function App() {
               element={<UserFormProgress />}
             />
           </Route>
+          <Route path="/test" element={<Test />} />
           {/* test page */}
           <Route path="*" element={<ComingSoonPage />} />
         </Route>

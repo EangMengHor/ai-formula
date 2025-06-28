@@ -293,7 +293,7 @@ export default function FileUploadDialog() {
             onClick={() => setIsOpen(true)}
             className="w-fit rounded-md text-white flex flex-col p-4 gap-3 bg-slate-800 hover:bg-slate-600 cursor-pointer items-center justify-center font-semibold  "
           >
-            <FileInput className="w-5 h-5" />
+            <FileInput className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] relative flex items-center justify-end cursor-pointer px-2 py-1 rounded-md hover:bg-gray-800" />
             <p>Click To Open Document Upload Section</p>
           </div>
           <hr />
@@ -381,9 +381,9 @@ export default function FileUploadDialog() {
       ) : (
         <div
           onClick={() => setIsOpen(true)}
-          className="flex items-center rounded-md m-1 p-2 hover:bg-slate-800 cursor-pointer "
+          className="flex items-center rounded-xl p-2 hover:bg-slate-800 cursor-pointer "
         >
-          <Paperclip className="w-5 h-5  rounded-md" />
+          <Paperclip className="w-5 h-5  rounded-md drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
         </div>
       )}
 

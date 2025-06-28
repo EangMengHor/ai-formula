@@ -89,14 +89,14 @@ const AudioRecorder = ({ value, setValue, trigger, setTrigger }) => {
             startRecording();
           }
         }}
-        className={`${!isRecording ? "bg-slate-900" : "bg-slate-800 animate-pulse"} hover:bg-slate-800 p-2 rounded-md`}
+        className={`${!isRecording ? "bg-slate-900" : "bg-slate-800 animate-pulse"} hover:bg-slate-800 p-2 rounded-xl `}
       >
         {isTranscribing ? (
-          <LoaderCircle className="w-5 h-5 animate-spin" />
+          <LoaderCircle className="w-5 h-5 animate-spin drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
         ) : isRecording ? (
-          <Mic className="w-5 h-5" />
+          <Mic className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
         ) : (
-          <MicOff className="w-5 h-5" />
+          <MicOff className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
         )}
       </button>
     </div>

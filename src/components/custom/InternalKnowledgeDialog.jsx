@@ -12,12 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Database, Calendar, CheckCircle2, Circle } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-export default function InternalKnowledgeDialog() {
+
+export default function InternalKnowledgeDialog({
+  isDialogOpen = false,
+  setIsDialogOpen = () => {},
+}) {
   const { collectionList, selectedCollectionIds, toggleCollectionSelection } =
     useCollection();
 
@@ -36,41 +35,12 @@ export default function InternalKnowledgeDialog() {
   const { selected, total } = getSelectionStatus();
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <button
-          variant="ghost"
-          className="relative group ml-2  text-slate-300 hover:text-white  px-2 py-1 rounded-md hover:bg-gray-800 transition-all duration-200  hover:border-slate-600"
-        >
-          <div className="flex items-center gap-2 sm:gap-3 ">
-            <Tooltip>
-              <TooltipTrigger>
-                <Database
-                  className={`w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Attach Knowledge Block</p>
-              </TooltipContent>
-            </Tooltip>
-            {selected > 0 && (
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            )}
-            {/* <p className="font-medium text-sm ">Knowledge</p> */}
-            {/* <span className="font-medium text-sm sm:text-base hidden sm:inline">
-              Internal Knowledge
-            </span>
-            <span className="font-medium text-sm sm:hidden">Knowledge</span> */}
-            {/* <Badge
-              variant="secondary"
-              className="bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 transition-colors text-xs"
-            >
-              {selected}/{total}
-            </Badge> */}
-          </div>
-        </button>
-      </DialogTrigger>
-
+    <Dialog
+      open={isDialogOpen}
+      onOpenChange={(open) => {
+        setIsDialogOpen(open);
+      }}
+    >
       <DialogContent className="w-[95vw] sm:w-[85vw] md:w-[75vw] lg:w-[65vw] xl:w-[55vw] max-w-4xl max-h-[85vh] sm:max-h-[80vh] p-0 bg-slate-800 border-slate-700">
         <div className="flex flex-col max-h-[85vh] sm:max-h-[80vh]">
           <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-900/50 flex-shrink-0">

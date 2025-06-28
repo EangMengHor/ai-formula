@@ -37,8 +37,8 @@ export const UserProvider = ({ children }) => {
     useState(false);
   const [isUserBanned, setIsUserBanned] = useState(false);
   const [promptTemplatePrompt, setPromptTemplatePrompt] = useState(""); // Add this line
-
-  useEffect(() => {
+  const [selectedModel, setSelectedModel] = useState([]);
+  useEffect(() => { 
     setIsDocumentOn(false);
   }, [pathname]);
 
@@ -118,8 +118,6 @@ export const UserProvider = ({ children }) => {
     }
   }
 
-
-
   return (
     <UserContext.Provider
       value={{
@@ -153,6 +151,8 @@ export const UserProvider = ({ children }) => {
         setAuthToken,
         promptTemplatePrompt,
         setPromptTemplatePrompt,
+        selectedModel,
+        setSelectedModel,
       }}
     >
       {children}
