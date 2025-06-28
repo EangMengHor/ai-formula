@@ -3487,6 +3487,21 @@ export const promptTemplate = [
             "Activate response protocols"
         ],
         "category": 27
+    },
+    {
+        "name": " Automation Creator Hyper-Optimized Template",
+        "promptTemplate": "Leverage $$ARCS$$, $$ARCF$$, and $$OmniSynth$$ to orchestrate adaptive, real-time automation for {{target_process}}—maximizing efficiency, compliance, and predictive intelligence. make it indepth and self adaptive , it should only get me most recent (previous 24 hours) data and should be able to adapt to new data and scenarios. and give me indepth analysis and insights. dont ask any confirmation for anything just create automation , my custom requirements are as follows: {{custom_requirements}}. make sure you dont give me dummy acknowledgement without calling tool create_new_agentic_simulation. must call this tool create_new_agentic_simulation",
+        "outcome": "Achieve continuous, self-improving automation with dynamic risk scoring, compliance assurance, and scenario-driven optimization.",
+        "workflow": [
+            "Ingest multi-source real-time data for {{target_process}}",
+            "Validate and synthesize inputs using $$ARCS$$ for adaptive compliance and $$OmniSynth$$ for cross-domain intelligence",
+            "Apply $$Compliance\\ Probability = RealTime\\ Data\\ Accuracy \\times (Predictive\\ Accuracy + Adaptability\\ Factor)$$ to each automation step",
+            "Compute $$Dynamic\\ Compliance\\ Index = Baseline\\ Compliance \\times (Update\\ Rate + Adaptability\\ Factor)$$ for ongoing optimization",
+            "Forecast outcomes with $$Predictive\\ Scenario\\ Mapping\\ Score = \\sum_{i=1}^{n} \\left( \\frac{Scenario\\ Impact_i \\times Adaptability_i}{Uncertainty_i} \\right)$$",
+            "Auto-adapt workflows based on feedback and scenario mapping",
+            "Generate prioritized action and optimization recommendations"
+        ],
+        "category": 99
     }
 ]
 
