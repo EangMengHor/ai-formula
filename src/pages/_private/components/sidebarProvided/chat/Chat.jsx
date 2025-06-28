@@ -29,6 +29,7 @@ import { SSEChatCall } from "../../../../../services/SSEChat";
 import { abortSSEChat } from "@/services/abortSSEChat";
 import { isReplay } from "@/services/isReplay";
 import { replayStream } from "@/services/replayStream";
+import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/sidebarVectorStoreScrapper";
 
 function Chat() {
   // exploitation
@@ -139,6 +140,17 @@ function Chat() {
           component: (
             <RenderMaterialUniProb uniProbId={uniProb} title={title} />
           ),
+        },
+      ];
+    });
+  }, []);
+
+  const memoizedHandleVectorStoreScrapperSidebar = useCallback((dbId, name) => {
+    setSidebarStack(() => {
+      return [
+        {
+          header: name, // or replace with appropriate value or variable
+          component: <SidebarVectorStoreScrapper dbId={dbId} name={name} />,
         },
       ];
     });
@@ -1038,6 +1050,28 @@ function Chat() {
           };
         },
       },
+      {
+        type: "vectorStoreJob",
+        regex: /<newVectorStoreJob>([\s\S]*?)<\/newVectorStoreJob>/gi,
+        handler: (m, start, end) => {
+          const rawContent = m[1].trim();
+
+          // Extract values from XML-style tags manually
+          const vsIdMatch = rawContent.match(/<vsId>([\s\S]*?)<\/vsId>/i);
+          const taskMatch = rawContent.match(/<task>([\s\S]*?)<\/task>/i);
+          const nameMatch = rawContent.match(/<name>([\s\S]*?)<\/name>/i);
+
+          return {
+            type: "vectorStoreJob",
+            vsId: vsIdMatch?.[1]?.trim() || null,
+            task: taskMatch?.[1]?.trim() || null,
+            name: nameMatch?.[1]?.trim() || "Vector Store Scrapper",
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
     ];
 
     // --- 4. Find other blocks in masked content ---
@@ -1395,6 +1429,7 @@ function Chat() {
         handleBlockSidebar={memoizedHandleBlockSidebar}
         renderMermaidChart={memoizedRenderMermaidChart}
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
+        handleVectorStoreSidebar={memoizedHandleVectorStoreScrapperSidebar}
         loadingMessage={currLoadingStatus}
         chatContainerRef={chatContainerRef}
         endRef={endRef}

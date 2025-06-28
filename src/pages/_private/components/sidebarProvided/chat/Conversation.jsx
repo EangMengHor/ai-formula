@@ -46,6 +46,7 @@ import { handlePdfDownload } from "./PdfDownload";
 import CitationHoverCard from "./CitationsHoverCard";
 import AgentCitationsHoverCard from "./AgentCitationsHoverCard";
 import Visualization from "@/components/custom/DynamicCharts/Visualization";
+import VectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/VectorStoreScrapper";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -61,6 +62,7 @@ const Conversation = forwardRef(
       chatContainerRef, // This comes from Chat.jsx
       endRef, // This comes from Chat.jsx
       handleBlockSidebar,
+      handleVectorStoreSidebar,
       handleMaterialSidebar,
       renderMermaidChart,
       errorMessage = "Something Went Wrong!!",
@@ -654,6 +656,25 @@ const Conversation = forwardRef(
                             chartType={type}
                             dataName={dataName}
                             dataLabel={dataLabel}
+                          />
+                        );
+                      }
+                      //                       {
+                      //     "type": "vectorStoreJob",
+                      //     "vsId": "12",
+                      //     "task": "Scrape, extract, and continuously update authoritative IRS feeds, official IRS rule publications, and regulatory updates. Structure all data for rapid retrieval, compliance automation, and advanced rule referencing.",
+                      //     "isComplete": true,
+                      //     "start": 292,
+                      //     "end": 585
+                      // }
+                      else if (block.type == "vectorStoreJob") {
+                        const databaseId = block.vsId;
+                        console.log(block);
+                        return (
+                          <VectorStoreScrapper
+                            databaseId={databaseId}
+                            handleBlockSidebar={handleVectorStoreSidebar}
+                            name={block.name || "Vector Store Scrapper"}
                           />
                         );
                       }
