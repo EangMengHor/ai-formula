@@ -32,6 +32,7 @@ import { replayStream } from "@/services/replayStream";
 import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/sidebarVectorStoreScrapper";
 import { sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
+import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
 // import VoiceInterface from "@/components/custom/VoiceInterface";
 
 function Chat() {
@@ -59,6 +60,8 @@ function Chat() {
     isDeepThinkMode,
     setIsUserBanned,
     refreshAccessToken,
+    selectedModel,
+    setSelectedModel,
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
@@ -473,6 +476,22 @@ function Chat() {
       ];
     });
   }, []);
+
+  const memorizedHandleUrlScraperSidebar = useCallback(
+    (jobId, name, numOfUrls) => {
+      setSidebarStack(() => {
+        return [
+          {
+            header: name, // or replace with appropriate value or variable
+            component: (
+              <SidebarUrlShower jobId={jobId} name={name} numOfUrls={numOfUrls} />
+            ),
+          },
+        ];
+      });
+    },
+    [],
+  );
 
   const memoizedHandleBlockSidebar = useCallback(
     (block, type, header = "") => {
@@ -1413,6 +1432,29 @@ function Chat() {
           };
         },
       },
+      {
+        type: "urlScraper",
+        regex: /<urlScraper>([\s\S]*?)<\/urlScraper>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          return {
+            type: "urlScraper",
+            jobId: extractTag("jobid", inner),
+            name: extractTag("name", inner),
+            numOfUrls: extractTag("numOfUrls", inner),
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
     ];
 
     // --- 4. Find other blocks in masked content ---
@@ -1518,6 +1560,7 @@ function Chat() {
         isAutoSwarm: isAutoSwarmContextState,
         workflowId: selectedWorkflowId,
         collectionIds: selectedCollectionIds,
+        intentModel: selectedModel,
       };
 
       // Reset state
@@ -1610,6 +1653,7 @@ function Chat() {
       selectedWorkflowId,
       isError,
       selectedCollectionIds,
+      selectedModel,
     ],
   );
 
@@ -1810,6 +1854,7 @@ function Chat() {
         renderMermaidChart={memoizedRenderMermaidChart}
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
         handleVectorStoreSidebar={memoizedHandleVectorStoreScrapperSidebar}
+        handleUrlScraperSidebar = {memorizedHandleUrlScraperSidebar}
         loadingMessage={currLoadingStatus}
         chatContainerRef={chatContainerRef}
         endRef={endRef}

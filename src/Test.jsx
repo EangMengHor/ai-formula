@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Brain, SendToBack, Zap } from "lucide-react";
 import {
   Tooltip,
@@ -9,7 +9,13 @@ import {
 
 export default function Test({ modes } = { modes: [] }) {
   const [selectedIndex, setSelectedIndex] = useState(1);
-
+  const isInitialRendered = useRef(null);
+  useEffect(() => {
+    if (!isInitialRendered.current) {
+      isInitialRendered.current = true;
+      modes?.onClick && modes.onClick?.();
+    }
+  });
   return (
     <TooltipProvider delayDuration={100}>
       <div className="flex items-center gap-1 mr-2 bg-slate-800 p-1 rounded-2xl shadow-md w-fit transition-all">

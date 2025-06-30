@@ -1,5 +1,3 @@
-    
-
 import {
   ArrowDownToDot,
   ArrowLeftRight,
@@ -67,7 +65,7 @@ import { debounce, set } from "lodash";
 import InternalKnowledgeDialog from "./InternalKnowledgeDialog";
 import { useCollection } from "../../context/CollectionContext";
 import Test from "@/Test";
-import ModelSelectionDialog from "./ModelSelectionDialog";
+import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 const maxRows = 30;
 
 function ChatInput({
@@ -96,7 +94,8 @@ function ChatInput({
     setIsAutoSwarmContextState,
     isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
-
+    selectedModel,
+    setSelectedModel,
   } = useUser();
   // component states
   const [rows, setRows] = useState(5);
@@ -494,6 +493,26 @@ function ChatInput({
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
             <div className="flex gap-2 ml-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+              {selectedModel.length > 0 &&
+                selectedModel.map((model, index) => {
+                  const dataObj = models.find((m) => m.value == model);
+                  if (!dataObj) return <></>;
+                  return (
+                    <AttachmentCard
+                      key={index}
+                      title={dataObj.name}
+                      type="Intent Model"
+                      showIsRemove={true}
+                      onRemove={() => {
+                        setSelectedModel((prev) =>
+                          prev.filter((m) => m !== model),
+                        );
+                      }}
+                      icon={<Boxes className="w-5 h-5" />}
+                    />
+                  );
+                })}
+
               {files.length > 0 &&
                 files.map((file, index) => {
                   const isVectorized = memorizedFiles.includes(file.name);
@@ -743,9 +762,8 @@ function ChatInput({
             <div className="flex gap-1 items-center">
               <DropdownMenu>
                 <DropdownMenuTrigger>
-                  <div className="p-2 bg-slate-800 hover:bg-slate-600 mr-2 rounded-xl flex items-center justify-center gap-2 ">
+                  <div className="p-3 bg-slate-800 hover:bg-slate-600 mr-1 rounded-xl flex items-center justify-center gap-2 ">
                     <Settings2 className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-                    Options
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-slate-800 border-none">
@@ -763,21 +781,23 @@ function ChatInput({
                       </p>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      console.log("asdasdasdasdasdasd1212");
-                      setWorkflowModalOpen(true);
-                    }}
-                    className="hover:bg-slate-700 flex gap-2 items-start p-2"
-                  >
-                    <CircleFadingPlus className="w-4 h-4 mt-1" />
-                    <div>
-                      <p className="text-md">Chat To Workflow</p>
-                      <p className="max-w-[200px] text-xs text-slate-400">
-                        Transform Current Chat Into Reusable Workflow
-                      </p>
-                    </div>
-                  </DropdownMenuItem>
+                  {pathname !== "/dashboard" && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        console.log("asdasdasdasdasdasd1212");
+                        setWorkflowModalOpen(true);
+                      }}
+                      className="hover:bg-slate-700 flex gap-2 items-start p-2"
+                    >
+                      <CircleFadingPlus className="w-4 h-4 mt-1" />
+                      <div>
+                        <p className="text-md">Chat To Workflow</p>
+                        <p className="max-w-[200px] text-xs text-slate-400">
+                          Transform Current Chat Into Reusable Workflow
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={() => {
                       setIsKnowledgeBlockSelectorOpen((prev) => !prev);

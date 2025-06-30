@@ -47,6 +47,7 @@ import CitationHoverCard from "./CitationsHoverCard";
 import AgentCitationsHoverCard from "./AgentCitationsHoverCard";
 import Visualization from "@/components/custom/DynamicCharts/Visualization";
 import VectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/VectorStoreScrapper";
+import UrlShower from "@/components/custom/urlScraperSidebar/UrlShower";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -65,6 +66,7 @@ const Conversation = forwardRef(
       handleVectorStoreSidebar,
       handleMaterialSidebar,
       renderMermaidChart,
+      handleUrlScraperSidebar,
       errorMessage = "Something Went Wrong!!",
       onRetry,
     },
@@ -658,16 +660,21 @@ const Conversation = forwardRef(
                             dataLabel={dataLabel}
                           />
                         );
-                      }
-                      //                       {
-                      //     "type": "vectorStoreJob",
-                      //     "vsId": "12",
-                      //     "task": "Scrape, extract, and continuously update authoritative IRS feeds, official IRS rule publications, and regulatory updates. Structure all data for rapid retrieval, compliance automation, and advanced rule referencing.",
-                      //     "isComplete": true,
-                      //     "start": 292,
-                      //     "end": 585
-                      // }
-                      else if (block.type == "vectorStoreJob") {
+                      } else if (block.type == "urlScraper") {
+                        const jobId = block.jobId;
+                        const name = block.name;
+                        const numOfUrls = block.numOfUrls;
+                        console.log(block, "urlScraper block");
+
+                        return (
+                          <UrlShower
+                            jobId={jobId}
+                            name={name || "Url Scraper"}
+                            numOfUrls={numOfUrls || "0"}
+                            handleUrlScraperSidebar={handleUrlScraperSidebar}
+                          />
+                        );
+                      } else if (block.type == "vectorStoreJob") {
                         const databaseId = block.vsId;
                         console.log(block);
                         return (
