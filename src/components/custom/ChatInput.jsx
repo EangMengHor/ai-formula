@@ -1,32 +1,28 @@
 import {
   ArrowDownToDot,
   ArrowLeftRight,
-  ArrowRight,
   ArrowUp,
   AudioLines,
   AudioWaveform,
-  BrainCog,
+  Brain,
   Camera,
-  ChevronDown,
-  ChevronUp,
   CircleFadingPlus,
   CirclePause,
-  DiamondPlus,
   FileText,
-  Flame,
   Grid2x2,
-  Layers2,
   Loader2,
   LoaderCircle,
   MonitorUp,
   Paperclip,
-  RotateCcw,
+  SendToBack,
   Sparkles,
   SquareDashed,
-  Target,
-  TriangleAlert,
-  Unplug,
   X,
+  Zap,
+  Settings2,
+  Database,
+  Component,
+  Boxes,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -54,6 +50,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "../../hooks/use-toast";
@@ -62,10 +61,11 @@ import { useDomain } from "@/context/WhichDomainContext";
 import { getPromptEnhancerApi } from "@/services/n8n-apis/_core/getPromptEnhancer.api";
 import { useWorkflow } from "../../context/WorkflowContext";
 import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUserSavedWorflow";
-import { debounce } from "lodash";
-import SelectedCollectionsDisplay from "./SelectedCollectionsDisplay";
+import { debounce, set } from "lodash";
 import InternalKnowledgeDialog from "./InternalKnowledgeDialog";
 import { useCollection } from "../../context/CollectionContext";
+import Test from "@/Test";
+import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 const maxRows = 30;
 
 function ChatInput({
@@ -94,6 +94,8 @@ function ChatInput({
     setIsAutoSwarmContextState,
     isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
+    selectedModel,
+    setSelectedModel,
   } = useUser();
   // component states
   const [rows, setRows] = useState(5);
@@ -109,11 +111,12 @@ function ChatInput({
   const isEnhancerApiUpdateRef = useRef(false);
   const { toggleCollectionSelection, getSelectedCollections } = useCollection();
   const selectedCollections = getSelectedCollections();
-
+  const [isKnowledgeBlockSelectorOpen, setIsKnowledgeBlockSelectorOpen] =
+    useState(false);
+  const [isIntentSelectionOpen, setIsIntentSelectionOpen] = useState(false);
   // Get only the necessary workflow states from context
   const {
     selectedWorkflowId,
-    workflowList,
     setWorkflowList,
     getSelectedWorkflow,
     setSelectedWorkflowId,
@@ -125,8 +128,8 @@ function ChatInput({
     useState(false);
   const [recentlyCreatedWorkflowResponse, setRecentlyCreatedWorkflowResponse] =
     useState({});
-  const [hovered, setHovered] = useState(false);
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
+
   const { user } = useUser();
 
   useEffect(() => {
@@ -369,15 +372,39 @@ function ChatInput({
     },
     [isWorkflowCreatorLoading, toast],
   );
-
+  useEffect(() => {
+    console.log(isSwarmMode, " isSwarmMode in ChatInput");
+  }, [isSwarmMode]);
   // Optimize SwarmMode toggle with useCallback
-  const toggleSwarmMode = useCallback(() => {
-    setIsSwarmMode((prev) => {
-      const newState = !prev;
-      return newState;
-    });
-    setIsToolBoxOpen((prev) => !prev);
-  }, []);
+  const modes = [
+    {
+      name: "Quick Response",
+      icon: <Zap size={20} />,
+      description: "Get instant replies for fast decisions.",
+      onClick: () => {
+        setIsSwarmMode(false); // Set context state
+        setIsDeepThinkMode(false); // Set context state
+      },
+    },
+    {
+      name: "ARX Deep Thinking",
+      icon: <Brain size={20} />,
+      description: "Trigger deeper analysis and thoughtful exploration.",
+      onClick: () => {
+        setIsSwarmMode(false); // Set context state
+        setIsDeepThinkMode(true); // Set context state
+      },
+    },
+    {
+      name: "Agentic ARX",
+      icon: <SendToBack size={20} />,
+      description: "Use multi-agent logic for advanced automation.",
+      onClick: () => {
+        console.log(" isSwarmMode in ChatInput 1", isSwarmMode);
+        setIsSwarmMode(!isSwarmMode); // Toggle context state
+      },
+    },
+  ];
 
   const AttachmentCard = ({
     title = "",
@@ -433,6 +460,10 @@ function ChatInput({
     }
   }, [isLoading, currConversationId, isAborting, onAbort, handleSubmit]);
 
+  useEffect(() => {
+    console.log(isIntentSelectionOpen, "isIntentSelectionOpen in ChatInput");
+  }, [isIntentSelectionOpen]);
+
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">
@@ -447,73 +478,9 @@ function ChatInput({
         </div>
       )}
       <div className="flex w-full flex-col animate-fade-in ">
-        {/* {isReconnectionNeeded && (
-          <div className="mb-2 font-semibold text-lg rounded-xl border-blue-900 border-2 bg-blue-300 flex items-center p-2 justify-between">
-            <div className="flex gap-2 text-black max-w-lg">
-              <Unplug />
-              <div className="flex items-center justify-center flex-col text-[16px]">
-                <p>Connection lost. Please reconnect.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => {
-                  setIsReconnectionNeeded(false);
-                }}
-                size="sm"
-              >
-                <div className="flex gap-2">
-                  <X />
-                  <p>Close</p>
-                </div>
-              </Button>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="destructive"
-                size="sm"
-                className="bg-blue-900 hover:bg-blue-500"
-              >
-                <div className="flex gap-2">
-                  <RotateCcw />
-                  <p>Reconnect</p>
-                </div>
-              </Button>
-            </div>
-          </div>
-        )} */}
-        {/* {isError && (
-          <div className="mb-2 font-semibold text-lg rounded-xl border-red-900 border-2 bg-red-300 flex items-center p-2 justify-between">
-            <div className="flex gap-2 text-black max-w-lg">
-              <TriangleAlert />
-              <div className="flex items-center justify-center flex-col text-[16px]">
-                <p>{errorMessage || "Something Went Wrong!!"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => {
-                  setIsError(false);
-                }}
-                size="sm"
-              >
-                <div className="flex gap-2">
-                  <X />
-                  <p>Close</p>
-                </div>
-              </Button>
-              <Button onClick={onRetry} variant="destructive" size="sm">
-                <div className="flex gap-2">
-                  <RotateCcw />
-                  <p>Retry</p>
-                </div>
-              </Button>
-            </div>
-          </div>
-        )} */}
-
         <div
-          className={`rounded-3xl p-2 hide-scrollbar bg-gray-900 
-  ${isSwarmMode ? "border-2 border-blue-500 glow-outline-soft" : ""}
+          className={`rounded-3xl p-2 hide-scrollbar bg-gray-900  border-2 
+  ${isSwarmMode ? " border-blue-500 glow-outline-soft" : "border-transparent"}
 `}
         >
           <motion.div
@@ -525,7 +492,27 @@ function ChatInput({
             }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
           >
-            <div className="flex gap-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+            <div className="flex gap-2 ml-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+              {selectedModel.length > 0 &&
+                selectedModel.map((model, index) => {
+                  const dataObj = models.find((m) => m.value == model);
+                  if (!dataObj) return <></>;
+                  return (
+                    <AttachmentCard
+                      key={index}
+                      title={dataObj.name}
+                      type="Intent Model"
+                      showIsRemove={true}
+                      onRemove={() => {
+                        setSelectedModel((prev) =>
+                          prev.filter((m) => m !== model),
+                        );
+                      }}
+                      icon={<Boxes className="w-5 h-5" />}
+                    />
+                  );
+                })}
+
               {files.length > 0 &&
                 files.map((file, index) => {
                   const isVectorized = memorizedFiles.includes(file.name);
@@ -573,14 +560,14 @@ function ChatInput({
             onKeyDown={handleKeyDown}
             rows={rows}
             maxRows={maxRows}
-            className={`ring-0-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
+            className={`ring-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
             type="text"
             placeholder="Type a message"
             id="aiInputTextArea"
           />
 
-          <div className="flex justify-between">
-            <div className="flex gap-1 items-center justify-center  ">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2 -mb-4">
               <div className="flex gap-2 rounded-md">
                 <AudioRecorder
                   value={input}
@@ -596,8 +583,8 @@ function ChatInput({
                   <TooltipProvider>
                     <Tooltip delayDuration={0}>
                       <TooltipTrigger>
-                        <div className="flex items-center rounded-lg p-2 hover:bg-gray-800">
-                          <Paperclip className="w-5 h-5  " />
+                        <div className="flex items-center rounded-xl p-2 ">
+                          <Paperclip className="w-5 h-5  drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="bg-slate-600 p-2 rounded-md">
@@ -611,202 +598,17 @@ function ChatInput({
                 </div>
               )}
 
-              {/* Favorite - Now represents workflow */}
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger
-                    asChild
-                    className={`${pathname == "/dashboard" && "hidden"}`}
-                  >
-                    <div
-                      onMouseEnter={() => setHovered(true)}
-                      onMouseLeave={() => setHovered(false)}
-                      onClick={() => setWorkflowModalOpen(true)}
-                      className={`relative flex items-center justify-end cursor-pointer px-2 py-1 rounded-md hover:bg-gray-800 `}
-                    >
-                      {/* Star (z-10 above text, on right) */}
-                      <div className="z-10">
-                        <CircleFadingPlus
-                          className={`w-5 h-5 ${
-                            selectedWorkflowId ? "text-white " : "text-white"
-                          } drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]`}
-                        />
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm text-center ">
-                    <p>Transform This Conversationg Into Workflow</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
               {/* chat mode */}
-              <InternalKnowledgeDialog />
 
               <div
-                className={`${isSwarmMode ? "hidden" : "flex"} gap-2 rounded-md`}
-              >
-                <DropdownMenu
-                  open={open}
-                  onOpenChange={(val) => {
-                    setOpen(val);
-                  }}
-                >
-                  <DropdownMenuTrigger className="p-2 text-slate-300 text-sm items-center border-0 ring-0 hover:bg-slate-800 rounded-md px-3 py-1 focus:ring-0 focus:ring-transparent focus:ring-offset-0 flex gap-2 ">
-                    {
-                      !isDeepThinkMode ? "Quick Response" : "Deep Thinking" // Use context state
-                    }
-                    {open ? (
-                      <ChevronDown className="w-5 h-5" />
-                    ) : (
-                      <ChevronUp className="w-5 h-5" />
-                    )}
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="p-0">
-                    {/* Quick Response Option */}
-                    <div className="flex flex-col divide-y divide-[#2a3042]">
-                      <div
-                        className="flex items-start gap-3 py-3 px-4 cursor-pointer bg-slate-800 hover:bg-[#252b3b]"
-                        onClick={() => {
-                          setIsDeepThinkMode(false); // Set context state
-                          setOpen((prev) => !prev);
-                        }}
-                      >
-                        <div className="mt-1">
-                          <Flame className="text-white w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-[15px] text-[#e6e9f0]">
-                              Quick response
-                            </span>
-                            <span className="text-xs text-[#8b93a7]">
-                              2-3 sec
-                            </span>
-                          </div>
-                          <span className="text-xs text-[#8b93a7] mt-0.5">
-                            Best for everyday conversation
-                          </span>
-                        </div>
-                        <div className="ml-auto mt-1">
-                          {!isDeepThinkMode ? ( // Check context state
-                            <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center"></div>
-                          ) : (
-                            <div className="h-4 w-4 rounded-full border border-gray-600 flex items-center justify-center"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Deep Think Option */}
-                    <div className="flex flex-col divide-y divide-[#2a3042]">
-                      <div
-                        className="flex items-start gap-3 py-3 px-4 cursor-pointer bg-slate-800 hover:bg-[#252b3b]"
-                        onClick={() => {
-                          setIsDeepThinkMode(true); // Set context state
-                          setOpen((prev) => !prev);
-                        }}
-                      >
-                        <div className="mt-1">
-                          <BrainCog className="text-white w-4 h-4" />
-                        </div>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-[15px] text-[#e6e9f0]">
-                              Deep Think & Executor
-                            </span>
-                            <span className="text-xs text-[#8b93a7]">
-                              45s - 2m
-                            </span>
-                          </div>
-                          {/* TODO: Update description if needed */}
-                          <span className="text-xs text-[#8b93a7] mt-0.5">
-                            Best for complex tasks & analysis
-                          </span>
-                        </div>
-                        <div className="ml-auto mt-1">
-                          {isDeepThinkMode ? ( // Check context state
-                            <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center"></div>
-                          ) : (
-                            <div className="h-4 w-4 rounded-full border border-gray-600 flex items-center justify-center"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div
-                className={` ${isSwarmMode && !isPublicDomain ? "flex" : "hidden"} gap-2 rounded-md`}
-              >
-                <div className="relative flex items-center gap-2 ml-2">
-                  {/* Auto Button */}
-                  <TooltipProvider>
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger>
-                        <button
-                          onClick={() => setIsAutoSwarmContextState(true)}
-                          className="flex   items-center gap-1 px-1 py-1 text-white"
-                        >
-                          <Target className="w-4 h-4" />
-                          <span className="text-sm font-medium">Auto</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="border border-slate-400 max-w-sm text-center">
-                        <p>
-                          In Auto mode you don't have to manually select the
-                          superior persona for agentic simulation. ARXS will
-                          create the agents based on your query
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  {/* Manual Button */}
-                  <TooltipProvider>
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger>
-                        <button
-                          onClick={() => setIsAutoSwarmContextState(false)}
-                          className="flex items-center gap-1 px-1 py-1 text-white"
-                        >
-                          <Layers2 className="w-4 h-4" />
-                          <span className="text-sm font-medium">Manual</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="border border-slate-400 max-w-sm text-center">
-                        <p>
-                          In manual mode you have to manually select the
-                          superior persona for agentic simulation
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  {/* Animated Glowing Dash */}
-                  <motion.div
-                    layout
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className="absolute bottom-0 h-[3px] w-[60px] rounded-full 
-                                        bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 
-                                        shadow-[0_0_8px_#c084fc] mt-2"
-                    style={{
-                      left: isAutoSwarmContextState ? "0px" : "75px", // Adjust based on button width + spacing
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-1 items-center">
-              <div
-                className={`${isPublicDomain && "hidden"} p-2 rounded-md hover:bg-gray-800 cursor-pointer `}
+                className={`${isPublicDomain && "hidden"}  rounded-xl hover:bg-gray-800 cursor-pointer `}
               >
                 {isPromptEnchanced ? (
                   <div
                     onClick={onUndoPromptEnhance}
                     className="flex gap-2 items-center"
                   >
-                    <ArrowLeftRight className="w-5 h-5 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
+                    <ArrowLeftRight className="w-5 h-5 p-2 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
                     <p className="text-sm font-semibold text-white">Undo</p>
                   </div>
                 ) : isPromptEnhancerLoading ? (
@@ -816,8 +618,8 @@ function ChatInput({
                     <TooltipProvider>
                       <Tooltip delayDuration={0}>
                         <TooltipTrigger>
-                          <div className="cursor-pointer flex gap-2 items-center rounded-md hover:bg-gray-800">
-                            <Sparkles className="w-5 h-5 mt-1 text-white" />
+                          <div className="cursor-pointer flex p-2 items-center rounded-xl hover:bg-gray-800">
+                            <Sparkles className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-sm text-center">
@@ -828,177 +630,203 @@ function ChatInput({
                   </div>
                 )}
               </div>
-              {
-                <div className="flex gap-2 items-center">
-                  <div
-                    onClick={toggleSwarmMode}
-                    className=" rounded-md px-2 cursor-pointer flex gap-2"
-                  >
-                    {
-                      <div className="flex gap-2 font-semibold">
-                        <TooltipProvider>
-                          <Tooltip delayDuration={0}>
-                            <TooltipTrigger>
-                              <div
-                                className={
-                                  isSwarmMode
-                                    ? "relative w-9 h-9 glow-button backdrop-blur-md border border-blue-400/30 flex items-center justify-center focus:outline-none"
-                                    : " w-9 h-9 flex items-center justify-center"
-                                }
-                              >
-                                <DiamondPlus className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] z-10" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {isSwarmMode
-                                ? "Go Back To Chat"
-                                : "Go To Agentic ARX"}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    }
-                  </div>
-
-                  {/* TODO: make the dialog where user can check the details for superior persona and selected Interection mode  */}
-                </div>
-              }
-              {/* right side */}
-
-              <div>
-                <Dialog>
-                  <DialogTrigger>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={0}>
-                        <TooltipTrigger
-                          className={`${isPublicDomain ? "hidden" : "flex"}`}
-                        >
-                          <div className="cursor-pointer gap-2 items-center p-2 rounded-md hover:bg-gray-800 mr-2">
-                            <AudioLines className="w-5 h-5" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Use ARX Voice Technology</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-5xl bg-slate-700">
-                    <DialogHeader>
-                      <DialogTitle className="font-semibold text-white text-2xl">
-                        Select Suitable Voice Agent
-                      </DialogTitle>
-                      <DialogDescription>
-                        Choose a voice agent to enhance your conversation
-                        experience
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer transition-all">
-                      <div
-                        onClick={() => {
-                          let url = domainState
-                            ? import.meta.env.VITE_OPENAI_REALTIME_URL
-                            : import.meta.env.VITE_OPENAI_REALTIME_URL2;
-
-                          url =
-                            files.length > 0
-                              ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-                                  .slice(0, 20)
-                                  .map((file) => file.name)
-                                  .join("||||")}&namespace=${id || ""}`
-                              : id && id != undefined
-                                ? `${url}?namespace=${id}`
-                                : url;
-
-                          window.open(url, "_blank");
-                        }}
-                        className="flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full mt-2"
+              {/* voice */}
+              <Dialog>
+                <DialogTrigger className="p-0 m-0">
+                  <TooltipProvider>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger
+                        className={`${isPublicDomain ? "hidden" : "flex"}`}
                       >
-                        {/* left */}
-                        <div className="flex gap-2">
-                          {/* image */}
-                          <div className="flex items-center px-1 py-1 rounded-md bg-green-400 w-fit">
-                            <img
-                              src="/small-log.png"
-                              alt="Stream Realtime API"
-                              className="w-6 h-6 m-1 rounded-md"
-                            />
-                          </div>
-                          {/* content */}
-                          <div className="flex flex-col leading-5">
-                            <p className="font-semibold text-white">
-                              {isPublicDomain
-                                ? "Beta Voice Agent"
-                                : "ARX Next Voice Agent (Highly Recommended)"}
-                            </p>
-                            <p className="text-slate-300">
-                              {isPublicDomain
-                                ? "Beta Can Access Voice • Most Superior And Fast • Automation Features"
-                                : "ARX Next Can Access Voice • Most Superior And Fast • Automation Features"}
-                            </p>
-                          </div>
+                        <div className="cursor-pointer gap-2 mb-0 items-center p-2 rounded-xl hover:bg-gray-800 ">
+                          <AudioLines className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
                         </div>
-                        {/* right */}
-                        <div className="flex gap-1">
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <AudioWaveform className="text-white" />
-                          </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Use ARX Voice Technology</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </DialogTrigger>
+
+                <DialogContent className="max-w-5xl bg-slate-700">
+                  <DialogHeader>
+                    <DialogTitle className="font-semibold text-white text-2xl">
+                      Select Suitable Voice Agent
+                    </DialogTitle>
+                    <DialogDescription>
+                      Choose a voice agent to enhance your conversation
+                      experience
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer transition-all">
+                    <div
+                      onClick={() => {
+                        let url = domainState
+                          ? import.meta.env.VITE_OPENAI_REALTIME_URL
+                          : import.meta.env.VITE_OPENAI_REALTIME_URL2;
+
+                        url =
+                          files.length > 0
+                            ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
+                                .slice(0, 20)
+                                .map((file) => file.name)
+                                .join("||||")}&namespace=${id || ""}`
+                            : id && id != undefined
+                              ? `${url}?namespace=${id}`
+                              : url;
+
+                        window.open(url, "_blank");
+                      }}
+                      className="flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full mt-2"
+                    >
+                      {/* left */}
+                      <div className="flex gap-2">
+                        {/* image */}
+                        <div className="flex items-center px-1 py-1 rounded-md bg-green-400 w-fit">
+                          <img
+                            src="/small-log.png"
+                            alt="Stream Realtime API"
+                            className="w-6 h-6 m-1 rounded-md"
+                          />
+                        </div>
+                        {/* content */}
+                        <div className="flex flex-col leading-5">
+                          <p className="font-semibold text-white">
+                            {isPublicDomain
+                              ? "Beta Voice Agent"
+                              : "ARX Next Voice Agent (Highly Recommended)"}
+                          </p>
+                          <p className="text-slate-300">
+                            {isPublicDomain
+                              ? "Beta Can Access Voice • Most Superior And Fast • Automation Features"
+                              : "ARX Next Can Access Voice • Most Superior And Fast • Automation Features"}
+                          </p>
                         </div>
                       </div>
-                      <div
-                        onClick={() => {
-                          const url = domainState
-                            ? import.meta.env.VITE_GEMINI_REALTIME_URL
-                            : import.meta.env.VITE_GEMINI_REALTIME_URL2;
-                          window.open(url, "_blank");
-                        }}
-                        className={`flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}
-                      >
-                        {/* left */}
-                        <div className="flex gap-2">
-                          {/* image */}
-                          <div className="flex items-center px-1 py-1 rounded-md bg-red-400 w-fit">
-                            <img
-                              src="/small-log.png"
-                              alt="Stream Realtime API"
-                              className="w-6 h-6 m-1 rounded-md"
-                            />
-                          </div>
-                          {/* content */}
-                          <div className="flex flex-col leading-5">
-                            <p className="font-semibold text-white">
-                              ARX Purle Voice Agent (Coming Soon)
-                            </p>
-                            <p className="text-slate-300">
-                              ARX Pulse Can Access Voice ,Screen And Camara
-                              Sharing • Full Version Coming Soon
-                            </p>
-                          </div>
-                        </div>
-                        {/* right */}
-                        <div className="flex gap-1">
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <AudioWaveform className="text-white" />
-                          </div>
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <Camera className="text-white" />
-                          </div>
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <MonitorUp className="text-white" />
-                          </div>
+                      {/* right */}
+                      <div>
+                        <div className="bg-slate-800 rounded-md p-2">
+                          <AudioWaveform className="text-white" />
                         </div>
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              {console.log(
-                isAborting,
-                input.length === 0,
-                isLoading,
-                !currConversationId,
-                "asdhlk120983",
-              )}
+                    <div
+                      onClick={() => {
+                        const url = domainState
+                          ? import.meta.env.VITE_GEMINI_REALTIME_URL
+                          : import.meta.env.VITE_GEMINI_REALTIME_URL2;
+                        window.open(url, "_blank");
+                      }}
+                      className={`flex justify-between bg-slate-600 hover:bg-slate-800  rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}
+                    >
+                      {/* left */}
+                      <div className="flex gap-2">
+                        {/* image */}
+                        <div className="flex items-center px-1 py-1 rounded-md bg-red-400 w-fit">
+                          <img
+                            src="/small-log.png"
+                            alt="Stream Realtime API"
+                            className="w-6 h-6 m-1 rounded-md"
+                          />
+                        </div>
+                        {/* content */}
+                        <div className="flex flex-col leading-5">
+                          <p className="font-semibold text-white">
+                            ARX Purle Voice Agent (Coming Soon)
+                          </p>
+                          <p className="text-slate-300">
+                            ARX Pulse Can Access Voice ,Screen And Camara
+                            Sharing • Full Version Coming Soon
+                          </p>
+                        </div>
+                      </div>
+                      {/* right */}
+                      <div className="">
+                        <div className="bg-slate-800 rounded-md p-2">
+                          <AudioWaveform className="text-white" />
+                        </div>
+                        <div className="bg-slate-800 rounded-md p-2">
+                          <Camera className="text-white" />
+                        </div>
+                        <div className="bg-slate-800 rounded-md p-2">
+                          <MonitorUp className="text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="flex gap-1 items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <div className="p-3 bg-slate-800 hover:bg-slate-600 mr-1 rounded-xl flex items-center justify-center gap-2 ">
+                    <Settings2 className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-slate-800 border-none">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsIntentSelectionOpen(true);
+                    }}
+                    className="hover:bg-slate-700 flex gap-2 items-start p-2"
+                  >
+                    <Boxes className="w-4 h-4 mt-1" />
+                    <div>
+                      <p className="text-md">Select Intent</p>
+                      <p className="max-w-[200px] text-xs text-slate-400">
+                        Select Diverse Model For Your Intent
+                      </p>
+                    </div>
+                  </DropdownMenuItem>
+                  {pathname !== "/dashboard" && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        console.log("asdasdasdasdasdasd1212");
+                        setWorkflowModalOpen(true);
+                      }}
+                      className="hover:bg-slate-700 flex gap-2 items-start p-2"
+                    >
+                      <CircleFadingPlus className="w-4 h-4 mt-1" />
+                      <div>
+                        <p className="text-md">Chat To Workflow</p>
+                        <p className="max-w-[200px] text-xs text-slate-400">
+                          Transform Current Chat Into Reusable Workflow
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setIsKnowledgeBlockSelectorOpen((prev) => !prev);
+                    }}
+                    className="hover:bg-slate-700 flex gap-2 items-start p-2"
+                  >
+                    <Database className="w-4 h-4 mt-1" />
+                    <div>
+                      <p className="text-md">Attach Knowledge Block</p>
+                      <p className="max-w-[200px] text-xs text-slate-400">
+                        Attach Your Global Knowledge As Knowledge Block For ARX
+                      </p>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* ghost component */}
+              <InternalKnowledgeDialog
+                isDialogOpen={isKnowledgeBlockSelectorOpen}
+                setIsDialogOpen={setIsKnowledgeBlockSelectorOpen}
+              />
+
+              <ModelSelectionDialog
+                open={isIntentSelectionOpen}
+                onClose={setIsIntentSelectionOpen}
+              />
+
+              <Test modes={modes} />
+
               <button
                 disabled={isAborting || (isLoading && !currConversationId)}
                 onClick={handleClick}
@@ -1021,6 +849,8 @@ function ChatInput({
             </div>
           </div>
         </div>
+
+        {/* create workflow */}
         <Dialog
           open={workflowModalOpen}
           onOpenChange={handleWorkflowModalChange}

@@ -28,7 +28,7 @@ export const UserProvider = ({ children }) => {
   });
   const { toast } = useToast(); // Add toast for logout notification
   const tokenRefreshTimerRef = useRef(null); // Reference to store the timer
-  const [isDeepThinkMode, setIsDeepThinkMode] = useState(false); // Default to Quick Response
+  const [isDeepThinkMode, setIsDeepThinkMode] = useState(true); // Default to Quick Response
   // swarm
   const [isSwarmMode, setIsSwarmMode] = useState(false);
   const [isAutoSwarmContextState, setIsAutoSwarmContextState] = useState(false);
@@ -37,7 +37,7 @@ export const UserProvider = ({ children }) => {
     useState(false);
   const [isUserBanned, setIsUserBanned] = useState(false);
   const [promptTemplatePrompt, setPromptTemplatePrompt] = useState(""); // Add this line
-
+  const [selectedModel, setSelectedModel] = useState([]);
   useEffect(() => {
     setIsDocumentOn(false);
   }, [pathname]);
@@ -118,8 +118,6 @@ export const UserProvider = ({ children }) => {
     }
   }
 
-
-
   return (
     <UserContext.Provider
       value={{
@@ -153,6 +151,8 @@ export const UserProvider = ({ children }) => {
         setAuthToken,
         promptTemplatePrompt,
         setPromptTemplatePrompt,
+        selectedModel,
+        setSelectedModel,
       }}
     >
       {children}

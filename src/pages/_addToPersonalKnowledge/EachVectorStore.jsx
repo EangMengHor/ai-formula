@@ -974,7 +974,7 @@ export default function EachVectorStore() {
                       <p>{<ShowStatus status={knowledge.status} />}</p>
                     </div>
                   )}
-                  {knowledge.type == "citation" && (
+                  {knowledge && knowledge.type == "citation" && (
                     <div className="bg-g1 p-3 rounded-md flex justify-between gap-2">
                       <div className="flex gap-2 items-center">
                         <img
@@ -984,19 +984,26 @@ export default function EachVectorStore() {
                         />
                         <div className=" text-white">
                           <p className="font-semibold">
-                            {new URL(knowledge.url).hostname}
+                            {knowledge.url &&
+                              (() => {
+                                try {
+                                  return new URL(knowledge.url).hostname || "-";
+                                } catch {
+                                  return "-";
+                                }
+                              })()}
                           </p>
                           <a
                             href={knowledge.url}
                             target="_blank"
                             className="text-slate-400"
                           >
-                            {knowledge.url.length > 50
+                            {knowledge.url && knowledge.url.length > 50
                               ? knowledge.url.slice(0, 50) + "..."
                               : knowledge.url}
                           </a>
                           <p className="text-sm text-gray-400 py-2">
-                            {knowledge.createdAt
+                            {knowledge.createdAt && knowledge.createdAt
                               ? formatDistance(
                                   new Date(knowledge.createdAt),
                                   new Date(),

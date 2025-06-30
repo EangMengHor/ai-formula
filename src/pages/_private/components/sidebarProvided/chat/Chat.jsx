@@ -29,8 +29,10 @@ import { SSEChatCall } from "../../../../../services/SSEChat";
 import { abortSSEChat } from "@/services/abortSSEChat";
 import { isReplay } from "@/services/isReplay";
 import { replayStream } from "@/services/replayStream";
+import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/sidebarVectorStoreScrapper";
 import { sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
+import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
 // import VoiceInterface from "@/components/custom/VoiceInterface";
 
 function Chat() {
@@ -58,6 +60,8 @@ function Chat() {
     isDeepThinkMode,
     setIsUserBanned,
     refreshAccessToken,
+    selectedModel,
+    setSelectedModel,
   } = useUser();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
@@ -461,6 +465,33 @@ function Chat() {
       ];
     });
   }, []);
+
+  const memoizedHandleVectorStoreScrapperSidebar = useCallback((dbId, name) => {
+    setSidebarStack(() => {
+      return [
+        {
+          header: name, // or replace with appropriate value or variable
+          component: <SidebarVectorStoreScrapper dbId={dbId} name={name} />,
+        },
+      ];
+    });
+  }, []);
+
+  const memorizedHandleUrlScraperSidebar = useCallback(
+    (jobId, name, numOfUrls) => {
+      setSidebarStack(() => {
+        return [
+          {
+            header: name, // or replace with appropriate value or variable
+            component: (
+              <SidebarUrlShower jobId={jobId} name={name} numOfUrls={numOfUrls} />
+            ),
+          },
+        ];
+      });
+    },
+    [],
+  );
 
   const memoizedHandleBlockSidebar = useCallback(
     (block, type, header = "") => {
@@ -1379,6 +1410,51 @@ function Chat() {
           };
         },
       },
+      {
+        type: "vectorStoreJob",
+        regex: /<newVectorStoreJob>([\s\S]*?)<\/newVectorStoreJob>/gi,
+        handler: (m, start, end) => {
+          const rawContent = m[1].trim();
+
+          // Extract values from XML-style tags manually
+          const vsIdMatch = rawContent.match(/<vsId>([\s\S]*?)<\/vsId>/i);
+          const taskMatch = rawContent.match(/<task>([\s\S]*?)<\/task>/i);
+          const nameMatch = rawContent.match(/<name>([\s\S]*?)<\/name>/i);
+
+          return {
+            type: "vectorStoreJob",
+            vsId: vsIdMatch?.[1]?.trim() || null,
+            task: taskMatch?.[1]?.trim() || null,
+            name: nameMatch?.[1]?.trim() || "Vector Store Scrapper",
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
+      {
+        type: "urlScraper",
+        regex: /<urlScraper>([\s\S]*?)<\/urlScraper>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          return {
+            type: "urlScraper",
+            jobId: extractTag("jobid", inner),
+            name: extractTag("name", inner),
+            numOfUrls: extractTag("numOfUrls", inner),
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
     ];
 
     // --- 4. Find other blocks in masked content ---
@@ -1484,6 +1560,7 @@ function Chat() {
         isAutoSwarm: isAutoSwarmContextState,
         workflowId: selectedWorkflowId,
         collectionIds: selectedCollectionIds,
+        intentModel: selectedModel,
       };
 
       // Reset state
@@ -1576,6 +1653,7 @@ function Chat() {
       selectedWorkflowId,
       isError,
       selectedCollectionIds,
+      selectedModel,
     ],
   );
 
@@ -1775,6 +1853,8 @@ function Chat() {
         handleBlockSidebar={memoizedHandleBlockSidebar}
         renderMermaidChart={memoizedRenderMermaidChart}
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
+        handleVectorStoreSidebar={memoizedHandleVectorStoreScrapperSidebar}
+        handleUrlScraperSidebar = {memorizedHandleUrlScraperSidebar}
         loadingMessage={currLoadingStatus}
         chatContainerRef={chatContainerRef}
         endRef={endRef}

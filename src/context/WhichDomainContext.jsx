@@ -10,7 +10,7 @@ export const DomainProvider = ({ children }) => {
     const domain1 = import.meta.env.VITE_DOMAIN1;
     const domain2 = import.meta.env.VITE_DOMAIN2;
 
-    if (currentDomain.includes(domain1)) {
+    if (!currentDomain.includes(domain1)) {
       setDomainState(true);
     } else if (currentDomain.includes(domain2)) {
       setDomainState(false);

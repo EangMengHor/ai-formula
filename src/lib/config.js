@@ -1,3 +1,4 @@
+
 export const LAYOUT_CONFIG = {
     // Spacing configuration
     NODE_GAP: 350, // Increased minimum distance between nodes
@@ -3562,3 +3563,5 @@ export const acceptedFiles = [
     ".heic",
     ".zip"
 ]
+
+
