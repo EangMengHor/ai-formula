@@ -29,7 +29,7 @@ import { SSEChatCall } from "../../../../../services/SSEChat";
 import { abortSSEChat } from "@/services/abortSSEChat";
 import { isReplay } from "@/services/isReplay";
 import { replayStream } from "@/services/replayStream";
-import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/sidebarVectorStoreScrapper";
+import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/SidebarVectorStoreScrapper";
 import { sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
