@@ -97,3 +97,6 @@ export const getGeneratedVisualizationUrl = `${import.meta.env.VITE_SOCKET_URL}/
 export const getVectorStoreCompleteDataUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/getVectorStoreData/:id`;
 export const getUrlScrapedUrl = `${import.meta.env.VITE_SOCKET_URL}/api/urlScraper/getUrlScraper/:id`;
 export const pollVectorStoreScrapperStatusUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/progress-update-knowledge/:id`;
+
+
+// export const newOsint

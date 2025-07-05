@@ -48,6 +48,7 @@ import AgentCitationsHoverCard from "./AgentCitationsHoverCard";
 import Visualization from "@/components/custom/DynamicCharts/Visualization";
 import VectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/VectorStoreScrapper";
 import UrlShower from "@/components/custom/urlScraperSidebar/UrlShower";
+import OsintNewInstance from "@/components/custom/osint/OsintNewInstance";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -67,6 +68,7 @@ const Conversation = forwardRef(
       handleMaterialSidebar,
       renderMermaidChart,
       handleUrlScraperSidebar,
+      handleNewOsintInstance,
       errorMessage = "Something Went Wrong!!",
       onRetry,
     },
@@ -682,6 +684,16 @@ const Conversation = forwardRef(
                             databaseId={databaseId}
                             handleBlockSidebar={handleVectorStoreSidebar}
                             name={block.name || "Vector Store Scrapper"}
+                          />
+                        );
+                      } else if (block.type == "osintInstance") {
+                        console.log(block, "osintInstance block");
+
+                        return (
+                          <OsintNewInstance
+                            workflowId={block.osintWorkflowId || ""}
+                            name={block.name || "OSINT Instance"}
+                            handleBlockSidebar={handleNewOsintInstance}
                           />
                         );
                       }

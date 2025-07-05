@@ -81,6 +81,8 @@ function ShowStatus({ status = "unknown" }) {
       </span>
     )
   );
+
+  awsz2Ṣ;
 }
 
 export default function EachVectorStore() {

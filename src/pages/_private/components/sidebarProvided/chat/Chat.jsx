@@ -477,6 +477,22 @@ function Chat() {
     });
   }, []);
 
+  const memorizedNewOsintInstance = useCallback((workflowId, name) => {
+    console.log("New OSINT Instance:", workflowId, name);
+    setSidebarStack(() => {
+      return [
+        {
+          header: name,
+          component: (
+            <div>
+              hello here {workflowId} and {name}
+            </div>
+          ),
+        },
+      ];
+    });
+  }, []);
+
   const memorizedHandleUrlScraperSidebar = useCallback(
     (jobId, name, numOfUrls) => {
       setSidebarStack(() => {
@@ -484,7 +500,11 @@ function Chat() {
           {
             header: name, // or replace with appropriate value or variable
             component: (
-              <SidebarUrlShower jobId={jobId} name={name} numOfUrls={numOfUrls} />
+              <SidebarUrlShower
+                jobId={jobId}
+                name={name}
+                numOfUrls={numOfUrls}
+              />
             ),
           },
         ];
@@ -1455,6 +1475,28 @@ function Chat() {
           };
         },
       },
+      {
+        type: "osintInstance",
+        regex: /<newOsintInstance>([\s\S]*?)<\/newOsintInstance>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          return {
+            type: "osintInstance",
+            name: extractTag("name", inner) || "OSINT Instance",
+            osintWorkflowId: extractTag("osintWorkflowId", inner),
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
     ];
 
     // --- 4. Find other blocks in masked content ---
@@ -1854,7 +1896,8 @@ function Chat() {
         renderMermaidChart={memoizedRenderMermaidChart}
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
         handleVectorStoreSidebar={memoizedHandleVectorStoreScrapperSidebar}
-        handleUrlScraperSidebar = {memorizedHandleUrlScraperSidebar}
+        handleUrlScraperSidebar={memorizedHandleUrlScraperSidebar}
+        handleNewOsintInstance={memorizedNewOsintInstance}
         loadingMessage={currLoadingStatus}
         chatContainerRef={chatContainerRef}
         endRef={endRef}
