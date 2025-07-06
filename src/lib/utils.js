@@ -463,7 +463,12 @@ function processNonNestedBlocks(text) {
 
     return sections;
 }
-
+export function playSound(src = "/notify.mp3") {
+    const audio = new Audio(src);
+    audio.play().catch((error) => {
+        console.error("🔇 Failed to play sound:", error);
+    });
+}
 export const getFavicon = (urls) => {
     if (!Array.isArray(urls)) {
         console.error("Expected an array of URLs");
