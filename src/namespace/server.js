@@ -99,4 +99,4 @@ export const getUrlScrapedUrl = `${import.meta.env.VITE_SOCKET_URL}/api/urlScrap
 export const pollVectorStoreScrapperStatusUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/progress-update-knowledge/:id`;
 
 
-// export const newOsint
+export const newOsintInstancePollingUrl = `${import.meta.env.VITE_SOCKET_URL}/api/osint/getNewOsintInstanceWorkflowUpdate/:workflowId`;

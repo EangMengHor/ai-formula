@@ -33,6 +33,7 @@ import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapp
 import { sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
+import OsintNewInstanceSidebar from "@/components/custom/osint/OsintNewInstanceSidebar";
 // import VoiceInterface from "@/components/custom/VoiceInterface";
 
 function Chat() {
@@ -484,9 +485,7 @@ function Chat() {
         {
           header: name,
           component: (
-            <div>
-              hello here {workflowId} and {name}
-            </div>
+            <OsintNewInstanceSidebar name={name} workflowId={workflowId} />
           ),
         },
       ];
