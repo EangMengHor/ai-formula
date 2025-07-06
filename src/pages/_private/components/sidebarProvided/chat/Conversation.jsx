@@ -135,14 +135,6 @@ const Conversation = forwardRef(
                         <CitationHoverCard index={idx} metadata={url.url} />
                       );
                   } else if (sourceId && sourceId.includes("agentCitations-")) {
-                    console.log(
-                      {
-                        sourceId,
-                        agentSimulationObj,
-                        agenticCitation,
-                      },
-                      "agenticCitation data",
-                    );
                     const citationId = sourceId.replaceAll(
                       "agentCitations-",
                       "",
@@ -254,7 +246,6 @@ const Conversation = forwardRef(
     };
 
     const renderCot = (text, collapsed = true, index) => {
-      console.log(text, typeof text, collapsed, index, "streaming 4");
       return (
         <DeepThoughts
           text={text || ""}
@@ -424,7 +415,6 @@ const Conversation = forwardRef(
         </div>
         {citations && citations.length > 0 && (
           <div className="flex items-center gap-2 mt-4">
-            {console.log(citations, "citations")}
             <Dialog>
               <DialogTrigger>
                 <SourcesIndicator
@@ -613,7 +603,6 @@ const Conversation = forwardRef(
                                 (msg) => msg?.type === "simulation",
                               ) || null;
                           }
-                          console.log(simulation, "2nd parse");
                         }
 
                         return renderTextBlock(
@@ -664,7 +653,6 @@ const Conversation = forwardRef(
                         const jobId = block.jobId;
                         const name = block.name;
                         const numOfUrls = block.numOfUrls;
-                        console.log(block, "urlScraper block");
 
                         return (
                           <UrlShower
@@ -676,7 +664,6 @@ const Conversation = forwardRef(
                         );
                       } else if (block.type == "vectorStoreJob") {
                         const databaseId = block.vsId;
-                        console.log(block);
                         return (
                           <VectorStoreScrapper
                             databaseId={databaseId}

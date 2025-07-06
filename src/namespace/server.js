@@ -97,3 +97,13 @@ export const getGeneratedVisualizationUrl = `${import.meta.env.VITE_SOCKET_URL}/
 export const getVectorStoreCompleteDataUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/getVectorStoreData/:id`;
 export const getUrlScrapedUrl = `${import.meta.env.VITE_SOCKET_URL}/api/urlScraper/getUrlScraper/:id`;
 export const pollVectorStoreScrapperStatusUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/progress-update-knowledge/:id`;
+
+export const voiceToVoiceStoreMessageBatchUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/storeMessageChunks`;
+
+export const getVoiceToVoiceSessionContextUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/getSessionContext`;
+
+export const getVectorStoredataUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/getVectorStoreData`;
+
+export const searchInternetUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/searchInternet`;
+
+export const searchFileUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/readFile`;
