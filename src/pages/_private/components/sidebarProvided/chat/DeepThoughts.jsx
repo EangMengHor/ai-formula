@@ -2,7 +2,11 @@ import { memo, useEffect, useState } from "react";
 import { Diameter, ChevronDown, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-const DeepThoughts = ({ text, isCollapsedByDefault = false, isLoading = false }) => {
+const DeepThoughts = ({
+  text,
+  isCollapsedByDefault = false,
+  isLoading = false,
+}) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const cleanedText = (text || "")
@@ -20,23 +24,21 @@ const DeepThoughts = ({ text, isCollapsedByDefault = false, isLoading = false })
   const items = cleanedText.split("||").filter(Boolean);
 
   return (
-    <div className="bg-g1 rounded-2xl shadow-md "
+    <div
+      className={`${cleanedText.length < 3 && "hidden"}  bg-g1 rounded-2xl shadow-md `}
       onClick={() => setIsCollapsed((prev) => !prev)}
     >
       <div
         className={`flex justify-between p-4 items-center cursor-pointer
-          ${!isCollapsed
-            ? "rounded-t-2xl mb-4 "
-            : "transition-all rounded-2xl"
+          ${
+            !isCollapsed ? "rounded-t-2xl mb-4 " : "transition-all rounded-2xl"
           }`}
       >
         <div className="flex gap-2 font-semibold items-center text-slate-200">
           <Diameter className={`w-5 h-5 ${isLoading && "animate-spin"}`} />
           <p>Deep Thoughts</p>
         </div>
-        <button
-          className="text-slate-400 hover:text-slate-100 transition-colors duration-200 flex items-center gap-1"
-        >
+        <button className="text-slate-400 hover:text-slate-100 transition-colors duration-200 flex items-center gap-1">
           {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
           <span className="text-sm">{isCollapsed ? "Expand" : "Collapse"}</span>
         </button>
@@ -71,6 +73,6 @@ const DeepThoughts = ({ text, isCollapsedByDefault = false, isLoading = false })
       </AnimatePresence>
     </div>
   );
-}
+};
 
 export default memo(DeepThoughts);

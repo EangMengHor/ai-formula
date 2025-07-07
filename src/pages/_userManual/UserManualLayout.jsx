@@ -431,5 +431,5 @@ export default function UserManualLayout() {
 
       <FeatureSections sections={featuresData} />
     </main>
-  );
+);
 }
