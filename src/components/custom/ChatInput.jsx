@@ -331,33 +331,6 @@ function ChatInput({
     },
     [debouncedHandleChange, maxRows],
   );
-  const handleKeyDown = useCallback(
-    (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        if (input.length > 30000) {
-          toast({
-            title: "Please Make Your Input Prompt Shorter.",
-            description: `Input length exceeded 30000 Character! Current length: ${input.length}`,
-            variant: "destructive",
-          });
-          return;
-        }
-        if (input.length > 0 && !isLoading) {
-          setRows(1); // Reset rows to 1 when submitting
-          handleSubmit();
-        }
-      } else if (event.key === "Enter" && event.shiftKey) {
-        event.preventDefault();
-        const cursorPosition = event.target.selectionStart;
-        const textBeforeCursor = input.substring(0, cursorPosition);
-        const textAfterCursor = input.substring(cursorPosition);
-        setInput(textBeforeCursor + "\n" + textAfterCursor);
-        setRows(rows + 1);
-      }
-    },
-    [input, isLoading, handleSubmit, rows, toast],
-  );
 
   // clean up on route change
   useEffect(() => {
@@ -585,7 +558,6 @@ function ChatInput({
               value={input}
               onPaste={handlePaste}
               onChange={handleChange}
-              onKeyDown={handleKeyDown}
               rows={rows}
               maxRows={maxRows}
               className={`ring-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
