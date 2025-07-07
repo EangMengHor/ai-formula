@@ -233,7 +233,7 @@ export default function VoiceInputBlock({
       }
       const answer = { type: "answer", sdp: rawSdp };
 
-      // 🛡️ Validate SDP 
+      // 🛡️ Validate SDP
       if (!rawSdp.startsWith("v=0")) {
         throw new Error("Invalid SDP from server");
       }
@@ -254,12 +254,12 @@ export default function VoiceInputBlock({
           _retrying = true;
           setWaitingMessage("Connection lost, retrying...");
           setTimeout(() => {
-            stopSession(); 
+            stopSession();
             // startSession();
             setIsSessionActive(false);
-            setWaitingMessage("Reconnecting...");
+            setWaitingMessage("Disconnected...");
             console.warn("Retrying ICE connection...");
-
+            setIsVoiceMode(false);
             _retrying = false;
           }, 1000);
         }
