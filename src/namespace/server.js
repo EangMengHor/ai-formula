@@ -107,3 +107,7 @@ export const getVectorStoredataUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voi
 export const searchInternetUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/searchInternet`;
 
 export const searchFileUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/readFile`;
+
+export const generateFileNameUrl = `${import.meta.env.VITE_SOCKET_URL}/api/utils/autoName`;
+
+export const createVisualizationToolUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/createVisualization  `;

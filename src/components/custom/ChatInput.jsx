@@ -86,7 +86,7 @@ function ChatInput({
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
   const { pathname } = useLocation();
-  const { fileCount, memorizedFiles, resetAllStates, files } =
+  const { fileCount, memorizedFiles, resetAllStates, files, setFiles } =
     useFilesUploadMetadata();
   const {
     isSwarmMode,
@@ -138,6 +138,30 @@ function ChatInput({
       setRows(2);
     }
   }, [pathname]);
+  const handlePaste = useCallback(
+    (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+
+      const newFiles = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type && item.type.indexOf("image/") === 0) {
+          const blob = item.getAsFile();
+          if (blob) {
+            // Push the File exactly as provided by the clipboard
+            newFiles.push(blob);
+          }
+        }
+      }
+
+      if (newFiles.length > 0) {
+        setFiles((prev) => prev.concat(newFiles));
+        // optional: toast feedback here
+      }
+    },
+    [setFiles],
+  );
 
   // Memoize the heavy function to prevent recreation on each render
   const handleCreateNewWorkflow = useCallback(async () => {
@@ -265,71 +289,47 @@ function ChatInput({
     });
   }, [prevUnenchancedPrompt, toast]);
 
-  // Create a debounced version of handleChange
+  const textareaRef = useRef(null);
+
+  // debouncedHandleChange now only commits row changes
   const debouncedHandleChange = useCallback(
-    debounce((value, rows) => {
-      setInput(value);
-      setRows(rows);
-    }, 10), // Small delay to batch updates
+    debounce((_, newRows) => {
+      setRows(newRows);
+    }, 50),
     [],
   );
 
   const handleChange = useCallback(
     (event) => {
-      const textareaLineHeight = 24;
-      const previousRows = event.target.rows;
-      event.target.rows = 1; // reset number of rows in textarea
+      const textarea = event.target;
+      const value = textarea.value;
 
-      const currentRows = Math.floor(
-        event.target.scrollHeight / textareaLineHeight,
-      );
+      // 1️⃣ update text immediately so cursor stays put
+      setInput(value);
 
+      // 2️⃣ recalc rows
+      const lineHeight = 24;
+      const prevRows = textarea.rows;
+      textarea.rows = 1; // reset to measure
+      const currentRows = Math.floor(textarea.scrollHeight / lineHeight);
       const newRows = currentRows < maxRows ? currentRows : maxRows;
 
-      // Set rows immediately for a responsive feel
-      if (event.target.value.length < 5) {
-        event.target.rows = 1;
-      } else if (currentRows === previousRows) {
-        event.target.rows = currentRows;
+      // 3️⃣ apply immediate rows for responsiveness
+      if (value.length < 5) {
+        textarea.rows = 1;
+      } else if (currentRows === prevRows) {
+        textarea.rows = currentRows;
       } else if (currentRows >= maxRows) {
-        event.target.rows = maxRows;
-        event.target.scrollTop = event.target.scrollHeight;
+        textarea.rows = maxRows;
+        textarea.scrollTop = textarea.scrollHeight;
       } else {
-        event.target.rows = newRows;
+        textarea.rows = newRows;
       }
 
-      // Debounce the state updates to avoid triggering re-renders too frequently
-      debouncedHandleChange(event.target.value, newRows);
+      // 4️⃣ debounce the state commit of rows only
+      debouncedHandleChange(value, newRows);
     },
-    [debouncedHandleChange],
-  );
-
-  const handleKeyDown = useCallback(
-    (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        if (input.length > 30000) {
-          toast({
-            title: "Please Make Your Input Prompt Shorter.",
-            description: `Input length exceeded 30000 Character! Current length: ${input.length}`,
-            variant: "destructive",
-          });
-          return;
-        }
-        if (input.length > 0 && !isLoading) {
-          setRows(1); // Reset rows to 1 when submitting
-          handleSubmit();
-        }
-      } else if (event.key === "Enter" && event.shiftKey) {
-        event.preventDefault();
-        const cursorPosition = event.target.selectionStart;
-        const textBeforeCursor = input.substring(0, cursorPosition);
-        const textAfterCursor = input.substring(cursorPosition);
-        setInput(textBeforeCursor + "\n" + textAfterCursor);
-        setRows(rows + 1);
-      }
-    },
-    [input, isLoading, handleSubmit, rows, toast],
+    [debouncedHandleChange, maxRows],
   );
 
   // clean up on route change
@@ -449,7 +449,6 @@ function ChatInput({
     }
   }, [isLoading, currConversationId, isAborting, onAbort, handleSubmit, input]);
 
-
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">
@@ -555,9 +554,10 @@ function ChatInput({
             {/* <SelectedCollectionsDisplay /> */}
 
             <Textarea
+              ref={textareaRef}
               value={input}
+              onPaste={handlePaste}
               onChange={handleChange}
-              onKeyDown={handleKeyDown}
               rows={rows}
               maxRows={maxRows}
               className={`ring-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}

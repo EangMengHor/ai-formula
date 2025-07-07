@@ -16,8 +16,8 @@ export default function SourcesIndicator({ citations, maxIcons = 3, onClick }) {
   const displayIcons = faviconData.slice(0, maxIcons);
   return (
     <div
-      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg  border border-slate-700 transition-all ${
-        isHovered ? "bg-slate-700/90" : ""
+      className={`inline-flex bg-slate-900 items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
+        isHovered ? "hover:bg-slate-800" : ""
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

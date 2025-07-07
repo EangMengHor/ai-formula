@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import VADVisualization from "./VADVisualization";
-import { use } from "react";
 import { useParams } from "react-router-dom";
 import { voiceToVoiceStoreMessageBatch } from "@/services/voice/voiceToVoiceStoreMessageBatch";
 import { playSound } from "@/lib/utils";
-import { CircleSlash, CircleStop, Mic, MicOff } from "lucide-react";
+import { CircleStop, Mic, MicOff } from "lucide-react";
 import getTools from "./tools";
 import { getSessionContext } from "@/services/voice/getSessionContext";
 import { vectorStoreContext } from "@/services/voice/vectorStoreContext";
 import { searchInternet } from "@/services/voice/searchInternet";
 import { readFileContext } from "@/services/voice/readFileContext";
+import { useToast } from "@/hooks/use-toast";
+import { createVisualization } from "@/services/voice/createVisualization";
 export default function VoiceInputBlock({
   setIsVoiceMode = () => {},
   setConversation = () => {},
@@ -21,16 +22,101 @@ export default function VoiceInputBlock({
   const [dataChannel, setDataChannel] = useState(null);
   const [userAudioStream, setUserAudioStream] = useState(null);
   const [remoteAudioStream, setRemoteAudioStream] = useState(null);
-  const [transcripts, setTranscripts] = useState([]);
+  //   const [transcripts, setTranscripts] = useState([]);
+  const { toast } = useToast();
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
   const greetingDone = useRef(false);
   const isContextFeeded = useRef(false);
   const isToolsInitialized = useRef(false);
   const fileDataNamespace = useRef(null);
+  const isMaxTokenIncreased = useRef(false);
   const [waitingMessage, setWaitingMessage] = useState(
     "Waiting for AI response...",
   );
+  const pendingQueue = useRef([]);
+
+  //   async function initOnOpen() {
+  //     if (
+  //       greetingDone.current &&
+  //       isContextFeeded.current &&
+  //       isToolsInitialized.current &&
+  //       isMaxTokenIncreased.current &&
+  //       !dataChannel &&
+  //       !dataChannel.readyState === "open"
+  //     ) {
+  //       console.log(
+  //         "Session already initialized, skipping greeting and context feed.",
+  //       );
+  //       return;
+  //     }
+
+  //     // 1️⃣ Greeting
+  //     if (!greetingDone.current) {
+  //       greetingDone.current = true;
+  //       sendClientEvent({
+  //         type: "conversation.item.create",
+  //         item: {
+  //           type: "message",
+  //           role: "system",
+  //           content: [
+  //             {
+  //               type: "input_text",
+  //               text: "I am ARX agent, ready to operate. Please start speaking.",
+  //             },
+  //           ],
+  //         },
+  //       });
+  //       sendClientEvent({
+  //         type: "response.create",
+  //         response: { instructions: "" },
+  //       });
+  //       playSound("/vtv.mp3");
+  //     }
+
+  //     // 2️⃣ Chat/file memory
+  //     if (!isContextFeeded.current) {
+  //       isContextFeeded.current = true;
+  //       const data = await getSessionContext(id);
+  //       fileDataNamespace.current = data.fileDataNamespace;
+  //       const memoryText = [
+  //         `Chat Memory:\n${JSON.stringify(data.chatContext, null, 2)}`,
+  //         data.isFileData
+  //           ? `File Data: ${Array.isArray(data.fileNames) ? data.fileNames.join(", ") : data.fileNames}`
+  //           : "",
+  //         `Knowledge Graph:\n${data.knowledgeGraph || "N/A"}`,
+  //       ]
+  //         .filter(Boolean)
+  //         .join("\n\n");
+  //       sendClientEvent({
+  //         type: "conversation.item.create",
+  //         item: {
+  //           type: "message",
+  //           role: "system",
+  //           content: [{ type: "input_text", ext: memoryText }],
+  //         },
+  //       });
+  //       sendClientEvent({
+  //         type: "response.create",
+  //         response: { instructions: "" },
+  //       });
+  //     }
+
+  //     // 3️⃣ Initialize tools
+  //     if (!isToolsInitialized.current) {
+  //       isToolsInitialized.current = true;
+  //       sendClientEvent(getTools(!!fileDataNamespace.current));
+  //     }
+
+  //     // 4️⃣ Increase tokens
+  //     if (!isMaxTokenIncreased.current) {
+  //       isMaxTokenIncreased.current = true;
+  //       sendClientEvent({
+  //         type: "session.update",
+  //         session: { max_response_output_tokens: "inf" },
+  //       });
+  //     }
+  //   }
 
   async function startSession() {
     try {
@@ -50,42 +136,131 @@ export default function VoiceInputBlock({
         setRemoteAudioStream(e.streams[0]);
       };
 
-      const ms = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
+      const ms = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!ms.getAudioTracks().length) {
+        throw new Error(
+          "No microphone tracks available—please check mic permissions.",
+        );
+      }
       setUserAudioStream(ms);
       pc.addTrack(ms.getTracks()[0]);
       // Store the track for mute/unmute
       window.__voiceInputMicTrack = ms.getTracks()[0];
 
       const dc = pc.createDataChannel("oai-events");
+      // initialize only once channel is open
+      dc.onopen = () => {
+        console.log("🔗 DataChannel is open");
+        setIsSessionActive(true);
+        setEvents([]);
+        setWaitingMessage("Ready to chat!");
+        // Flush any queued messages immediately:
+        pendingQueue.current.forEach((message) => {
+          console.debug("→ Resending queued message:", message);
+          sendClientEvent(message);
+        });
+        pendingQueue.current = [];
+        // Now send your greeting, context, tools, etc.
+        // initOnOpen(dc);
+      };
+      dc.onerror = (e) => {
+        console.error("DataChannel error:", e);
+        toast({
+          title: "DataChannel Error",
+          description: "Failed to establish data channel connection.",
+          variant: "destructive",
+        });
+        // maybe show a toast or retry logic
+      };
+      dc.onclose = () => {
+        console.warn("DataChannel closed");
+        setIsSessionActive(false);
+        toast({
+          title: "DataChannel Closed",
+          description: "The connection to the AI has been closed.",
+        });
+        // optionally try to re-negotiate or prompt the user
+      };
       setDataChannel(dc);
-
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const baseUrl = "https://api.openai.com/v1/realtime";
-      const model = "gpt-4o-realtime-preview-2024-12-17";
-      const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
-        method: "POST",
-        body: offer.sdp,
-        headers: {
-          Authorization: `Bearer ${EPHEMERAL_KEY}`,
-          "Content-Type": "application/sdp",
-        },
+      // 🔌 Wait for ICE gathering to finish, so our SDP has all candidates
+      await new Promise((resolve) => {
+        if (pc.iceGatheringState === "complete") return resolve();
+        pc.onicecandidate = (evt) => {
+          // when candidate === null, ICE gathering is complete
+          console.log("ICE candidate:", evt.candidate);
+          if (!evt.candidate) resolve();
+        };
       });
 
-      const answer = {
-        type: "answer",
-        sdp: await sdpResponse.text(),
+      const baseUrl = "https://api.openai.com/v1/realtime";
+      const model = "gpt-4o-realtime-preview-2025-06-03";
+      // attempt SDP exchange up to 3× with exponential backoff
+      let rawSdp,
+        attempt = 0;
+      while (attempt < 3) {
+        try {
+          const res = await fetch(
+            `${baseUrl}?model=${model}&max_response_output_tokens=4000`,
+            {
+              method: "POST",
+              body: offer.sdp,
+              headers: {
+                Authorization: `Bearer ${EPHEMERAL_KEY}`,
+                "Content-Type": "application/sdp",
+              },
+            },
+          );
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          rawSdp = await res.text();
+          break;
+        } catch (err) {
+          attempt++;
+          console.warn(`SDP exchange failed (attempt ${attempt}):`, err);
+          if (attempt === 3) throw err;
+          await new Promise((r) => setTimeout(r, 500 * attempt));
+        }
+      }
+      const answer = { type: "answer", sdp: rawSdp };
+
+      // 🛡️ Validate SDP
+      if (!rawSdp.startsWith("v=0")) {
+        throw new Error("Invalid SDP from server");
+      }
+      try {
+        await pc.setRemoteDescription(answer);
+      } catch (err) {
+        console.error("setRemoteDescription failed:", err);
+        throw err;
+      }
+
+      let _retrying = false;
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE state:", pc.iceConnectionState);
+        if (
+          !_retrying &&
+          ["failed", "disconnected"].includes(pc.iceConnectionState)
+        ) {
+          _retrying = true;
+          setWaitingMessage("Connection lost, retrying...");
+          setTimeout(() => {
+            stopSession();
+            startSession();
+            _retrying = false;
+          }, 1000);
+        }
       };
-      await pc.setRemoteDescription(answer);
+      pc.onconnectionstatechange = () => {
+        console.log("Peer connection state:", pc.connectionState);
+      };
 
       peerConnection.current = pc;
+
+      console.log("Session started successfully");
     } catch (error) {
       setWaitingMessage("Failed to start session. Please try again.");
-    } finally {
-      setWaitingMessage("");
     }
   }
 
@@ -127,28 +302,43 @@ export default function VoiceInputBlock({
       }
     }
   }
+  useEffect(() => {
+    // If pendingQueue changes, process any queued messages
+    if (pendingQueue.current.length > 0) {
+      console.warn("Processing pending messages:", pendingQueue.current);
+      while (pendingQueue.current.length > 0) {
+        const message = pendingQueue.current.shift();
+        console.debug("→ Resending queued message:", message);
+        sendClientEvent(message);
+      }
+    }
+  }, [pendingQueue.current]);
 
   function sendClientEvent(message) {
-    if (dataChannel) {
-      const timestamp = new Date().toLocaleTimeString();
-      message.event_id = message.event_id || crypto.randomUUID();
-      dataChannel.send(JSON.stringify(message));
-      if (!message.timestamp) {
-        message.timestamp = timestamp;
-      }
-      setEvents((prev) => [message, ...prev]);
-    } else {
-      console.error(
-        "Failed to send message - no data channel available",
+    if (!dataChannel) {
+      console.warn(
+        "DataChannel not ready, queuing message:",
         message,
+        pendingQueue,
       );
+      pendingQueue.current.push(message);
+      return;
     }
+    // log every event for diagnostics:
+    console.debug("→ sendClientEvent:", message);
+    const timestamp = new Date().toLocaleTimeString();
+    message.event_id = message.event_id || crypto.randomUUID();
+    dataChannel.send(JSON.stringify(message));
+    if (!message.timestamp) {
+      message.timestamp = timestamp;
+    }
+    setEvents((prev) => [message, ...prev]);
   }
 
   // Global refs for batching (must be declared in st st)
   const messagePointerRef = useRef(0);
   const batchedMessagesRef = useRef([]);
-  const pendingHumanTranscriptRef = { current: null };
+  const pendingHumanTranscriptRef = useRef(null);
 
   function addLoadingConversation(data) {
     setConversation((prev) => {
@@ -214,16 +404,41 @@ export default function VoiceInputBlock({
                 payload = JSON.stringify(fileData, null, 2);
                 break;
               }
+              case "create_visualization":
+                {
+                  const { chartType, prompt } = JSON.parse(output.arguments);
+                  addLoadingConversation(
+                    `Creating ${chartType} chart for ${prompt}...`,
+                  );
+
+                  const chart = await createVisualization(prompt, chartType);
+
+                  if (chart.success) {
+                    payload = JSON.stringify({
+                      chart: chart.visualizationData || "error",
+                      howToShow: `render the whole <dataChart> tag in your response without that element in your response it will now be render , properly show the whole tag ex. <dataChart>\n<chartType>type</chartType>\n<dataId>number</dataId>\n<dataName>name</dataName>\n<dataLabel>label</dataLabel>\n</dataChart>`,
+                    });
+                    console.warn(payload, "visualization payload");
+                  }
+                }
+                break;
               default: {
                 errorMessage = `Unknown function call: ${output.name}`;
                 payload = JSON.stringify({ error: errorMessage });
               }
             }
           } catch (err) {
-            errorMessage = `Tool call failed: ${output.name} - ${err?.message || err}`;
+            errorMessage = `Tool call failed: ${output.name} - ${err?.message || err} try again to call the same tool or check the arguments you passed and it will work .`;
             payload = JSON.stringify({ error: errorMessage });
           }
-
+          console.log(
+            {
+              type: "function_call_output",
+              call_id: output.call_id,
+              output: payload,
+            },
+            "visual 129730",
+          );
           // Send the tool-output (success or error):
           sendClientEvent({
             type: "conversation.item.create",
@@ -377,18 +592,309 @@ export default function VoiceInputBlock({
 
         const incoming = event.transcript?.trim() || "";
 
+        const processStreamingContent = (input, forceComplete = false) => {
+          if (!input) return [];
+
+          /** helper to push a text block if non-empty */
+          const pushText = (arr, txt) => {
+            const t = txt.trim();
+            if (t) arr.push({ type: "text", content: t, isComplete: true });
+          };
+
+          // --- 1. Extract balanced <document> blocks ---
+          const documentBlocks = [];
+          const docRegex = /<document>/gi;
+          let match;
+          while ((match = docRegex.exec(input)) !== null) {
+            const start = match.index;
+            let depth = 1;
+            let pos = start + match[0].length;
+            while (depth > 0 && pos < input.length) {
+              const nextOpen = input.indexOf("<document>", pos);
+              const nextClose = input.indexOf("</document>", pos);
+              if (nextClose === -1) break;
+              if (nextOpen !== -1 && nextOpen < nextClose) {
+                depth++;
+                pos = nextOpen + 10;
+              } else {
+                depth--;
+                pos = nextClose + 11;
+              }
+            }
+            if (depth === 0) {
+              const end = pos;
+              let inner = input.slice(start + 10, end - 11).trim();
+              let name = "Document";
+              const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+              if (nm) {
+                name = nm[1].trim();
+                inner = inner.replace(nm[0], "").trim();
+              }
+              documentBlocks.push({
+                type: "document",
+                name,
+                content: inner,
+                isComplete: true,
+                start,
+                end,
+              });
+              docRegex.lastIndex = end;
+            }
+          }
+
+          // --- 2. Mask document spans to avoid nested matches ---
+          let masked = input;
+          documentBlocks.forEach(({ start, end }) => {
+            masked =
+              masked.slice(0, start) +
+              " ".repeat(end - start) +
+              masked.slice(end);
+          });
+
+          // --- 3. Define other block patterns ---
+          const blockDefs = [
+            {
+              type: "visual",
+              regex: /<visual>([\s\S]*?)<\/visual>/gi,
+              handler: (m, start, end) => {
+                let inner = m[1].trim();
+                let name = "Visualization";
+                const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+                if (nm) {
+                  name = nm[1].trim();
+                  inner = inner.replace(nm[0], "").trim();
+                }
+                return {
+                  type: "visual",
+                  name,
+                  content: inner,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "mermaid",
+              regex: /```mermaid([\s\S]*?)```/gi,
+              handler: (m, start, end) => ({
+                type: "mermaid",
+                content: m[1].trim(),
+                isComplete: true,
+                start,
+                end,
+              }),
+            },
+            {
+              type: "automationDaily",
+              regex: /<automationCard>([\s\S]*?)<\/automationCard>/gi,
+              handler: (m, start, end) => {
+                const inner = m[1];
+                const tag = (t) =>
+                  new RegExp(`<${t}>([\\s\\S]*?)<\/${t}>`, "i")
+                    .exec(inner)?.[1]
+                    ?.trim() || "";
+                return {
+                  type: "automationDaily",
+                  name: tag("name"),
+                  task: tag("task"),
+                  time: tag("time"),
+                  outputFormat: tag("outputFormat"),
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "showUniProt",
+              regex: /<showUniProt>([\s\S]*?)<\/showUniProt>/gi,
+              handler: (m, start, end) => {
+                let inner = m[1].trim();
+                let name = "";
+                const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+                if (nm) {
+                  name = nm[1].trim();
+                  inner = inner.replace(nm[0], "").trim();
+                }
+                return {
+                  type: "showUniProt",
+                  name,
+                  uniProt: inner,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "chart",
+              regex: /<dataChart>([\s\S]*?)<\/dataChart>/gi,
+              handler: (m, start, end) => {
+                let inner = m[1].trim();
+
+                const extractTag = (tag, source) => {
+                  const regex = new RegExp(
+                    `<${tag}>([\\s\\S]*?)<\\/${tag}>`,
+                    "i",
+                  );
+                  const match = regex.exec(source);
+                  return match ? match[1].trim() : null;
+                };
+
+                const chartType = extractTag("chartType", inner);
+                const dataId = extractTag("dataId", inner);
+                const dataName = extractTag("dataName", inner);
+                const dataLabel = extractTag("dataLabel", inner);
+
+                return {
+                  type: "chart",
+                  chartType,
+                  dataId,
+                  dataName,
+                  dataLabel,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+
+            {
+              type: "persona",
+              regex: /<\|agent\|([\s\S]*?)<\|end\|>/gi,
+              handler: (m, start, end) => {
+                const rawContent = m[1].trim();
+
+                // Important: Don't use m[1] directly for parsing — use rawContent + manually remove tail
+                const parsed = parseAgentBlock(
+                  rawContent
+                    .replaceAll("<visual>", "")
+                    .replaceAll("</visual>", ""),
+                );
+                return {
+                  type: "persona",
+                  ...parsed,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "vectorStoreJob",
+              regex: /<newVectorStoreJob>([\s\S]*?)<\/newVectorStoreJob>/gi,
+              handler: (m, start, end) => {
+                const rawContent = m[1].trim();
+
+                // Extract values from XML-style tags manually
+                const vsIdMatch = rawContent.match(/<vsId>([\s\S]*?)<\/vsId>/i);
+                const taskMatch = rawContent.match(/<task>([\s\S]*?)<\/task>/i);
+                const nameMatch = rawContent.match(/<name>([\s\S]*?)<\/name>/i);
+
+                return {
+                  type: "vectorStoreJob",
+                  vsId: vsIdMatch?.[1]?.trim() || null,
+                  task: taskMatch?.[1]?.trim() || null,
+                  name: nameMatch?.[1]?.trim() || "Vector Store Scrapper",
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "urlScraper",
+              regex: /<urlScraper>([\s\S]*?)<\/urlScraper>/gi,
+              handler: (m, start, end) => {
+                const inner = m[1].trim();
+
+                const extractTag = (tag, source) => {
+                  const regex = new RegExp(
+                    `<${tag}>([\\s\\S]*?)<\\/${tag}>`,
+                    "i",
+                  );
+                  const match = regex.exec(source);
+                  return match ? match[1].trim() : null;
+                };
+
+                return {
+                  type: "urlScraper",
+                  jobId: extractTag("jobid", inner),
+                  name: extractTag("name", inner),
+                  numOfUrls: extractTag("numOfUrls", inner),
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+          ];
+
+          // --- 4. Find other blocks in masked content ---
+          const found = [];
+          blockDefs.forEach((def) => {
+            let rx = def.regex;
+            let m;
+            while ((m = rx.exec(masked)) !== null) {
+              found.push(def.handler(m, m.index, rx.lastIndex));
+            }
+          });
+
+          // Combine and sort all blocks
+          const allBlocks = [...documentBlocks, ...found].sort(
+            (a, b) => a.start - b.start,
+          );
+
+          // --- 5. Walk through content and build result ---
+          const result = [];
+          let cursor = 0;
+
+          allBlocks.forEach((block) => {
+            if (block.start > cursor) {
+              pushText(result, input.slice(cursor, block.start));
+            }
+            block.isComplete =
+              forceComplete ||
+              Boolean(block.content && block.content.length > 0);
+            result.push(block);
+            cursor = block.end;
+          });
+
+          if (cursor < input.length) pushText(result, input.slice(cursor));
+
+          if (result.length === 0) {
+            result.push({
+              type: "text",
+              content: input.trim(),
+              isComplete: true,
+            });
+          }
+
+          // --- 6. Merge persona blocks into a simulation at original position ---
+          const personas = result.filter((b) => b.type === "persona");
+          if (personas.length) {
+            const idx = result.findIndex((b) => b.type === "persona");
+            const simulation = {
+              type: "simulation",
+              items: personas,
+              isComplete: true,
+            };
+            const filtered = result.filter((b) => b.type !== "persona");
+            filtered.splice(idx, 0, simulation);
+            return filtered;
+          }
+
+          return result;
+        };
+
         newMessage = {
           role: "ai",
           type: "quick",
           isLoading: false,
           isComplete: true,
-          message: [
-            {
-              type: "text",
-              content: incoming,
-              isComplete: true,
-            },
-          ],
+          message: processStreamingContent(incoming, true),
+          createdAt: now,
           cot: "",
           citations: [],
           agenticCitations: [],
@@ -421,26 +927,28 @@ export default function VoiceInputBlock({
   }
 
   useEffect(() => {
-    console.log("Transcripts updated:", transcripts);
-  }, [transcripts]);
-  useEffect(() => {
-    if (dataChannel) {
-      dataChannel.addEventListener("message", (e) => {
-        const event = JSON.parse(e.data);
-        if (!event.timestamp) {
-          event.timestamp = new Date().toLocaleTimeString();
-        }
-        processTranscript(event);
-        setEvents((prev) => [event, ...prev]);
-      });
-      dataChannel.addEventListener("open", () => {
-        setIsSessionActive(true);
-        setEvents([]);
-        setTranscripts([]);
-      });
-    }
-  }, [dataChannel]);
-
+    if (!dataChannel) return;
+    // --- Clean up previous listeners to avoid duplicates ---
+    let messageListener = (e) => {
+      const event = JSON.parse(e.data);
+      if (!event.timestamp) {
+        event.timestamp = new Date().toLocaleTimeString();
+      }
+      processTranscript(event);
+      setEvents((prev) => [event, ...prev]);
+    };
+    // let openListener = () => {
+    //   setIsSessionActive(true);
+    //   setEvents([]);
+    //   //   setTranscripts([]);
+    // };
+    dataChannel.addEventListener("message", messageListener);
+    // dataChannel.addEventListener("open", openListener);
+    return () => {
+      dataChannel.removeEventListener("message", messageListener);
+      //   dataChannel.removeEventListener("open", openListener);
+    };
+  }, [dataChannel, id]);
   useEffect(() => {
     // start
     startSession();
@@ -461,10 +969,10 @@ export default function VoiceInputBlock({
       playSound("/vtv.mp3");
     }
   }, [isSessionActive]);
+
   useEffect(() => {
     async function init() {
-      if (!isSessionActive) return;
-
+      if (!isSessionActive || !dataChannel) return;
       // 1️⃣ Greeting (only once)
       if (!greetingDone.current) {
         greetingDone.current = true;
@@ -502,26 +1010,26 @@ export default function VoiceInputBlock({
         console.log("Session context data:", data);
         fileDataNamespace.current = data.fileDataNamespace || null;
         const memoryText = `
-Here is the context of the chat (if any):
+  Here is the context of the chat (if any):
 
-Chat Memory:
-${JSON.stringify(data.chatContext, null, 2)}
+  Chat Memory:
+  ${JSON.stringify(data.chatContext, null, 2)}
 
-${
-  data.isFileData
-    ? `File Data:\n${
-        Array.isArray(data.fileNames)
-          ? data.fileNames.join(", ")
-          : data.fileNames
-      }\n`
-    : ""
-}
+  ${
+    data.isFileData
+      ? `File Data:\n${
+          Array.isArray(data.fileNames)
+            ? data.fileNames.join(", ")
+            : data.fileNames
+        }\n`
+      : ""
+  }
 
-Knowledge Graph:
-${data.knowledgeGraph || "N/A"}
+  Knowledge Graph:
+  ${data.knowledgeGraph || "N/A"}
 
-Whenever I ask about frameworks, only mention frameworks from this graph.
-      `.trim();
+  Whenever I ask about frameworks, only mention frameworks from this graph.
+        `.trim();
 
         // Inject as a system message
         sendClientEvent({
@@ -554,12 +1062,18 @@ Whenever I ask about frameworks, only mention frameworks from this graph.
       }
     }
 
+    if (!isMaxTokenIncreased.current) {
+      isMaxTokenIncreased.current = true;
+
+      sendClientEvent({
+        type: "session.update",
+        session: { max_response_output_tokens: "inf" },
+      });
+      console.log("Max response tokens increased to 4096");
+    }
+
     init();
   }, [isSessionActive]);
-
-  useEffect(() => {
-    console.log("fileNamepsace", fileDataNamespace.current);
-  }, [fileDataNamespace.current]);
 
   return (
     <div className="w-full mb-4 flex justify-between bg-slate-900 p-10 rounded-3xl">

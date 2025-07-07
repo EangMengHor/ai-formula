@@ -38,6 +38,27 @@ export default function getTools(isFiles = false) {
                 required: ["query"],
             },
         },
+        {
+            type: "function",
+            name: "create_visualization",
+            description:
+                "Creates a visualization based on the given chart type and prompt. it will give you element to show and it automatically render the visualization. just do that.",
+            parameters: {
+                type: "object",
+                strict: true,
+                properties: {
+                    chartType: {
+                        type: "string",
+                        description: "Type of chart to create, e.g., 'bar', 'area', 'pie', etc. can't be anything else than these types.",
+                    },
+                    prompt: {
+                        type: "string",
+                        description: "Description of what the chart should represent and any styling guidelines. dont give any data and all it will automatically figure out just tell what visualization you want with complete description. it must be simple prompt , this tool can search on latest data automatically , just give simple prompt ex. 'tesla stock growth in 5 year chart' or 'population growth in 5 year chart' or 'sales growth in 5 year chart' or 'company revenue growth in 5 year chart' or 'company profit growth in 5 year chart' or 'company loss growth in 5 year chart' or 'company stock price growth in 5 year chart'. it will automatically search on latest data and give you the best visualization.",
+                    },
+                },
+                required: ["chartType", "prompt"],
+            },
+        },
     ];
 
     if (isFiles) {
