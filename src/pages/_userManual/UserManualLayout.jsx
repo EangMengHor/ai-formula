@@ -5,573 +5,416 @@ import { validToShowMenuForKnowledge } from "./config";
 import { m } from "framer-motion";
 
 export const featuresData = [
+  /* -------------------------------------------------
+   * 1. CORE USER MANUAL – MAJOR MODES & AGENTS
+   * -------------------------------------------------*/
   {
     section: "User Manual",
     isLargeCard: true,
     items: [
+      /* ---------- 1-B. Agentic Simulation ----------*/
       {
-        name: "Auto Agentic Simulation",
+        name: "Agentic Simulation",
         description: "Generate Agents On The Go!",
         gradient: "from-blue-400 to-cyan-300",
         pageContent: `
-  # GPT-4.1
-  
-  GPT-4.1 is our flagship language model, designed to excel at complex reasoning tasks and generate high-quality text across a wide range of domains.
-  
-  ## Key Features
-  
-  - Enhanced reasoning capabilities
-  - Improved factual accuracy
-  - Better context handling with 128k token context window
-  - Reduced hallucinations
-  - Faster inference speeds
-  
-  ## Use Cases
-  
-  GPT-4.1 is ideal for applications requiring deep understanding and complex reasoning, such as:
-  
-  - Research assistance
-  - Content creation
-  - Code generation and debugging
-  - Complex problem-solving
-  - Educational tutoring
-  
-  ## Technical Specifications
-  
-  - 1.8 trillion parameters
-  - Trained on diverse datasets up to April 2023
-  - Supports multiple modalities including text and code
-  - Available through API and ChatGPT interface
-          `,
+# Auto Agentic Simulation
+
+Creates a **bespoke swarm of AI agents**—each pursuing a sub-goal derived from your prompt—and coordinates them through our *interaction planning & cycling module*.
+
+## How It Works
+1. **Prompt Analysis** → sub-goals + agent roster.  
+2. **Iterative Interaction Cycles** – agents debate, gather evidence, and refine reasoning in parallel.  
+3. **Synthesis Agent** – merges outputs into a polished final response.
+
+## Key Features
+- **Agentic Citations** – every sentence is tagged with the agent that produced it.  
+- **Cross-agent memory sharing** – avoids duplicate work and contradictions.  
+- Handles up to **32 parallel agents** in a single run.
+
+## When to Use
+- Exploratory research requiring multiple perspectives.  
+- Large strategy questions (business, legal, scientific).`,
       },
-      {
-        name: "Manual Agentic Simulation",
-        description: "Multi Agent Chating With Your Own Agents!",
-        gradient: "from-purple-400 to-blue-400",
-        pageContent: `
-  # o4-mini
-  
-  o4-mini is our compact yet powerful reasoning model, designed to provide excellent performance at a more affordable price point.
-  
-  ## Key Features
-  
-  - Optimized for efficiency
-  - 90% of o4's capabilities at 30% of the cost
-  - Low-latency responses
-  - Excellent for production deployments
-  
-  ## Use Cases
-  
-  o4-mini is perfect for:
-  
-  - Customer support automation
-  - Content moderation
-  - Summarization tasks
-  - Real-time applications
-  - Mobile applications
-  
-  ## Technical Specifications
-  
-  - 220 billion parameters
-  - 16k token context window
-  - Optimized for deployment on standard hardware
-  - Available through API with flexible pricing
-          `,
-      },
+
+      /* ---------- 1-C. Deep Thinking ----------*/
       {
         name: "Deep Thinking",
-        description: "Agentic Thinking Before Answering!",
+        description: "Agentic reasoning before answering.",
         gradient: "from-yellow-300 to-amber-200",
         pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
+# Deep Thinking
+
+A **single, heavyweight reasoning agent** that quietly plans before speaking.
+
+## Context Awareness
+- **Chat memory** – recognises past dialogue.  
+- **File data** – embeds your uploaded docs.  
+- **Internet search** – live look-ups for missing facts.  
+- **Attached workflow** – follows or extends predefined flows.  
+- **Knowledge blocks** – injects domain-specific frameworks.
+
+## Workflow
+1. Draft hidden scratchpad.  
+2. Verify facts via search / vector stores.  
+3. Produce answer only after internal validation.  
+
+Use it when accuracy beats speed.`,
       },
-    ],
-  },
-  {
-    section: "Chat Feature",
-    subtitle: "Direct Chating With ARX",
-    isLargeCard: false,
-    items: [
+
+      /* ---------- 1-D. One Shot (Fastest) ----------*/
       {
-        name: "Quick",
-        description: "Faster Answering Using ARX Knowledge",
+        name: "One Shot (Fastest)",
+        description: "Ultra-speed agent with broad tool access.",
         gradient: "from-orange-300 to-orange-500",
-        pageContent: `# Quick response — Web User Manual
-
-> **Version:** v1.0 – generated 2024-06-07  
-> **Context:** Part of the AI-powered Knowledge Graph & Retrieval-Augmented Generation (RAG) platform.
-
----
-
-## 1 · Quick overview
-The Quick response feature provides fast access to the Adaptive Regulatory Compliance 
-Index (ARCS) system within the chat environment. It enables rapid extraction and retrieval 
-of compliance knowledge to support follow-up questions efficiently.
-
-## 2 · Key capabilities
-- Enables fast first-time extraction of ARCS knowledge within about 30 seconds.  
-- Provides quick responses of 3-4 seconds for all follow-up queries.  
-- Supports ongoing conversations with clear intent for better context handling.  
-- Helps users ask multiple follow-ups without delay, improving efficiency.  
-- Includes a reconnect option to handle server disconnection issues gracefully.
-
-## 3 · Access & prerequisites
-| Requirement   | Details                               |
-|---------------|-------------------------------------|
-| Account role  | User role with chat and ARCS access |
-| Browser       | Modern browsers (Chrome, Firefox, Edge) latest versions recommended |
-| Network       | Stable internet connection; no special firewall or VPN rules required |
-| Other         | Feature enabled in user settings; ARCS system access granted |
-
-## 4 · Using the feature (step-by-step)
-1. Navigate to the chat interface and locate the Quick response feature in the dropdown menu.  
-![Quick response, image 2 : image that points on whee to select quick response feature](https://wohssewzaigezyoucrsu.supabase.co/storage/v1/object/public/usermanual//QR-dropdown.png)  
-
-2. Start your conversation by entering your first message with a clear intent to load ARCS knowledge.  
-![Quick Response, Image 1: image that points on quick response section](https://wohssewzaigezyoucrsu.supabase.co/storage/v1/object/public/usermanual//Screenshot%202025-03-29%20192215.png)  
-
-3. Wait approximately 30 seconds while the system extracts all relevant ARCS knowledge in the background.  
-
-4. For subsequent queries, enjoy faster responses around 3-4 seconds due to cached data.  
-
-5. If a disconnection occurs, a reconnect button will appear—click it to restore the session promptly.
-
-## 5 · How it works behind the scenes
-The Quick response feature triggers the RAG pipeline by first performing a vector search 
-of ARCS documents. It then uses Neo4j to retrieve a focused sub-graph of relevant compliance 
-information. Finally, the system synthesizes answers to your queries, enabling quick follow-up 
-responses.
-
-## 6 · Best practices & tips
-> ⚡ *Performance tip:* Start your chat session with a clearly defined intent to improve 
-accuracy and context for follow-up questions.
-
-## 7 · Limitations
-- Initial query requires around 30 seconds to extract knowledge, causing a brief wait.  
-- Disconnections may interrupt the session, requiring manual reconnection.  
-- Response speed depends on system load and network conditions.
-
-## 8 · Troubleshooting
-| Symptom                                | Likely cause                 | Resolution                      |
-|--------------------------------------|------------------------------|--------------------------------|
-| Slow response on first query          | Initial knowledge extraction | Wait approx. 30 seconds         |
-| Chat not responding after disconnection | Lost server connection       | Click the reconnect button      |
-
-## 9 · FAQ
-**Q:** Why does the first message take longer?  
-**A:** The first message triggers extraction of the entire ARCS knowledge, which takes about 30 seconds.  
-
-**Q:** How can I speed up follow-up responses?  
-**A:** Following the initial extraction, subsequent queries respond in 3-4 seconds using cached knowledge.  
-
-**Q:** What should I do if the connection drops?  
-**A:** Click the reconnect button displayed to restore your chat session promptly.
-
-## 10 · Release notes
-*Initial release*
-
-## 11 · Further resources
-*N/A*`,
-      },
-      {
-        name: "Deep Thinking",
-        description:
-          "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
-        gradient: "from-yellow-300 to-amber-200",
         pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
+# One Shot Response
+
+Delivers near-instant outputs by **skipping iterative deliberation**.
+
+## Capabilities
+- File & image search  
+- Knowledge-block lookup  
+- Workflow execution  
+- Rapid job creation:  
+  - Automation  
+  - Web-scraper  
+  - OSINT (admin)
+
+Ideal for time-sensitive or high-volume tasks.`,
       },
     ],
   },
+
+  /* -------------------------------------------------
+   * 2. ACTIONS & DATA-CENTRIC TOOLS
+   * -------------------------------------------------*/
   {
-    section: "Agentic Simulation",
-    subtitle: "Multi Agent Chat With ARX Knowledge",
+    section: "Actions",
+    subtitle: "Things You Can Build or Launch",
     isLargeCard: false,
     items: [
-      {
-        name: "Auto Agentic Automation",
-        description:
-          "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
-        gradient: "from-blue-400 to-cyan-300",
-        pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
-      },
-      {
-        name: "Manual Agentic Automation",
-        description:
-          "Pre processed , Researched , Calculated And Chaing Of Thought Reasoning Chat",
-        gradient: "from-purple-400 to-blue-400",
-        pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
-      },
-    ],
-  },
-  {
-    section: "Agentic Automation",
-    subtitle: "Multi Agent Daily Automated Workflow Based Automation",
-    isLargeCard: false,
-    items: [
+      /* ---------- 2-A. First Automation ----------*/
       {
         name: "Create Your First Automation",
-        description: "How We Can Create New Agentic Automation",
+        description: "Spin up a recurring task in minutes.",
         gradient: "from-gray-500 to-gray-700",
         pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
+# Create Your First Automation
+
+1. Switch to **Quick Response**.  
+2. Describe a daily chore (“Summarise these PDFs every morning”).  
+3. Answer follow-up questions.  
+4. ARx schedules a daily job (viewable under **Automation**).  
+
+*Daily email digests rolling out soon.*`,
       },
+
+      /* ---------- 2-B. Multi Vector Store Creator ----------*/
       {
-        name: "How It Impacts",
-        description:
-          "How to Access, visualize , refine and filter your agentic automations",
-        gradient: "from-red-400 to-red-800",
+        name: "Multi Vector Store Creator",
+        description: "Bring your own embeddings—at scale.",
+        gradient: "from-emerald-400 to-emerald-800",
         pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
+# Multi Vector Store Creator
+
+Upload documents and spin up **isolated vector databases** per project or client.
+
+## Highlights
+- upload files or scrape websites.
+- Automatic metadata extraction (title, author, date).  
+- Configure namespace, distance metric, chunk size.  
+- you just upload file and attach that as knowledge block in chat thread to use that vector store.
+
+Perfect for agencies hosting models for multiple customers.`,
+      },
+
+      /* ---------- 2-C. Chat → Workflow ----------*/
+      {
+        name: "Chat Thread → Workflow",
+        description: "Convert discussions into executable flows.",
+        gradient: "from-indigo-400 to-violet-700",
+        pageContent: `
+# Chat Thread to Workflow Creator
+
+Turns a brainstormed chat into a **LangGraph / Airflow-style DAG**.
+
+1. Select *Convert to Workflow* from the thread menu.  
+2. ARx detects intents → nodes → edges.  
+3. Review and tweak in the workflow by entering the prompt(optional)
+
+# how to create
+1. click on options button in chat session
+2. go to "chat to workflow" option
+3. enter prompt if needed and click on "create workflow"
+4. ARx generates a workflow with nodes for each intent.
+5. you can activate that workflow in any chat thread.
+
+adds reusability and interagotion 
+`,
+      },
+
+      /* ---------- 2-D. Prompt Templates ----------*/
+      {
+        name: "Prompt Templates",
+        description: "Reusable prompt blueprints with variables.",
+        gradient: "from-fuchsia-400 to-rose-500",
+        pageContent: `
+# Prompt Templates
+
+Save time by parameterising frequent prompts.
+
+## Features
+
+- use the large number of pre build ARX optimized prompt templates
+- select the prompt from template hub, and enter the variables
+- click start , that's it.
+`,
       },
     ],
   },
+
+  /* -------------------------------------------------
+   * 3. ACCESSORIES & INPUT MODES
+   * -------------------------------------------------*/
   {
     section: "ARX Accessories",
-    subtitle: "Orbital Features Of ARX Chat And Automation",
+    subtitle: "Orbital Features around Chat & Automation",
     isLargeCard: false,
     items: [
-      {
-        name: "Mic",
-        description: " Voice To Text Prompting",
-        gradient: "from-purple-300 to-purple-700",
-        pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
-      },
+      /* ---------- 3-A. File Upload ----------*/
       {
         name: "File Upload",
-        description: "How We Can Upload Files To ARX And How It Works",
+        description: "Drag-and-drop documents into context.",
         gradient: "from-teal-400 to-teal-800",
         pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
+# File Upload
+
+Supported formats: **PDF, DOCX, TXT, CSV, PDB, JSON**.
+
+## Pipeline
+1. Client-side chunking (to respect browser memory).  
+2. Secure multipart upload
+3. Auto-vectorised & added to your chosen vector store.  
+4. Available to all agents in the session.
+
+`,
       },
+
+      /* ---------- 3-B. Voice-to-Prompt Mic ----------*/
+      {
+        name: "Mic (Voice to Prompt)",
+        description: "Talk instead of typing.",
+        gradient: "from-purple-300 to-purple-700",
+        pageContent: `
+# Voice to Prompt Mic
+
+Uses **WebRTC + VAD** for real-time detection.
+
+## Flow
+1. Click mic icon → grant microphone permission.  
+2. Speech is streamed to voice to text agent to generate prompt
+3. Language auto-detect; punctuation restored.
+
+Ideal for mobile users or hands-free workflows.`,
+      },
+
+      /* ---------- 3-C. Mode Switching ----------*/
       {
         name: "Mode Switching",
-        description: "How To Switch The Chat Mode.",
+        description: "Jump between Normal, Deep, Agentic.",
         gradient: "from-purple-400 to-red-800",
         pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
+# Mode Switching
+
+Find the **mode toggle** next to the send button.
+
+- **Quick Response** – fastest single agent.  
+- **Deep Thinking** – deliberative single agent.  
+- **Agentic Simulation** – multi-agent swarm.
+
+Switching keeps thread context intact.`,
       },
     ],
   },
+
+  /* -------------------------------------------------
+   * 4. VOICE TECHNOLOGY
+   * -------------------------------------------------*/
   {
     section: "ARX Voice Technology",
-    subtitle: "Real Time Voice To Voice Conversation With ARX Knowledge",
+    subtitle: "Real-time Voice-to-Voice Conversation",
     isLargeCard: false,
     items: [
       {
-        name: "ARX Next Voice Agent",
-        description:
-          "Most Superior ,Fast And Fully Integrated Voice Agent with ARX",
-        gradient: "from-rose-300 to-rose-700",
-        pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
-      },
-      {
-        name: "ARX Purple Voice Agent",
-        description: "Multi Model Voice Agent With ARX Knowledge",
+        name: "ARX Voice Agent",
+        description: "Multi-model voice mixing.",
         gradient: "from-lime-400 to-lime-800",
         pageContent: `
-  # o3
-  
-  o3 is our most powerful reasoning model, designed for tasks requiring deep understanding and complex problem-solving.
-  
-  ## Key Features
-  
-  - State-of-the-art reasoning capabilities
-  - Exceptional performance on benchmarks
-  - Strong mathematical and logical reasoning
-  - Nuanced understanding of context and implications
-  
-  ## Use Cases
-  
-  o3 excels at:
-  
-  - Scientific research assistance
-  - Complex data analysis
-  - Advanced problem-solving
-  - Strategic planning
-  - Educational applications requiring deep expertise
-  
-  ## Technical Specifications
-  
-  - 1.3 trillion parameters
-  - 64k token context window
-  - Trained on diverse datasets including scientific literature
-  - Available through API with enterprise support options
-          `,
+# ARX Voice Agent
+
+select the waves icon that appears in chat box
+- it starts the voice agent
+- it can
+1. read files
+2. remember your normal chat
+3. check internet
+4. create visualizations.
+
+
+`,
+      },
+    ],
+  },
+
+  /* -------------------------------------------------
+   * 5. ADVANCED RESEARCH TOOLS
+   * -------------------------------------------------*/
+  {
+    section: "Research & Retrieval",
+    subtitle: "Dig Deeper with Expert Modules",
+    isLargeCard: false,
+    items: [
+      {
+        name: "Deep Research",
+        description: "Multi-step evidence gathering with citations.",
+        gradient: "from-cyan-400 to-blue-800",
+        pageContent: `
+# Deep Research
+
+Combines **internet search**, **vector DB look-ups**, and **academic APIs**.
+
+- Generates a research plan  
+- Executes parallel queries  
+- Returns a structured report with inline citations ([1], [2]).
+
+Use the *Generate Research* button in any thread.`,
+      },
+      {
+        name: "Internet Search",
+        description: "Live web results with auto-citing.",
+        gradient: "from-sky-400 to-sky-700",
+        pageContent: `
+# Internet Search
+
+
+- Top-K results summarised.  
+- Direct quotes are footnoted.  
+- Click a citation to open source in new tab.
+
+Great for fact-checking.`,
+      },
+      {
+        name: "Web Vector Store Scraper",
+        description: "Crawl, chunk & embed web pages.",
+        gradient: "from-amber-400 to-amber-700",
+        pageContent: `
+# Web Vector Store Scraper
+
+1. Enter a domain or sitemap.  
+2. Choose depth & rate-limit.  
+3. Pages are scraped → markdown → embeddings into your chosen vector DB.
+
+Built-in deduplication & robots.txt respect.`,
+      },
+      {
+        name: "Alphafold Predictions",
+        description: "Retrieve protein structures on demand.",
+        gradient: "from-green-300 to-green-600",
+        pageContent: `
+# Alphafold Predictions Retriever
+
+Enter a **UniProt ID** or FASTA sequence → get predicted 3-D structure.
+
+- Renders PDB with $3Dmol or Mol* (switchable).  
+- Provides confidence scores & per-residue pLDDT.  
+- Export PDB or PNG directly.`,
+      },
+    ],
+  },
+
+  /* -------------------------------------------------
+   * 6. VISUALISATION & OUTPUT TOOLS
+   * -------------------------------------------------*/
+  {
+    section: "Visualisation Creator",
+    subtitle: "Turn Data into Charts",
+    isLargeCard: false,
+    items: [
+      {
+        name: "Chart Builder",
+        description: "Pie, Line, Area, Bar in one click.",
+        gradient: "from-orange-400 to-pink-600",
+        pageContent: `
+# Visualisation Creator
+
+Upload CSV/JSON or reference a dataframe in chat.
+
+1. Pick chart type (Pie, Line, Area, Bar).  
+2. Map columns → axes.  
+3. ARx generates an interactive chart (Recharts).  
+4. Download as PNG or embed code.
+
+Great for quick dashboards.`,
+      },
+    ],
+  },
+
+  /* -------------------------------------------------
+   * 7. RESPONSE UTILITIES
+   * -------------------------------------------------*/
+  {
+    section: "Response Utilities",
+    subtitle: "Every Answer, Supercharged",
+    isLargeCard: false,
+    items: [
+      {
+        name: "Copy / Download / TTS",
+        description: "Tools under every message bubble.",
+        gradient: "from-stone-400 to-stone-700",
+        pageContent: `
+# Response Utilities
+
+Below each response you’ll find three icons:
+
+- **📋 Copy** – copies raw Markdown to clipboard.  
+- **⬇️ Download** – saves content as \`response.md\`.  
+- **🔊 Text-to-Speech** – streams audio via Nova TTS.
+
+All actions are instantaneous and don’t affect thread history.`,
+      },
+    ],
+  },
+
+  /* -------------------------------------------------
+   * 8. CHAT MANAGEMENT
+   * -------------------------------------------------*/
+  {
+    section: "Chat Management",
+    subtitle: "Keep Your Workspace Organised",
+    isLargeCard: false,
+    items: [
+      {
+        name: "Delete Thread",
+        description: "Remove conversations permanently.",
+        gradient: "from-red-400 to-red-700",
+        pageContent: `
+# Delete Chat Thread
+
+1. Open the **⋮** menu beside the thread name.  
+2. Click **Delete** → confirm.  
+3. Vector references and attachments are purged within 30 minutes.`,
+      },
+      {
+        name: "Rename Thread",
+        description: "Give conversations meaningful titles.",
+        gradient: "from-blue-300 to-blue-600",
+        pageContent: `
+# Rename Chat Thread
+
+- Click the thread title (or the pencil icon).  
+- Type the new name → press ⏎.  
+- Title syncs across devices instantly.`,
       },
     ],
   },
