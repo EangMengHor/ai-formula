@@ -120,6 +120,14 @@ export default function VoiceInputBlock({
 
   async function startSession() {
     try {
+      // clear context
+      greetingDone.current = false;
+      isContextFeeded.current = false;
+      isToolsInitialized.current = false;
+      isMaxTokenIncreased.current = false;
+      fileDataNamespace.current = null;
+
+      setIsVoiceMode(true);
       setWaitingMessage("Connecting to AI...");
       const tokenResponse = await fetch(
         `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/realtime/session`,
@@ -225,7 +233,7 @@ export default function VoiceInputBlock({
       }
       const answer = { type: "answer", sdp: rawSdp };
 
-      // 🛡️ Validate SDP
+      // 🛡️ Validate SDP 
       if (!rawSdp.startsWith("v=0")) {
         throw new Error("Invalid SDP from server");
       }
@@ -246,8 +254,12 @@ export default function VoiceInputBlock({
           _retrying = true;
           setWaitingMessage("Connection lost, retrying...");
           setTimeout(() => {
-            stopSession();
-            startSession();
+            stopSession(); 
+            // startSession();
+            setIsSessionActive(false);
+            setWaitingMessage("Reconnecting...");
+            console.warn("Retrying ICE connection...");
+
             _retrying = false;
           }, 1000);
         }
@@ -290,6 +302,13 @@ export default function VoiceInputBlock({
     setIsMicMuted(false);
     window.__voiceInputMicTrack = null;
     playSound("/vtv.mp3");
+    // clear context
+    greetingDone.current = false;
+    isContextFeeded.current = false;
+    isToolsInitialized.current = false;
+    isMaxTokenIncreased.current = false;
+    fileDataNamespace.current = null;
+    setEvents([]);
   }
 
   // Mute/unmute mic handler
@@ -901,13 +920,10 @@ export default function VoiceInputBlock({
         };
 
         updated.push(newMessage);
-      }
+        // 💾 Batch saving logic
+        if (newMessage) {
+          batchedMessagesRef.current.push(newMessage);
 
-      // 💾 Batch saving logic
-      if (newMessage) {
-        batchedMessagesRef.current.push(newMessage);
-
-        if (batchedMessagesRef.current.length >= 3) {
           const batchToSend = batchedMessagesRef.current.map((chat) => ({
             role: chat.role,
             content:
