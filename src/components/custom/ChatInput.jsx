@@ -449,7 +449,6 @@ function ChatInput({
     }
   }, [isLoading, currConversationId, isAborting, onAbort, handleSubmit, input]);
 
-
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">

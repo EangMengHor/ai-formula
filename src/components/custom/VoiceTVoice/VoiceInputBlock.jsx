@@ -22,16 +22,92 @@ export default function VoiceInputBlock({
   const [userAudioStream, setUserAudioStream] = useState(null);
   const [remoteAudioStream, setRemoteAudioStream] = useState(null);
   const [transcripts, setTranscripts] = useState([]);
+
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
   const greetingDone = useRef(false);
   const isContextFeeded = useRef(false);
   const isToolsInitialized = useRef(false);
   const fileDataNamespace = useRef(null);
+  const isMaxTokenIncreased = useRef(false);
   const [waitingMessage, setWaitingMessage] = useState(
     "Waiting for AI response...",
   );
+  async function initOnOpen() {
+    if (
+      greetingDone.current &&
+      isContextFeeded.current &&
+      isToolsInitialized.current &&
+      isMaxTokenIncreased.current
+    )
+      return;
 
+    // 1️⃣ Greeting
+    if (!greetingDone.current) {
+      greetingDone.current = true;
+      sendClientEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text: "I am ARX agent, ready to operate. Please start speaking.",
+            },
+          ],
+        },
+      });
+      sendClientEvent({
+        type: "response.create",
+        response: { instructions: "" },
+      });
+      playSound("/vtv.mp3");
+    }
+
+    // 2️⃣ Chat/file memory
+    if (!isContextFeeded.current) {
+      isContextFeeded.current = true;
+      const data = await getSessionContext(id);
+      fileDataNamespace.current = data.fileDataNamespace;
+      const memoryText = [
+        `Chat Memory:\n${JSON.stringify(data.chatContext, null, 2)}`,
+        data.isFileData
+          ? `File Data: ${Array.isArray(data.fileNames) ? data.fileNames.join(", ") : data.fileNames}`
+          : "",
+        `Knowledge Graph:\n${data.knowledgeGraph || "N/A"}`,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      sendClientEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "system",
+          content: [{ type: "input_text", ext: memoryText }],
+        },
+      });
+      sendClientEvent({
+        type: "response.create",
+        response: { instructions: "" },
+      });
+    }
+
+    // 3️⃣ Initialize tools
+    if (!isToolsInitialized.current) {
+      isToolsInitialized.current = true;
+      sendClientEvent(getTools(!!fileDataNamespace.current));
+    }
+
+    // 4️⃣ Increase tokens
+    if (!isMaxTokenIncreased.current) {
+      isMaxTokenIncreased.current = true;
+      sendClientEvent({
+        type: "session.update",
+        session: { max_response_output_tokens: "inf" },
+      });
+    }
+  }
   async function startSession() {
     try {
       setWaitingMessage("Connecting to AI...");
@@ -50,38 +126,91 @@ export default function VoiceInputBlock({
         setRemoteAudioStream(e.streams[0]);
       };
 
-      const ms = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
+      const ms = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!ms.getAudioTracks().length) {
+        throw new Error(
+          "No microphone tracks available—please check mic permissions.",
+        );
+      }
       setUserAudioStream(ms);
       pc.addTrack(ms.getTracks()[0]);
       // Store the track for mute/unmute
       window.__voiceInputMicTrack = ms.getTracks()[0];
 
       const dc = pc.createDataChannel("oai-events");
+      // initialize only once channel is open
+      dc.onopen = () => {
+        setIsSessionActive(true);
+        setEvents([]);
+        setTranscripts([]);
+        // now safe to send greeting, memory, tools
+        initOnOpen();
+      };
       setDataChannel(dc);
-
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const baseUrl = "https://api.openai.com/v1/realtime";
-      const model = "gpt-4o-realtime-preview-2024-12-17";
-      const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
-        method: "POST",
-        body: offer.sdp,
-        headers: {
-          Authorization: `Bearer ${EPHEMERAL_KEY}`,
-          "Content-Type": "application/sdp",
-        },
+      // 🔌 Wait for ICE gathering to finish, so our SDP has all candidates
+      await new Promise((resolve) => {
+        if (pc.iceGatheringState === "complete") return resolve();
+        pc.onicecandidate = (evt) => {
+          // when candidate === null, ICE gathering is complete
+          console.log("ICE candidate:", evt.candidate);
+          if (!evt.candidate) resolve();
+        };
       });
 
-      const answer = {
-        type: "answer",
-        sdp: await sdpResponse.text(),
+      const baseUrl = "https://api.openai.com/v1/realtime";
+      const model = "gpt-4o-realtime-preview-2025-06-03";
+      const sdpResponse = await fetch(
+        `${baseUrl}?model=${model}&max_response_output_tokens=4000`,
+        {
+          method: "POST",
+          body: offer.sdp,
+          headers: {
+            Authorization: `Bearer ${EPHEMERAL_KEY}`,
+            "Content-Type": "application/sdp",
+          },
+        },
+      );
+
+      const rawSdp = await sdpResponse.text();
+      const answer = { type: "answer", sdp: rawSdp };
+
+      // 🛡️ Validate SDP
+      if (!rawSdp.startsWith("v=0")) {
+        throw new Error("Invalid SDP from server");
+      }
+      try {
+        await pc.setRemoteDescription(answer);
+      } catch (err) {
+        console.error("setRemoteDescription failed:", err);
+        throw err;
+      }
+
+      let _retrying = false;
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE state:", pc.iceConnectionState);
+        if (
+          !_retrying &&
+          ["failed", "disconnected"].includes(pc.iceConnectionState)
+        ) {
+          _retrying = true;
+          setWaitingMessage("Connection lost, retrying...");
+          setTimeout(() => {
+            stopSession();
+            startSession();
+            _retrying = false;
+          }, 1000);
+        }
       };
-      await pc.setRemoteDescription(answer);
+      pc.onconnectionstatechange = () => {
+        console.log("Peer connection state:", pc.connectionState);
+      };
 
       peerConnection.current = pc;
+
+      console.log("Session started successfully");
     } catch (error) {
       setWaitingMessage("Failed to start session. Please try again.");
     } finally {
@@ -421,24 +550,27 @@ export default function VoiceInputBlock({
   }
 
   useEffect(() => {
-    console.log("Transcripts updated:", transcripts);
-  }, [transcripts]);
-  useEffect(() => {
-    if (dataChannel) {
-      dataChannel.addEventListener("message", (e) => {
-        const event = JSON.parse(e.data);
-        if (!event.timestamp) {
-          event.timestamp = new Date().toLocaleTimeString();
-        }
-        processTranscript(event);
-        setEvents((prev) => [event, ...prev]);
-      });
-      dataChannel.addEventListener("open", () => {
-        setIsSessionActive(true);
-        setEvents([]);
-        setTranscripts([]);
-      });
-    }
+    if (!dataChannel) return;
+    // --- Clean up previous listeners to avoid duplicates ---
+    let messageListener = (e) => {
+      const event = JSON.parse(e.data);
+      if (!event.timestamp) {
+        event.timestamp = new Date().toLocaleTimeString();
+      }
+      processTranscript(event);
+      setEvents((prev) => [event, ...prev]);
+    };
+    let openListener = () => {
+      setIsSessionActive(true);
+      setEvents([]);
+      setTranscripts([]);
+    };
+    dataChannel.addEventListener("message", messageListener);
+    dataChannel.addEventListener("open", openListener);
+    return () => {
+      dataChannel.removeEventListener("message", messageListener);
+      dataChannel.removeEventListener("open", openListener);
+    };
   }, [dataChannel]);
 
   useEffect(() => {
@@ -461,101 +593,111 @@ export default function VoiceInputBlock({
       playSound("/vtv.mp3");
     }
   }, [isSessionActive]);
-  useEffect(() => {
-    async function init() {
-      if (!isSessionActive) return;
 
-      // 1️⃣ Greeting (only once)
-      if (!greetingDone.current) {
-        greetingDone.current = true;
+  //   useEffect(() => {
+  //     async function init() {
+  //       if (!isSessionActive) return;
+  //       // 1️⃣ Greeting (only once)
+  //       if (!greetingDone.current) {
+  //         greetingDone.current = true;
 
-        // Send a system message into the conversation
-        sendClientEvent({
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "system",
-            content: [
-              {
-                type: "input_text",
-                text: "Greet the user with a friendly message and say: 'I am ARX agent, ready to operate.' Ask them to start speaking.",
-              },
-            ],
-          },
-        });
+  //         // Send a system message into the conversation
+  //         sendClientEvent({
+  //           type: "conversation.item.create",
+  //           item: {
+  //             type: "message",
+  //             role: "system",
+  //             content: [
+  //               {
+  //                 type: "input_text",
+  //                 text: "Greet the user with a friendly message and say: 'I am ARX agent, ready to operate.' Ask them to start speaking.",
+  //               },
+  //             ],
+  //           },
+  //         });
 
-        // Now ask the model to generate that greeting
-        sendClientEvent({
-          type: "response.create",
-          response: {
-            instructions: "", // no extra instructions needed here
-          },
-        });
+  //         // Now ask the model to generate that greeting
+  //         sendClientEvent({
+  //           type: "response.create",
+  //           response: {
+  //             instructions: "", // no extra instructions needed here
+  //           },
+  //         });
 
-        playSound("/vtv.mp3");
-      }
+  //         playSound("/vtv.mp3");
+  //       }
 
-      // 2️⃣ Feed in your chat/file memory as a **system** message (only once)
-      if (!isContextFeeded.current) {
-        isContextFeeded.current = true;
-        const data = await getSessionContext(id);
-        console.log("Session context data:", data);
-        fileDataNamespace.current = data.fileDataNamespace || null;
-        const memoryText = `
-Here is the context of the chat (if any):
+  //       // 2️⃣ Feed in your chat/file memory as a **system** message (only once)
+  //       if (!isContextFeeded.current) {
+  //         isContextFeeded.current = true;
+  //         const data = await getSessionContext(id);
+  //         console.log("Session context data:", data);
+  //         fileDataNamespace.current = data.fileDataNamespace || null;
+  //         const memoryText = `
+  // Here is the context of the chat (if any):
 
-Chat Memory:
-${JSON.stringify(data.chatContext, null, 2)}
+  // Chat Memory:
+  // ${JSON.stringify(data.chatContext, null, 2)}
 
-${
-  data.isFileData
-    ? `File Data:\n${
-        Array.isArray(data.fileNames)
-          ? data.fileNames.join(", ")
-          : data.fileNames
-      }\n`
-    : ""
-}
+  // ${
+  //   data.isFileData
+  //     ? `File Data:\n${
+  //         Array.isArray(data.fileNames)
+  //           ? data.fileNames.join(", ")
+  //           : data.fileNames
+  //       }\n`
+  //     : ""
+  // }
 
-Knowledge Graph:
-${data.knowledgeGraph || "N/A"}
+  // Knowledge Graph:
+  // ${data.knowledgeGraph || "N/A"}
 
-Whenever I ask about frameworks, only mention frameworks from this graph.
-      `.trim();
+  // Whenever I ask about frameworks, only mention frameworks from this graph.
+  //       `.trim();
 
-        // Inject as a system message
-        sendClientEvent({
-          type: "conversation.item.create",
-          item: {
-            type: "message",
-            role: "system",
-            content: [{ type: "input_text", text: memoryText }],
-          },
-        });
+  //         // Inject as a system message
+  //         sendClientEvent({
+  //           type: "conversation.item.create",
+  //           item: {
+  //             type: "message",
+  //             role: "system",
+  //             content: [{ type: "input_text", text: memoryText }],
+  //           },
+  //         });
 
-        // Now trigger the model turn so it “sees” that memory
-        sendClientEvent({
-          type: "response.create",
-          response: { instructions: "" },
-        });
+  //         // Now trigger the model turn so it “sees” that memory
+  //         sendClientEvent({
+  //           type: "response.create",
+  //           response: { instructions: "" },
+  //         });
 
-        console.log("Chat context sent to AI");
-      }
+  //         console.log("Chat context sent to AI");
+  //       }
 
-      // 3️⃣ Initialize tools (only once)
-      if (!isToolsInitialized.current) {
-        isToolsInitialized.current = true;
-        sendClientEvent(
-          getTools(
-            fileDataNamespace.current && fileDataNamespace.current !== "",
-          ),
-        );
-        console.log("Tools initialized");
-      }
-    }
+  //       // 3️⃣ Initialize tools (only once)
+  //       if (!isToolsInitialized.current) {
+  //         isToolsInitialized.current = true;
+  //         sendClientEvent(
+  //           getTools(
+  //             fileDataNamespace.current && fileDataNamespace.current !== "",
+  //           ),
+  //         );
+  //         console.log("Tools initialized");
+  //       }
+  //     }
 
-    init();
-  }, [isSessionActive]);
+  //     if (!isMaxTokenIncreased.current) {
+  //       isMaxTokenIncreased.current = true;
+
+  //       sendClientEvent({
+  //         type: "session.update",
+  //         session: { max_response_output_tokens: "inf" },
+  //       });
+  //       console.log("Max response tokens increased to 4096");
+  //     }
+
+  //     init();
+  //   }, [isSessionActive]);
 
   useEffect(() => {
     console.log("fileNamepsace", fileDataNamespace.current);
