@@ -75,18 +75,6 @@ function Chat() {
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
   const [prompt, setPrompt] = useState("");
 
-  // Voice to Voice state
-  const [isVoiceMode, setIsVoiceMode] = useState(false);
-  const isVoiceModeRef = useRef(false);
-
-  // Debug voice mode state changes
-  useEffect(() => {
-    console.log("🎤 Voice mode state changed to:", isVoiceMode);
-    isVoiceModeRef.current = isVoiceMode; // Keep ref in sync
-  }, [isVoiceMode]);
-
-  const [streamingResponse, setStreamingResponse] = useState("");
-
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [pdfFileName, setpPdfFileName] = useState("");
@@ -99,6 +87,8 @@ function Chat() {
   const [currConversationId, setCurrConversationId] = useState("");
   const [isAborting, setIsAborting] = useState(false);
   const isAboartController = useRef(null);
+  //   voice to voice
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
 
   // --- File Upload Hook ---
   const { isDragActive, processingFiles } = useFileUpload({
@@ -118,162 +108,7 @@ function Chat() {
   const lastReadedRelayIndex = useRef(null);
   const handleSubmitRef = useRef(null);
 
-  // Voice transcript debouncing refs
-  const voiceDebounceTimerRef = useRef(null);
-  const accumulatedTranscriptRef = useRef("");
-  const lastTranscriptTimeRef = useRef(null);
-
-  // Voice transcript handler with 2-second debouncing
-  const handleVoiceTranscript = useCallback(
-    (transcript, speaker) => {
-      console.log("🎤 Voice transcript received:", {
-        transcript: transcript?.substring(0, 50),
-        speaker,
-      });
-
-      if (speaker === "speech_started") {
-        // User started speaking again - cancel any pending submission
-        console.log("🎤 New speech started, canceling pending submission");
-        if (voiceDebounceTimerRef.current) {
-          clearTimeout(voiceDebounceTimerRef.current);
-          voiceDebounceTimerRef.current = null;
-        }
-
-        // Clear pending submission state
-        if (window.voiceInterfaceSetPendingSubmission) {
-          window.voiceInterfaceSetPendingSubmission(false, 0);
-        }
-
-        lastTranscriptTimeRef.current = Date.now();
-      } else if (speaker === "user_partial") {
-        // For user speech during accumulation, just log
-        console.log("User is saying:", transcript);
-        // Update the accumulated transcript and reset timer
-        accumulatedTranscriptRef.current = transcript;
-        lastTranscriptTimeRef.current = Date.now();
-
-        // Clear any existing timer
-        if (voiceDebounceTimerRef.current) {
-          clearTimeout(voiceDebounceTimerRef.current);
-          voiceDebounceTimerRef.current = null;
-        }
-      } else if (speaker === "user_complete") {
-        // When user finishes speaking, start the 2-second debounce timer
-        console.log(
-          "User speech completed, starting 2-second debounce timer for:",
-          transcript,
-        );
-
-        // Update accumulated transcript with the complete version
-        accumulatedTranscriptRef.current = transcript;
-        lastTranscriptTimeRef.current = Date.now();
-
-        // Clear any existing timer
-        if (voiceDebounceTimerRef.current) {
-          clearTimeout(voiceDebounceTimerRef.current);
-        }
-
-        // Notify voice interface about pending submission
-        if (window.voiceInterfaceSetPendingSubmission) {
-          window.voiceInterfaceSetPendingSubmission(true, 2);
-        }
-
-        // Set a 2-second timer before submitting
-        voiceDebounceTimerRef.current = setTimeout(() => {
-          const finalTranscript = accumulatedTranscriptRef.current;
-          const timeSinceLastUpdate =
-            Date.now() - (lastTranscriptTimeRef.current || 0);
-
-          console.log(
-            "🎤 2-second debounce completed. Submitting transcript:",
-            {
-              transcript: finalTranscript?.substring(0, 50),
-              timeSinceLastUpdate,
-              isLoading: isNextChatLoading,
-            },
-          );
-
-          // Clear pending submission state
-          if (window.voiceInterfaceSetPendingSubmission) {
-            window.voiceInterfaceSetPendingSubmission(false, 0);
-          }
-
-          if (
-            finalTranscript?.trim() &&
-            !isNextChatLoading &&
-            timeSinceLastUpdate >= 1800
-          ) {
-            // Stop any current TTS before processing new input
-            if (window.voiceInterfaceStopTTS) {
-              window.voiceInterfaceStopTTS();
-            }
-
-            // Submit the transcript
-            if (typeof handleSubmitRef.current === "function") {
-              handleSubmitRef.current(finalTranscript.trim());
-            }
-
-            // Clear the accumulated transcript
-            accumulatedTranscriptRef.current = "";
-          }
-
-          // Clear the timer reference
-          voiceDebounceTimerRef.current = null;
-        }, 2000); // 2-second delay
-      } else if (speaker === "assistant") {
-        // In integrated mode, we'll ignore OpenAI's direct assistant responses
-        // The response will come through our chat pipeline instead
-        console.log(
-          "OpenAI assistant response (ignored in integrated mode):",
-          transcript,
-        );
-      }
-    },
-    [isNextChatLoading],
-  );
-
   // Force submit function for immediate submission
-  const forceSubmitVoiceTranscript = useCallback(() => {
-    console.log("🎤 Force submit called");
-
-    // Clear any pending timer
-    if (voiceDebounceTimerRef.current) {
-      clearTimeout(voiceDebounceTimerRef.current);
-      voiceDebounceTimerRef.current = null;
-    }
-
-    // Get the accumulated transcript
-    const finalTranscript = accumulatedTranscriptRef.current;
-
-    console.log(
-      "🎤 Force submitting transcript:",
-      finalTranscript?.substring(0, 50),
-    );
-
-    if (finalTranscript?.trim() && !isNextChatLoading) {
-      // Stop any current TTS before processing new input
-      if (window.voiceInterfaceStopTTS) {
-        window.voiceInterfaceStopTTS();
-      }
-
-      // Submit the transcript
-      if (typeof handleSubmitRef.current === "function") {
-        handleSubmitRef.current(finalTranscript.trim());
-      }
-
-      // Clear the accumulated transcript
-      accumulatedTranscriptRef.current = "";
-    }
-  }, [isNextChatLoading]);
-
-  // Expose force submit function to window
-  useEffect(() => {
-    window.voiceInterfaceForceSubmit = forceSubmitVoiceTranscript;
-
-    return () => {
-      delete window.voiceInterfaceForceSubmit;
-    };
-  }, [forceSubmitVoiceTranscript]);
 
   // Helper function to extract text in exact order from message blocks
   const extractTextInOrder = useCallback((messageBlocks) => {
@@ -315,99 +150,6 @@ function Chat() {
     }
 
     return extractedText.trim();
-  }, []);
-
-  // TTS Integration - now handles complete messages only and delegates to VoiceInterface
-  const handleTTSForVoice = useCallback(
-    (aiMessage) => {
-      const currentVoiceMode = isVoiceModeRef.current;
-      console.log("🗣️ TTS Check for completed message:", {
-        stateValue: isVoiceMode,
-        refValue: currentVoiceMode,
-        usingRefValue: currentVoiceMode,
-        messageComplete: aiMessage?.isComplete,
-        messageType: aiMessage?.type,
-        messageBlocks: aiMessage?.message?.length,
-      });
-
-      if (!currentVoiceMode || !aiMessage?.isComplete || !aiMessage?.message)
-        return;
-
-      console.log(
-        "🗣️ Raw message structure:",
-        JSON.stringify(aiMessage.message, null, 2),
-      );
-
-      // Extract text content using the order-preserving function
-      const fullText = extractTextInOrder(aiMessage.message);
-
-      console.log("🗣️ Extracted full text in order:", fullText);
-
-      if (!fullText) {
-        console.log("🗣️ No text content found in completed message");
-        return;
-      }
-
-      console.log("🗣️ Processing complete message for TTS:", {
-        hasContent: !!fullText,
-        contentLength: fullText.length,
-        hasTTSFunction: !!window.voiceInterfaceTTS,
-        contentPreview: fullText.substring(0, 200),
-      });
-
-      // Ensure TTS function is available (delegated to VoiceInterface)
-      if (!window.voiceInterfaceTTS) {
-        console.warn(
-          "🗣️ Voice mode active but voiceInterfaceTTS not available!",
-        );
-        return;
-      }
-
-      console.log(
-        "🗣️ Sending complete response to TTS via VoiceInterface:",
-        fullText.substring(0, 100),
-      );
-
-      // Send the complete text to VoiceInterface TTS (which will handle cleaning)
-      window.voiceInterfaceTTS(fullText);
-    },
-    [extractTextInOrder],
-  );
-
-  // Toggle voice mode
-  const toggleVoiceMode = useCallback(() => {
-    setIsVoiceMode((prev) => {
-      const newValue = !prev;
-      console.log("🎤 Toggle voice mode:", prev, "→", newValue);
-      console.log("🎤 Voice mode state will be:", newValue);
-      return newValue;
-    });
-  }, []);
-
-  // Exit voice mode
-  const exitVoiceMode = useCallback(() => {
-    console.log("🎤 Exit voice mode called");
-
-    // Clear any pending voice debounce timer
-    if (voiceDebounceTimerRef.current) {
-      clearTimeout(voiceDebounceTimerRef.current);
-      voiceDebounceTimerRef.current = null;
-      console.log("🎤 Cleared pending voice debounce timer");
-    }
-
-    // Clear pending submission state
-    if (window.voiceInterfaceSetPendingSubmission) {
-      window.voiceInterfaceSetPendingSubmission(false, 0);
-    }
-
-    // Clear accumulated transcript
-    accumulatedTranscriptRef.current = "";
-    lastTranscriptTimeRef.current = null;
-
-    setIsVoiceMode((prev) => {
-      console.log("🎤 Exit voice mode: current state:", prev, "→ false");
-      return false;
-    });
   }, []);
 
   // when sessionId changes then reset the state
@@ -1063,25 +805,6 @@ function Chat() {
 
       /* 2. finalResponse → streaming message */
       if (event.type === "finalResponse" && event.content) {
-        console.log(
-          "socket event received 1293871298379108237",
-          event.content,
-          messageReplayRef.current,
-        );
-        console.log(
-          "🎤 Debug finalResponse - isVoiceMode:",
-          isVoiceMode,
-          "content length:",
-          event.content?.length,
-        );
-        console.log("🎤 Real-time voice mode check:", {
-          stateValue: isVoiceMode,
-          refValue: isVoiceModeRef.current,
-          currentStateValue: isVoiceMode,
-          eventContent: event.content?.substring(0, 20),
-          timestamp: new Date().toISOString(),
-        });
-
         if (isAboartController.current) return;
         if (!last || last.type !== "quick") {
           last = newAiMessage("quick");
@@ -1605,7 +1328,6 @@ function Chat() {
       };
 
       // Reset state
-      setStreamingResponse("");
       setConversation((prev) => [
         ...prev,
         newHumanMessage({
@@ -1796,10 +1518,7 @@ function Chat() {
     }
   }, [isChatLoading]);
 
-  // Monitor conversation changes for TTS in voice mode
   useEffect(() => {
-    if (!isVoiceModeRef.current) return;
-
     // Get the last AI message that was just completed
     const lastMessage = conversation[conversation.length - 1];
 
@@ -1818,19 +1537,8 @@ function Chat() {
       lastMessage._ttsProcessed = true;
 
       // Trigger TTS for the completed message
-      handleTTSForVoice(lastMessage);
     }
-  }, [conversation, handleTTSForVoice]);
-
-  // Cleanup voice debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (voiceDebounceTimerRef.current) {
-        clearTimeout(voiceDebounceTimerRef.current);
-        console.log("🎤 Cleaned up voice debounce timer on unmount");
-      }
-    };
-  }, []);
+  }, [conversation]);
 
   // --- UI Render hook boundary ---
   if (isChatLoading) {
@@ -1896,7 +1604,6 @@ function Chat() {
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
         handleVectorStoreSidebar={memoizedHandleVectorStoreScrapperSidebar}
         handleUrlScraperSidebar={memorizedHandleUrlScraperSidebar}
-        handleNewOsintInstance={memorizedNewOsintInstance}
         loadingMessage={currLoadingStatus}
         chatContainerRef={chatContainerRef}
         endRef={endRef}
@@ -1910,6 +1617,7 @@ function Chat() {
         <div className="max-w-4xl  w-full mx-auto">
           <ChatInput
             conversationProp={conversationRef}
+            setConversation={setConversation}
             input={prompt}
             setInput={setPrompt}
             handleSubmit={() => handleSubmit(prompt)}
@@ -1919,6 +1627,8 @@ function Chat() {
             isAborting={isAborting}
             currConversationId={currConversationId}
             processingFiles={processingFiles}
+            isVoiceMode={isVoiceMode}
+            setIsVoiceMode={setIsVoiceMode}
           />
         </div>
       </div>

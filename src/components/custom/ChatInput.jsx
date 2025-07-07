@@ -66,11 +66,13 @@ import InternalKnowledgeDialog from "./InternalKnowledgeDialog";
 import { useCollection } from "../../context/CollectionContext";
 import Test from "@/Test";
 import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
+import VoiceInputBlock from "./VoiceTVoice/VoiceInputBlock";
 const maxRows = 30;
 
 function ChatInput({
   conversationProp = [],
   input,
+  setConversation = () => {},
   setInput,
   handleSubmit,
   isLoading,
@@ -78,14 +80,13 @@ function ChatInput({
   onAbort,
   isAborting,
   currConversationId,
-  processingFiles = new Set(),
-  onVoiceModeToggle,
   isVoiceMode = false,
+  setIsVoiceMode = () => {},
 }) {
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
   const { pathname } = useLocation();
-  const { fileCount, memorizedFiles, resetAllStates, files } =
+  const { fileCount, memorizedFiles, resetAllStates, files, setFiles } =
     useFilesUploadMetadata();
   const {
     isSwarmMode,
@@ -137,6 +138,30 @@ function ChatInput({
       setRows(2);
     }
   }, [pathname]);
+  const handlePaste = useCallback(
+    (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+
+      const newFiles = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type && item.type.indexOf("image/") === 0) {
+          const blob = item.getAsFile();
+          if (blob) {
+            // Push the File exactly as provided by the clipboard
+            newFiles.push(blob);
+          }
+        }
+      }
+
+      if (newFiles.length > 0) {
+        setFiles((prev) => prev.concat(newFiles));
+        // optional: toast feedback here
+      }
+    },
+    [setFiles],
+  );
 
   // Memoize the heavy function to prevent recreation on each render
   const handleCreateNewWorkflow = useCallback(async () => {
@@ -264,85 +289,47 @@ function ChatInput({
     });
   }, [prevUnenchancedPrompt, toast]);
 
-  // Create a debounced version of handleChange
+  const textareaRef = useRef(null);
+
+  // debouncedHandleChange now only commits row changes
   const debouncedHandleChange = useCallback(
-    debounce((value, rows) => {
-      setInput(value);
-      setRows(rows);
-    }, 10), // Small delay to batch updates
+    debounce((_, newRows) => {
+      setRows(newRows);
+    }, 50),
     [],
   );
 
   const handleChange = useCallback(
     (event) => {
-      const textareaLineHeight = 24;
-      const previousRows = event.target.rows;
-      event.target.rows = 1; // reset number of rows in textarea
+      const textarea = event.target;
+      const value = textarea.value;
 
-      const currentRows = Math.floor(
-        event.target.scrollHeight / textareaLineHeight,
-      );
+      // 1️⃣ update text immediately so cursor stays put
+      setInput(value);
 
+      // 2️⃣ recalc rows
+      const lineHeight = 24;
+      const prevRows = textarea.rows;
+      textarea.rows = 1; // reset to measure
+      const currentRows = Math.floor(textarea.scrollHeight / lineHeight);
       const newRows = currentRows < maxRows ? currentRows : maxRows;
 
-      // Set rows immediately for a responsive feel
-      if (event.target.value.length < 5) {
-        event.target.rows = 1;
-      } else if (currentRows === previousRows) {
-        event.target.rows = currentRows;
+      // 3️⃣ apply immediate rows for responsiveness
+      if (value.length < 5) {
+        textarea.rows = 1;
+      } else if (currentRows === prevRows) {
+        textarea.rows = currentRows;
       } else if (currentRows >= maxRows) {
-        event.target.rows = maxRows;
-        event.target.scrollTop = event.target.scrollHeight;
+        textarea.rows = maxRows;
+        textarea.scrollTop = textarea.scrollHeight;
       } else {
-        event.target.rows = newRows;
+        textarea.rows = newRows;
       }
 
-      // Debounce the state updates to avoid triggering re-renders too frequently
-      debouncedHandleChange(event.target.value, newRows);
+      // 4️⃣ debounce the state commit of rows only
+      debouncedHandleChange(value, newRows);
     },
-    [debouncedHandleChange],
-  );
-  const getVoiceAgentUrl = useCallback(
-    (baseUrl) => {
-      if (!baseUrl) return "";
-
-      if (files.length === 0) {
-        return id && id !== undefined ? `${baseUrl}?namespace=${id}` : baseUrl;
-      }
-
-      return `${baseUrl}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-        .slice(0, 20)
-        .map((file) => file.name)
-        .join("||||")}&namespace=${id || ""}`;
-    },
-    [files, fileCount, memorizedFiles, id],
-  );
-  const handleKeyDown = useCallback(
-    (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        if (input.length > 30000) {
-          toast({
-            title: "Please Make Your Input Prompt Shorter.",
-            description: `Input length exceeded 30000 Character! Current length: ${input.length}`,
-            variant: "destructive",
-          });
-          return;
-        }
-        if (input.length > 0 && !isLoading) {
-          setRows(1); // Reset rows to 1 when submitting
-          handleSubmit();
-        }
-      } else if (event.key === "Enter" && event.shiftKey) {
-        event.preventDefault();
-        const cursorPosition = event.target.selectionStart;
-        const textBeforeCursor = input.substring(0, cursorPosition);
-        const textAfterCursor = input.substring(cursorPosition);
-        setInput(textBeforeCursor + "\n" + textAfterCursor);
-        setRows(rows + 1);
-      }
-    },
-    [input, isLoading, handleSubmit, rows, toast],
+    [debouncedHandleChange, maxRows],
   );
 
   // clean up on route change
@@ -448,25 +435,24 @@ function ChatInput({
   useEffect(() => {
     console.log(selectedCollections, "Selected Collections in ChatInput");
   }, []);
-  const handleClick = useCallback(() => {
-    console.log("Click:", { isLoading, currConversationId, isAborting });
 
+  const handleClick = useCallback(() => {
     if (isLoading && currConversationId && !isAborting) {
       console.log("Calling onAbort");
       onAbort();
+    } else if (input.length == 0 && !pathname.includes("/dashboard")) {
+      setIsVoiceMode(true);
+      console.log("Click:", { isLoading, currConversationId, isAborting });
     } else {
       console.log("Calling handleSubmit");
       handleSubmit();
     }
-  }, [isLoading, currConversationId, isAborting, onAbort, handleSubmit]);
-
-  useEffect(() => {
-    console.log(isIntentSelectionOpen, "isIntentSelectionOpen in ChatInput");
-  }, [isIntentSelectionOpen]);
+  }, [isLoading, currConversationId, isAborting, onAbort, handleSubmit, input]);
 
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">
+      {/* scroll to bottom */}
       {pathname !== "/dashboard" && (
         <div className="w-full absolute -top-14 flex justify-end items-center">
           <div
@@ -477,375 +463,394 @@ function ChatInput({
           </div>
         </div>
       )}
-      <div className="flex w-full flex-col animate-fade-in ">
+      {isVoiceMode && (
+        <div>
+          <VoiceInputBlock
+            setIsVoiceMode={setIsVoiceMode}
+            setConversation={setConversation}
+          />
+        </div>
+      )}
+      <div
+        className={`flex w-full flex-col animate-fade-in ${isVoiceMode && "hidden"}`}
+      >
         <div
           className={`rounded-3xl p-2 hide-scrollbar bg-gray-900  border-2 
   ${isSwarmMode ? " border-blue-500 glow-outline-soft" : "border-transparent"}
 `}
         >
-          <motion.div
-            className={`relative flex items-center `}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{
-              opacity: 1,
-              y: -10,
-            }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-          >
-            <div className="flex gap-2 ml-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
-              {selectedModel.length > 0 &&
-                selectedModel.map((model, index) => {
-                  const dataObj = models.find((m) => m.value == model);
-                  if (!dataObj) return <></>;
-                  return (
-                    <AttachmentCard
-                      key={index}
-                      title={dataObj.name}
-                      type="Intent Model"
-                      showIsRemove={true}
-                      onRemove={() => {
-                        setSelectedModel((prev) =>
-                          prev.filter((m) => m !== model),
-                        );
-                      }}
-                      icon={<Boxes className="w-5 h-5" />}
-                    />
-                  );
-                })}
+          <div>
+            <motion.div
+              className={`relative flex items-center `}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{
+                opacity: 1,
+                y: -10,
+              }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
+              <div className="flex gap-2 ml-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+                {selectedModel.length > 0 &&
+                  selectedModel.map((model, index) => {
+                    const dataObj = models.find((m) => m.value == model);
+                    if (!dataObj) return <></>;
+                    return (
+                      <AttachmentCard
+                        key={index}
+                        title={dataObj.name}
+                        type="Intent Model"
+                        showIsRemove={true}
+                        onRemove={() => {
+                          setSelectedModel((prev) =>
+                            prev.filter((m) => m !== model),
+                          );
+                        }}
+                        icon={<Boxes className="w-5 h-5" />}
+                      />
+                    );
+                  })}
 
-              {files.length > 0 &&
-                files.map((file, index) => {
-                  const isVectorized = memorizedFiles.includes(file.name);
+                {files.length > 0 &&
+                  files.map((file, index) => {
+                    const isVectorized = memorizedFiles.includes(file.name);
 
-                  return (
-                    <AttachmentCard
-                      key={index}
-                      title={file.name}
-                      type={file.type.replaceAll("application/", "")}
-                      icon={<FileText className="w-5 h-5" />}
-                      showIsRemove={false}
-                      isProcessing={!isVectorized}
-                    />
-                  );
-                })}
+                    return (
+                      <AttachmentCard
+                        key={index}
+                        title={file.name}
+                        type={file.type.replaceAll("application/", "")}
+                        icon={<FileText className="w-5 h-5" />}
+                        showIsRemove={false}
+                        isProcessing={!isVectorized}
+                      />
+                    );
+                  })}
 
-              {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
-                <AttachmentCard
-                  title={getSelectedWorkflow()?.name || "No Workflow Selected"}
-                  type="Workflow"
-                  icon={<SquareDashed className="w-5 h-5" />}
-                  showIsRemove={true}
-                  onRemove={() => setSelectedWorkflowId(null)}
-                />
-              )}
+                {selectedWorkflowId !== null && selectedWorkflowId > 0 && (
+                  <AttachmentCard
+                    title={
+                      getSelectedWorkflow()?.name || "No Workflow Selected"
+                    }
+                    type="Workflow"
+                    icon={<SquareDashed className="w-5 h-5" />}
+                    showIsRemove={true}
+                    onRemove={() => setSelectedWorkflowId(null)}
+                  />
+                )}
 
-              {selectedCollections.map((collection) => (
-                <AttachmentCard
-                  key={collection.id}
-                  title={collection.collectionName}
-                  type="Knowledge Block"
-                  icon={<Grid2x2 className="w-5 h-5" />}
-                  showIsRemove={true}
-                  onRemove={() => toggleCollectionSelection(collection.id)}
-                />
-              ))}
-            </div>
-          </motion.div>
-
-          {/* <SelectedCollectionsDisplay /> */}
-
-          <Textarea
-            value={input}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            rows={rows}
-            maxRows={maxRows}
-            className={`ring-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
-            type="text"
-            placeholder="Type a message"
-            id="aiInputTextArea"
-          />
-
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2 -mb-4">
-              <div className="flex gap-2 rounded-md">
-                <AudioRecorder
-                  value={input}
-                  setValue={setInput}
-                  trigger={isTransribed}
-                  setTrigger={setIsTransribed}
-                />
+                {selectedCollections.map((collection) => (
+                  <AttachmentCard
+                    key={collection.id}
+                    title={collection.collectionName}
+                    type="Knowledge Block"
+                    icon={<Grid2x2 className="w-5 h-5" />}
+                    showIsRemove={true}
+                    onRemove={() => toggleCollectionSelection(collection.id)}
+                  />
+                ))}
               </div>
-              {pathname !== "/dashboard" ? (
-                <FileUploadDialog />
-              ) : (
-                <div>
-                  <TooltipProvider>
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger>
-                        <div className="flex items-center rounded-xl p-2 ">
-                          <Paperclip className="w-5 h-5  drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="bg-slate-600 p-2 rounded-md">
-                        <p className="capitalize">
-                          Please First Start The Conversation to get the
-                          Document Upload Section (Start By Saying Hello Or Hi!)
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+            </motion.div>
+
+            {/* <SelectedCollectionsDisplay /> */}
+
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onPaste={handlePaste}
+              onChange={handleChange}
+              rows={rows}
+              maxRows={maxRows}
+              className={`ring-0 resize-none border-0 focus:ring-0 focus-visible:ring-0 `}
+              type="text"
+              placeholder="Type a message"
+              id="aiInputTextArea"
+            />
+
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2 -mb-4">
+                <div className="flex gap-2 rounded-md">
+                  <AudioRecorder
+                    value={input}
+                    setValue={setInput}
+                    trigger={isTransribed}
+                    setTrigger={setIsTransribed}
+                  />
                 </div>
-              )}
-
-              {/* chat mode */}
-
-              <div
-                className={`${isPublicDomain && "hidden"}  rounded-xl hover:bg-gray-800 cursor-pointer `}
-              >
-                {isPromptEnchanced ? (
-                  <div
-                    onClick={onUndoPromptEnhance}
-                    className="flex gap-2 items-center"
-                  >
-                    <ArrowLeftRight className="w-5 h-5 p-2 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
-                    <p className="text-sm font-semibold text-white">Undo</p>
-                  </div>
-                ) : isPromptEnhancerLoading ? (
-                  <LoaderCircle className="animate-spin w-5 h-5 text-white" />
+                {pathname !== "/dashboard" ? (
+                  <FileUploadDialog />
                 ) : (
-                  <div onClick={enchancePrompt}>
+                  <div>
                     <TooltipProvider>
                       <Tooltip delayDuration={0}>
                         <TooltipTrigger>
-                          <div className="cursor-pointer flex p-2 items-center rounded-xl hover:bg-gray-800">
-                            <Sparkles className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                          <div className="flex items-center rounded-xl p-2 ">
+                            <Paperclip className="w-5 h-5  drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-sm text-center">
-                          <p>Enhance your Prompt</p>
+                        <TooltipContent className="bg-slate-600 p-2 rounded-md">
+                          <p className="capitalize">
+                            Please First Start The Conversation to get the
+                            Document Upload Section (Start By Saying Hello Or
+                            Hi!)
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
                 )}
-              </div>
-              {/* voice */}
-              <Dialog>
-                <DialogTrigger className="p-0 m-0">
-                  <TooltipProvider>
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger
-                        className={`${isPublicDomain ? "hidden" : "flex"}`}
+
+                {/* chat mode */}
+
+                <div
+                  className={`${isPublicDomain && "hidden"}  rounded-xl hover:bg-gray-800 cursor-pointer `}
+                >
+                  {isPromptEnchanced ? (
+                    <div
+                      onClick={onUndoPromptEnhance}
+                      className="flex gap-2 items-center"
+                    >
+                      <ArrowLeftRight className="w-5 h-5 p-2 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
+                      <p className="text-sm font-semibold text-white">Undo</p>
+                    </div>
+                  ) : isPromptEnhancerLoading ? (
+                    <LoaderCircle className="animate-spin w-5 h-5 text-white" />
+                  ) : (
+                    <div onClick={enchancePrompt}>
+                      <TooltipProvider>
+                        <Tooltip delayDuration={0}>
+                          <TooltipTrigger>
+                            <div className="cursor-pointer flex p-2 items-center rounded-xl hover:bg-gray-800">
+                              <Sparkles className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm text-center">
+                            <p>Enhance your Prompt</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  )}
+                </div>
+                {/* voice */}
+                <Dialog>
+                  <DialogTrigger className="p-0 m-0">
+                    <TooltipProvider>
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger
+                          className={`${isPublicDomain ? "hidden" : "flex"}`}
+                        >
+                          <div className="cursor-pointer gap-2 mb-0 items-center p-2 rounded-xl hover:bg-gray-800 ">
+                            <AudioLines className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Use ARX Voice Technology</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </DialogTrigger>
+
+                  <DialogContent className="max-w-5xl bg-slate-700">
+                    <DialogHeader>
+                      <DialogTitle className="font-semibold text-white text-2xl">
+                        Select Suitable Voice Agent
+                      </DialogTitle>
+                      <DialogDescription>
+                        Choose a voice agent to enhance your conversation
+                        experience
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer transition-all">
+                      <div
+                        onClick={() => {
+                          let url = domainState
+                            ? import.meta.env.VITE_OPENAI_REALTIME_URL
+                            : import.meta.env.VITE_OPENAI_REALTIME_URL2;
+
+                          url =
+                            files.length > 0
+                              ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
+                                  .slice(0, 20)
+                                  .map((file) => file.name)
+                                  .join("||||")}&namespace=${id || ""}`
+                              : id && id != undefined
+                                ? `${url}?namespace=${id}`
+                                : url;
+
+                          window.open(url, "_blank");
+                        }}
+                        className="flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full mt-2"
                       >
-                        <div className="cursor-pointer gap-2 mb-0 items-center p-2 rounded-xl hover:bg-gray-800 ">
-                          <AudioLines className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                        {/* left */}
+                        <div className="flex gap-2">
+                          {/* image */}
+                          <div className="flex items-center px-1 py-1 rounded-md bg-green-400 w-fit">
+                            <img
+                              src="/small-log.png"
+                              alt="Stream Realtime API"
+                              className="w-6 h-6 m-1 rounded-md"
+                            />
+                          </div>
+                          {/* content */}
+                          <div className="flex flex-col leading-5">
+                            <p className="font-semibold text-white">
+                              {isPublicDomain
+                                ? "Beta Voice Agent"
+                                : "ARX Next Voice Agent (Highly Recommended)"}
+                            </p>
+                            <p className="text-slate-300">
+                              {isPublicDomain
+                                ? "Beta Can Access Voice • Most Superior And Fast • Automation Features"
+                                : "ARX Next Can Access Voice • Most Superior And Fast • Automation Features"}
+                            </p>
+                          </div>
                         </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Use ARX Voice Technology</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </DialogTrigger>
-
-                <DialogContent className="max-w-5xl bg-slate-700">
-                  <DialogHeader>
-                    <DialogTitle className="font-semibold text-white text-2xl">
-                      Select Suitable Voice Agent
-                    </DialogTitle>
-                    <DialogDescription>
-                      Choose a voice agent to enhance your conversation
-                      experience
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer transition-all">
-                    <div
-                      onClick={() => {
-                        let url = domainState
-                          ? import.meta.env.VITE_OPENAI_REALTIME_URL
-                          : import.meta.env.VITE_OPENAI_REALTIME_URL2;
-
-                        url =
-                          files.length > 0
-                            ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-                                .slice(0, 20)
-                                .map((file) => file.name)
-                                .join("||||")}&namespace=${id || ""}`
-                            : id && id != undefined
-                              ? `${url}?namespace=${id}`
-                              : url;
-
-                        window.open(url, "_blank");
-                      }}
-                      className="flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full mt-2"
-                    >
-                      {/* left */}
-                      <div className="flex gap-2">
-                        {/* image */}
-                        <div className="flex items-center px-1 py-1 rounded-md bg-green-400 w-fit">
-                          <img
-                            src="/small-log.png"
-                            alt="Stream Realtime API"
-                            className="w-6 h-6 m-1 rounded-md"
-                          />
-                        </div>
-                        {/* content */}
-                        <div className="flex flex-col leading-5">
-                          <p className="font-semibold text-white">
-                            {isPublicDomain
-                              ? "Beta Voice Agent"
-                              : "ARX Next Voice Agent (Highly Recommended)"}
-                          </p>
-                          <p className="text-slate-300">
-                            {isPublicDomain
-                              ? "Beta Can Access Voice • Most Superior And Fast • Automation Features"
-                              : "ARX Next Can Access Voice • Most Superior And Fast • Automation Features"}
-                          </p>
+                        {/* right */}
+                        <div>
+                          <div className="bg-slate-800 rounded-md p-2">
+                            <AudioWaveform className="text-white" />
+                          </div>
                         </div>
                       </div>
-                      {/* right */}
-                      <div>
-                        <div className="bg-slate-800 rounded-md p-2">
-                          <AudioWaveform className="text-white" />
+                      <div
+                        onClick={() => {
+                          const url = domainState
+                            ? import.meta.env.VITE_GEMINI_REALTIME_URL
+                            : import.meta.env.VITE_GEMINI_REALTIME_URL2;
+                          window.open(url, "_blank");
+                        }}
+                        className={`flex justify-between bg-slate-600 hover:bg-slate-800  rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}
+                      >
+                        {/* left */}
+                        <div className="flex gap-2">
+                          {/* image */}
+                          <div className="flex items-center px-1 py-1 rounded-md bg-red-400 w-fit">
+                            <img
+                              src="/small-log.png"
+                              alt="Stream Realtime API"
+                              className="w-6 h-6 m-1 rounded-md"
+                            />
+                          </div>
+                          {/* content */}
+                          <div className="flex flex-col leading-5">
+                            <p className="font-semibold text-white">
+                              ARX Purle Voice Agent (Coming Soon)
+                            </p>
+                            <p className="text-slate-300">
+                              ARX Pulse Can Access Voice ,Screen And Camara
+                              Sharing • Full Version Coming Soon
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div
-                      onClick={() => {
-                        const url = domainState
-                          ? import.meta.env.VITE_GEMINI_REALTIME_URL
-                          : import.meta.env.VITE_GEMINI_REALTIME_URL2;
-                        window.open(url, "_blank");
-                      }}
-                      className={`flex justify-between bg-slate-600 hover:bg-slate-800  rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}
-                    >
-                      {/* left */}
-                      <div className="flex gap-2">
-                        {/* image */}
-                        <div className="flex items-center px-1 py-1 rounded-md bg-red-400 w-fit">
-                          <img
-                            src="/small-log.png"
-                            alt="Stream Realtime API"
-                            className="w-6 h-6 m-1 rounded-md"
-                          />
-                        </div>
-                        {/* content */}
-                        <div className="flex flex-col leading-5">
-                          <p className="font-semibold text-white">
-                            ARX Purle Voice Agent (Coming Soon)
-                          </p>
-                          <p className="text-slate-300">
-                            ARX Pulse Can Access Voice ,Screen And Camara
-                            Sharing • Full Version Coming Soon
-                          </p>
-                        </div>
-                      </div>
-                      {/* right */}
-                      <div className="">
-                        <div className="bg-slate-800 rounded-md p-2">
-                          <AudioWaveform className="text-white" />
-                        </div>
-                        <div className="bg-slate-800 rounded-md p-2">
-                          <Camera className="text-white" />
-                        </div>
-                        <div className="bg-slate-800 rounded-md p-2">
-                          <MonitorUp className="text-white" />
+                        {/* right */}
+                        <div className="">
+                          <div className="bg-slate-800 rounded-md p-2">
+                            <AudioWaveform className="text-white" />
+                          </div>
+                          <div className="bg-slate-800 rounded-md p-2">
+                            <Camera className="text-white" />
+                          </div>
+                          <div className="bg-slate-800 rounded-md p-2">
+                            <MonitorUp className="text-white" />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
 
-            <div className="flex gap-1 items-center">
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <div className="p-3 bg-slate-800 hover:bg-slate-600 mr-1 rounded-xl flex items-center justify-center gap-2 ">
-                    <Settings2 className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-slate-800 border-none">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setIsIntentSelectionOpen(true);
-                    }}
-                    className="hover:bg-slate-700 flex gap-2 items-start p-2"
-                  >
-                    <Boxes className="w-4 h-4 mt-1" />
-                    <div>
-                      <p className="text-md">Select Intent</p>
-                      <p className="max-w-[200px] text-xs text-slate-400">
-                        Select Diverse Model For Your Intent
-                      </p>
+              <div className="flex gap-1 items-center">
+                <DropdownMenu>
+                  <DropdownMenuTrigger>
+                    <div className="p-3 bg-slate-800 hover:bg-slate-600 mr-1 rounded-xl flex items-center justify-center gap-2 ">
+                      <Settings2 className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
                     </div>
-                  </DropdownMenuItem>
-                  {pathname !== "/dashboard" && (
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="bg-slate-800 border-none">
                     <DropdownMenuItem
                       onClick={() => {
-                        console.log("asdasdasdasdasdasd1212");
-                        setWorkflowModalOpen(true);
+                        setIsIntentSelectionOpen(true);
                       }}
                       className="hover:bg-slate-700 flex gap-2 items-start p-2"
                     >
-                      <CircleFadingPlus className="w-4 h-4 mt-1" />
+                      <Boxes className="w-4 h-4 mt-1" />
                       <div>
-                        <p className="text-md">Chat To Workflow</p>
+                        <p className="text-md">Select Intent</p>
                         <p className="max-w-[200px] text-xs text-slate-400">
-                          Transform Current Chat Into Reusable Workflow
+                          Select Diverse Model For Your Intent
                         </p>
                       </div>
                     </DropdownMenuItem>
+                    {pathname !== "/dashboard" && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          console.log("asdasdasdasdasdasd1212");
+                          setWorkflowModalOpen(true);
+                        }}
+                        className="hover:bg-slate-700 flex gap-2 items-start p-2"
+                      >
+                        <CircleFadingPlus className="w-4 h-4 mt-1" />
+                        <div>
+                          <p className="text-md">Chat To Workflow</p>
+                          <p className="max-w-[200px] text-xs text-slate-400">
+                            Transform Current Chat Into Reusable Workflow
+                          </p>
+                        </div>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setIsKnowledgeBlockSelectorOpen((prev) => !prev);
+                      }}
+                      className="hover:bg-slate-700 flex gap-2 items-start p-2"
+                    >
+                      <Database className="w-4 h-4 mt-1" />
+                      <div>
+                        <p className="text-md">Attach Knowledge Block</p>
+                        <p className="max-w-[200px] text-xs text-slate-400">
+                          Attach Your Global Knowledge As Knowledge Block For
+                          ARX
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {/* ghost component */}
+                <InternalKnowledgeDialog
+                  isDialogOpen={isKnowledgeBlockSelectorOpen}
+                  setIsDialogOpen={setIsKnowledgeBlockSelectorOpen}
+                />
+
+                <ModelSelectionDialog
+                  open={isIntentSelectionOpen}
+                  onClose={setIsIntentSelectionOpen}
+                />
+
+                <Test modes={modes} />
+
+                <button
+                  disabled={isAborting || (isLoading && !currConversationId)}
+                  onClick={handleClick}
+                  className={`${
+                    isAborting ||
+                    input.length === 0 ||
+                    (isLoading && !currConversationId)
+                      ? "bg-white border-slate-600 hover:bg-gray-300 cursor-not-allowed"
+                      : "bg-white hover:bg-slate-300"
+                  } rounded-2xl p-1 cursor-pointer`}
+                >
+                  {isLoading && (!currConversationId || isAborting) ? (
+                    <LoaderCircle className="animate-spin w-5 h-5 m-2 text-black" />
+                  ) : isLoading && currConversationId && !isAborting ? (
+                    <CirclePause className="w-5 h-5 text-black m-2" />
+                  ) : input.length === 0 && !pathname.includes("/dashboard") ? (
+                    <AudioLines className={`w-5 h-5 m-2 text-gray-800`} />
+                  ) : (
+                    <ArrowUp className="text-black font-thin w-5 h-5 m-2" />
                   )}
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setIsKnowledgeBlockSelectorOpen((prev) => !prev);
-                    }}
-                    className="hover:bg-slate-700 flex gap-2 items-start p-2"
-                  >
-                    <Database className="w-4 h-4 mt-1" />
-                    <div>
-                      <p className="text-md">Attach Knowledge Block</p>
-                      <p className="max-w-[200px] text-xs text-slate-400">
-                        Attach Your Global Knowledge As Knowledge Block For ARX
-                      </p>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {/* ghost component */}
-              <InternalKnowledgeDialog
-                isDialogOpen={isKnowledgeBlockSelectorOpen}
-                setIsDialogOpen={setIsKnowledgeBlockSelectorOpen}
-              />
-
-              <ModelSelectionDialog
-                open={isIntentSelectionOpen}
-                onClose={setIsIntentSelectionOpen}
-              />
-
-              <Test modes={modes} />
-
-              <button
-                disabled={isAborting || (isLoading && !currConversationId)}
-                onClick={handleClick}
-                className={`${
-                  isAborting ||
-                  input.length === 0 ||
-                  (isLoading && !currConversationId)
-                    ? "bg-white border-slate-600 hover:bg-gray-300 cursor-not-allowed"
-                    : "bg-white hover:bg-slate-300"
-                } rounded-2xl p-1 cursor-pointer`}
-              >
-                {isLoading && (!currConversationId || isAborting) ? (
-                  <LoaderCircle className="animate-spin w-5 h-5 m-2 text-black" />
-                ) : isLoading && currConversationId && !isAborting ? (
-                  <CirclePause className="w-5 h-5 text-black m-2" />
-                ) : (
-                  <ArrowUp className="text-black font-thin w-5 h-5 m-2" />
-                )}
-              </button>
+                </button>
+              </div>
             </div>
           </div>
         </div>

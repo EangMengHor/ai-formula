@@ -74,15 +74,7 @@ function ShowStatus({ status = "unknown" }) {
     ),
   };
 
-  return (
-    statusMap[status] || (
-      <span className={`${baseClass} bg-gray-100 text-gray-700`}>
-        Unknown Status
-      </span>
-    )
-  );
-
-  awsz2Ṣ;
+  return <div></div>;
 }
 
 export default function EachVectorStore() {

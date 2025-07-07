@@ -15,12 +15,12 @@ import {
   Volume2,
   FolderDown,
   CircleStop,
+  Sparkle,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { downloadPdf } from "@/services/n8n-apis/_core/downloadPdf.api";
 import {
   Tooltip,
   TooltipContent,
@@ -49,10 +49,12 @@ import Visualization from "@/components/custom/DynamicCharts/Visualization";
 import VectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/VectorStoreScrapper";
 import UrlShower from "@/components/custom/urlScraperSidebar/UrlShower";
 import OsintNewInstance from "@/components/custom/osint/OsintNewInstance";
+import { generateFileName } from "@/services/genereteFileName";
+import RenderActionButtons from "./ChatActionButtons";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
-const iconClass = "h-5 w-5";
+const iconClass = "h-6 w-6";
 
 const Conversation = forwardRef(
   (
@@ -137,14 +139,6 @@ const Conversation = forwardRef(
                         <CitationHoverCard index={idx} metadata={url.url} />
                       );
                   } else if (sourceId && sourceId.includes("agentCitations-")) {
-                    console.log(
-                      {
-                        sourceId,
-                        agentSimulationObj,
-                        agenticCitation,
-                      },
-                      "agenticCitation data",
-                    );
                     const citationId = sourceId.replaceAll(
                       "agentCitations-",
                       "",
@@ -180,7 +174,21 @@ const Conversation = forwardRef(
             }}
           />
 
-          {isLastBlock && renderActionButtons(currContent, blockIdx, citations)}
+          {isLastBlock && (
+            <RenderActionButtons
+              currContent={currContent}
+              blockIdx={blockIdx}
+              citations={citations}
+              content={block.content}
+              setpPdfFileName={setpPdfFileName}
+              currentContent={currentContent}
+              setCurrentContent={setCurrentContent}
+              copyToClipboard={copyToClipboard}
+              handlePdfDownload={handlePdfDownload}
+              pdfFileName={pdfFileName}
+              setPdfDialogOpen={setPdfDialogOpen}
+            />
+          )}
         </div>
       );
     };
@@ -256,7 +264,6 @@ const Conversation = forwardRef(
     };
 
     const renderCot = (text, collapsed = true, index) => {
-      console.log(text, typeof text, collapsed, index, "streaming 4");
       return (
         <DeepThoughts
           text={text || ""}
@@ -295,231 +302,6 @@ const Conversation = forwardRef(
             className="w-16 h-14 -rotate-6 brightness-150 contrast-125 drop-shadow-lg"
           />
         </div>
-      </div>
-    );
-
-    // Helper to render action buttons (copy and download)
-    const renderActionButtons = (content, blockIdx, citations) => (
-      <div className="flex gap-2">
-        <div className="flex justify-start border-2 border-slate-800 p-1 rounded-md w-fit items-center gap-2 mt-4 h-fit">
-          {/* Copy */}
-          <Button
-            className={buttonWrapperClass}
-            onClick={() => {
-              copyToClipboard(content);
-              setIsCopied(true);
-              toast({
-                title: "Copied to clipboard",
-                description: "Content copied to clipboard successfully",
-                variant: "success",
-              });
-            }}
-          >
-            {isCopied ? (
-              <Check className={iconClass} />
-            ) : (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger className="p-0">
-                    <Copy className={iconClass} />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Copy Content</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </Button>
-
-          {/* Download */}
-          <Dialog
-            open={blockIdx === currDialogIndexOpen && pdfDialogOpen}
-            onOpenChange={(val) => {
-              if (val) {
-                setCurrentContent(content || "No content available");
-                setCurrDialogIndexOpen(blockIdx);
-                setPdfDialogOpen(true);
-              } else {
-                setPdfDialogOpen(false);
-                setCurrDialogIndexOpen(-1);
-              }
-            }}
-          >
-            <DialogTrigger asChild className="p-0 m-0 h-fit">
-              <Button
-                className={buttonWrapperClass}
-                onClick={() => {
-                  setCurrentContent(content || "No content available");
-                  setCurrDialogIndexOpen(blockIdx);
-                }}
-              >
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <FolderDown className={iconClass} />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Download Content</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="max-w-4xl bg-slate-800">
-              <h1 className="font-semibold text-lg text-white mb-3">
-                Name And Download Your PDF
-              </h1>
-              <p className="text-white -mb-2">File Name</p>
-              <Textarea
-                className="w-full h-10 text-white"
-                placeholder="Document Name"
-                value={pdfFileName || "Document"}
-                onChange={(e) => setpPdfFileName(e.target.value)}
-              />
-              <Button
-                className="bg-slate-600 hover:bg-slate-500 text-white mt-4"
-                onClick={() =>
-                  handlePdfDownload({
-                    currContent: currentContent,
-                    pdfFileName: sanitizeFileName(pdfFileName || "Document"),
-                    setIsPdfDownloadLoading,
-                    setPdfDialogOpen,
-                    toast,
-                  })
-                }
-                disabled={isPdfDownloadLoading}
-              >
-                {isPdfDownloadLoading ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="animate-spin" />
-                    Downloading...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <FileDown /> Downloads
-                  </div>
-                )}
-              </Button>
-            </DialogContent>
-          </Dialog>
-
-          {/* TTS */}
-          <TTSPrompt
-            prompt={content || "No Content available"}
-            startButton={
-              <div className={buttonWrapperClass}>
-                <Volume2 className={iconClass} />
-              </div>
-            }
-            StopButton={
-              <div className={buttonWrapperClass}>
-                <CircleStop className={iconClass} />
-              </div>
-            }
-            loadingButton={
-              <div className={buttonWrapperClass}>
-                <Loader2 className={iconClass + " animate-spin"} />
-              </div>
-            }
-          />
-        </div>
-        {citations && citations.length > 0 && (
-          <div className="flex items-center gap-2 mt-4">
-            {console.log(citations, "citations")}
-            <Dialog>
-              <DialogTrigger>
-                <SourcesIndicator
-                  citations={
-                    citations.map((item) => ({
-                      url: typeof item == "string" ? item : item.url,
-                    })) || []
-                  }
-                  maxIcons={3}
-                  onClick={() => {}}
-                />
-              </DialogTrigger>
-              <DialogContent className="w-full max-w-3xl bg-slate-800 text-white">
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto pb-2">
-                  {citations.map((raw, idx) => {
-                    // 1️⃣  normalise shape
-                    const c = typeof raw === "string" ? { url: raw } : raw;
-                    const { url = "" } = c;
-
-                    // 2️⃣  hostname + favicon (always Google service, 64-px for retina)
-                    let hostname = url;
-                    try {
-                      hostname = new URL(url).hostname.replace(/^www\./, "");
-                    } catch {
-                      /* keep raw url */
-                    }
-                    const icon = `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
-
-                    // 3️⃣  title logic
-                    const rawTitle = c.title ? stripHtml(c.title) : "";
-                    const title =
-                      rawTitle.length >= 4 && !/^https?:/i.test(rawTitle)
-                        ? rawTitle
-                        : c.siteName || hostname;
-
-                    // 4️⃣  description logic
-                    const rawDesc = c.description
-                      ? stripHtml(c.description)
-                      : "";
-                    const description = rawDesc.length >= 10 ? rawDesc : "";
-
-                    return (
-                      <div
-                        key={idx}
-                        className="bg-slate-700 rounded-xl px-4 py-3 flex flex-col shadow border border-[#23272f] hover:bg-slate-600 transition"
-                      >
-                        {/* line 1 — index, favicon, site name */}
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm text-gray-400 font-semibold">
-                            {idx + 1}.
-                          </span>
-                          <span className="flex items-center gap-1 text-sm font-medium text-gray-200">
-                            <img
-                              src={icon}
-                              alt=""
-                              className="w-5 h-5
-                               rounded-full"
-                            />
-                            {c.siteName || hostname}
-                          </span>
-                        </div>
-
-                        {/* title */}
-                        {title && (
-                          <p className="text-base font-semibold leading-snug text-gray-100 mb-1">
-                            {title}
-                          </p>
-                        )}
-
-                        {/* description */}
-                        {description && (
-                          <p className="text-sm text-gray-300 leading-snug mb-1 line-clamp-3">
-                            {description}
-                          </p>
-                        )}
-
-                        {/* raw link */}
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-400 hover:underline break-all"
-                        >
-                          {url}
-                        </a>
-                      </div>
-                    );
-                  })}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
       </div>
     );
 
@@ -615,7 +397,6 @@ const Conversation = forwardRef(
                                 (msg) => msg?.type === "simulation",
                               ) || null;
                           }
-                          console.log(simulation, "2nd parse");
                         }
 
                         return renderTextBlock(
@@ -666,7 +447,6 @@ const Conversation = forwardRef(
                         const jobId = block.jobId;
                         const name = block.name;
                         const numOfUrls = block.numOfUrls;
-                        console.log(block, "urlScraper block");
 
                         return (
                           <UrlShower
@@ -678,7 +458,6 @@ const Conversation = forwardRef(
                         );
                       } else if (block.type == "vectorStoreJob") {
                         const databaseId = block.vsId;
-                        console.log(block);
                         return (
                           <VectorStoreScrapper
                             databaseId={databaseId}

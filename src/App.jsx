@@ -69,6 +69,8 @@ export default function App() {
           <Route path={signup} element={<Signup />} />
         </Route>
         <Route element={<PrivateRoute />}>
+          {/* voice to voice */}
+
           {/* user manual */}
           <Route path="/manual" element={<UserManualLayout />} />
           <Route path="/detail/:slug" element={<DetailPage />} />
