@@ -49,7 +49,7 @@ import Visualization from "@/components/custom/DynamicCharts/Visualization";
 import VectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/VectorStoreScrapper";
 import UrlShower from "@/components/custom/urlScraperSidebar/UrlShower";
 import { generateFileName } from "@/services/genereteFileName";
-import renderActionButtons from "./ChatActionButtons";
+import RenderActionButtons from "./ChatActionButtons";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -172,20 +172,21 @@ const Conversation = forwardRef(
             }}
           />
 
-          {isLastBlock &&
-            renderActionButtons({
-              currContent,
-              blockIdx,
-              citations,
-              content: block.content,
-              setpPdfFileName: setpPdfFileName,
-              currentContent: currentContent,
-              setCurrentContent: setCurrentContent,
-              copyToClipboard: copyToClipboard,
-              handlePdfDownload: handlePdfDownload,
-              pdfFileName: pdfFileName,
-              setPdfDialogOpen: setPdfDialogOpen,
-            })}
+          {isLastBlock && (
+            <RenderActionButtons
+              currContent={currContent}
+              blockIdx={blockIdx}
+              citations={citations}
+              content={block.content}
+              setpPdfFileName={setpPdfFileName}
+              currentContent={currentContent}
+              setCurrentContent={setCurrentContent}
+              copyToClipboard={copyToClipboard}
+              handlePdfDownload={handlePdfDownload}
+              pdfFileName={pdfFileName}
+              setPdfDialogOpen={setPdfDialogOpen}
+            />
+          )}
         </div>
       );
     };

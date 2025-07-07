@@ -25,9 +25,8 @@ import TTSPrompt from "@/components/custom/TTSPrompt";
 import SourcesIndicator from "@/components/custom/CitationSources";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
-
 const iconClass = "h-6 w-6";
-export default function renderActionButtons({
+export default function RenderActionButtons({
   content,
   blockIdx,
   citations,

@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import VADVisualization from "./VADVisualization";
-import { use } from "react";
 import { useParams } from "react-router-dom";
 import { voiceToVoiceStoreMessageBatch } from "@/services/voice/voiceToVoiceStoreMessageBatch";
 import { playSound } from "@/lib/utils";
-import { CircleSlash, CircleStop, Mic, MicOff } from "lucide-react";
+import { CircleStop, Mic, MicOff } from "lucide-react";
 import getTools from "./tools";
 import { getSessionContext } from "@/services/voice/getSessionContext";
 import { vectorStoreContext } from "@/services/voice/vectorStoreContext";
 import { searchInternet } from "@/services/voice/searchInternet";
 import { readFileContext } from "@/services/voice/readFileContext";
+import { useToast } from "@/hooks/use-toast";
 export default function VoiceInputBlock({
   setIsVoiceMode = () => {},
   setConversation = () => {},
@@ -21,8 +21,8 @@ export default function VoiceInputBlock({
   const [dataChannel, setDataChannel] = useState(null);
   const [userAudioStream, setUserAudioStream] = useState(null);
   const [remoteAudioStream, setRemoteAudioStream] = useState(null);
-  const [transcripts, setTranscripts] = useState([]);
-
+  //   const [transcripts, setTranscripts] = useState([]);
+  const { toast } = useToast();
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
   const greetingDone = useRef(false);
@@ -142,9 +142,28 @@ export default function VoiceInputBlock({
       dc.onopen = () => {
         setIsSessionActive(true);
         setEvents([]);
-        setTranscripts([]);
+        // setTranscripts([]);
+        setWaitingMessage("Ready to chat!");
         // now safe to send greeting, memory, tools
         initOnOpen();
+      };
+      dc.onerror = (e) => {
+        console.error("DataChannel error:", e);
+        toast({
+          title: "DataChannel Error",
+          description: "Failed to establish data channel connection.",
+          variant: "destructive",
+        });
+        // maybe show a toast or retry logic
+      };
+      dc.onclose = () => {
+        console.warn("DataChannel closed");
+        setIsSessionActive(false);
+        toast({
+          title: "DataChannel Closed",
+          description: "The connection to the AI has been closed.",
+        });
+        // optionally try to re-negotiate or prompt the user
       };
       setDataChannel(dc);
       const offer = await pc.createOffer();
@@ -162,19 +181,32 @@ export default function VoiceInputBlock({
 
       const baseUrl = "https://api.openai.com/v1/realtime";
       const model = "gpt-4o-realtime-preview-2025-06-03";
-      const sdpResponse = await fetch(
-        `${baseUrl}?model=${model}&max_response_output_tokens=4000`,
-        {
-          method: "POST",
-          body: offer.sdp,
-          headers: {
-            Authorization: `Bearer ${EPHEMERAL_KEY}`,
-            "Content-Type": "application/sdp",
-          },
-        },
-      );
-
-      const rawSdp = await sdpResponse.text();
+      // attempt SDP exchange up to 3× with exponential backoff
+      let rawSdp,
+        attempt = 0;
+      while (attempt < 3) {
+        try {
+          const res = await fetch(
+            `${baseUrl}?model=${model}&max_response_output_tokens=4000`,
+            {
+              method: "POST",
+              body: offer.sdp,
+              headers: {
+                Authorization: `Bearer ${EPHEMERAL_KEY}`,
+                "Content-Type": "application/sdp",
+              },
+            },
+          );
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          rawSdp = await res.text();
+          break;
+        } catch (err) {
+          attempt++;
+          console.warn(`SDP exchange failed (attempt ${attempt}):`, err);
+          if (attempt === 3) throw err;
+          await new Promise((r) => setTimeout(r, 500 * attempt));
+        }
+      }
       const answer = { type: "answer", sdp: rawSdp };
 
       // 🛡️ Validate SDP
@@ -213,8 +245,6 @@ export default function VoiceInputBlock({
       console.log("Session started successfully");
     } catch (error) {
       setWaitingMessage("Failed to start session. Please try again.");
-    } finally {
-      setWaitingMessage("");
     }
   }
 
@@ -258,26 +288,25 @@ export default function VoiceInputBlock({
   }
 
   function sendClientEvent(message) {
-    if (dataChannel) {
-      const timestamp = new Date().toLocaleTimeString();
-      message.event_id = message.event_id || crypto.randomUUID();
-      dataChannel.send(JSON.stringify(message));
-      if (!message.timestamp) {
-        message.timestamp = timestamp;
-      }
-      setEvents((prev) => [message, ...prev]);
-    } else {
-      console.error(
-        "Failed to send message - no data channel available",
-        message,
-      );
+    if (!dataChannel || dataChannel.readyState !== "open") {
+      console.warn("DataChannel not open; cannot send:", message);
+      return;
     }
+    // log every event for diagnostics:
+    console.debug("→ sendClientEvent:", message);
+    const timestamp = new Date().toLocaleTimeString();
+    message.event_id = message.event_id || crypto.randomUUID();
+    dataChannel.send(JSON.stringify(message));
+    if (!message.timestamp) {
+      message.timestamp = timestamp;
+    }
+    setEvents((prev) => [message, ...prev]);
   }
 
   // Global refs for batching (must be declared in st st)
   const messagePointerRef = useRef(0);
   const batchedMessagesRef = useRef([]);
-  const pendingHumanTranscriptRef = { current: null };
+  const pendingHumanTranscriptRef = useRef(null);
 
   function addLoadingConversation(data) {
     setConversation((prev) => {
@@ -560,19 +589,18 @@ export default function VoiceInputBlock({
       processTranscript(event);
       setEvents((prev) => [event, ...prev]);
     };
-    let openListener = () => {
-      setIsSessionActive(true);
-      setEvents([]);
-      setTranscripts([]);
-    };
+    // let openListener = () => {
+    //   setIsSessionActive(true);
+    //   setEvents([]);
+    //   //   setTranscripts([]);
+    // };
     dataChannel.addEventListener("message", messageListener);
-    dataChannel.addEventListener("open", openListener);
+    // dataChannel.addEventListener("open", openListener);
     return () => {
       dataChannel.removeEventListener("message", messageListener);
-      dataChannel.removeEventListener("open", openListener);
+      //   dataChannel.removeEventListener("open", openListener);
     };
-  }, [dataChannel]);
-
+  }, [dataChannel, id]);
   useEffect(() => {
     // start
     startSession();
