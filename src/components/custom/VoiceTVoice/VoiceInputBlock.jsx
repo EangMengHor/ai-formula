@@ -10,6 +10,7 @@ import { vectorStoreContext } from "@/services/voice/vectorStoreContext";
 import { searchInternet } from "@/services/voice/searchInternet";
 import { readFileContext } from "@/services/voice/readFileContext";
 import { useToast } from "@/hooks/use-toast";
+import { createVisualization } from "@/services/voice/createVisualization";
 export default function VoiceInputBlock({
   setIsVoiceMode = () => {},
   setConversation = () => {},
@@ -33,81 +34,90 @@ export default function VoiceInputBlock({
   const [waitingMessage, setWaitingMessage] = useState(
     "Waiting for AI response...",
   );
-  async function initOnOpen() {
-    if (
-      greetingDone.current &&
-      isContextFeeded.current &&
-      isToolsInitialized.current &&
-      isMaxTokenIncreased.current
-    )
-      return;
+  const pendingQueue = useRef([]);
 
-    // 1️⃣ Greeting
-    if (!greetingDone.current) {
-      greetingDone.current = true;
-      sendClientEvent({
-        type: "conversation.item.create",
-        item: {
-          type: "message",
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text: "I am ARX agent, ready to operate. Please start speaking.",
-            },
-          ],
-        },
-      });
-      sendClientEvent({
-        type: "response.create",
-        response: { instructions: "" },
-      });
-      playSound("/vtv.mp3");
-    }
+  //   async function initOnOpen() {
+  //     if (
+  //       greetingDone.current &&
+  //       isContextFeeded.current &&
+  //       isToolsInitialized.current &&
+  //       isMaxTokenIncreased.current &&
+  //       !dataChannel &&
+  //       !dataChannel.readyState === "open"
+  //     ) {
+  //       console.log(
+  //         "Session already initialized, skipping greeting and context feed.",
+  //       );
+  //       return;
+  //     }
 
-    // 2️⃣ Chat/file memory
-    if (!isContextFeeded.current) {
-      isContextFeeded.current = true;
-      const data = await getSessionContext(id);
-      fileDataNamespace.current = data.fileDataNamespace;
-      const memoryText = [
-        `Chat Memory:\n${JSON.stringify(data.chatContext, null, 2)}`,
-        data.isFileData
-          ? `File Data: ${Array.isArray(data.fileNames) ? data.fileNames.join(", ") : data.fileNames}`
-          : "",
-        `Knowledge Graph:\n${data.knowledgeGraph || "N/A"}`,
-      ]
-        .filter(Boolean)
-        .join("\n\n");
-      sendClientEvent({
-        type: "conversation.item.create",
-        item: {
-          type: "message",
-          role: "system",
-          content: [{ type: "input_text", ext: memoryText }],
-        },
-      });
-      sendClientEvent({
-        type: "response.create",
-        response: { instructions: "" },
-      });
-    }
+  //     // 1️⃣ Greeting
+  //     if (!greetingDone.current) {
+  //       greetingDone.current = true;
+  //       sendClientEvent({
+  //         type: "conversation.item.create",
+  //         item: {
+  //           type: "message",
+  //           role: "system",
+  //           content: [
+  //             {
+  //               type: "input_text",
+  //               text: "I am ARX agent, ready to operate. Please start speaking.",
+  //             },
+  //           ],
+  //         },
+  //       });
+  //       sendClientEvent({
+  //         type: "response.create",
+  //         response: { instructions: "" },
+  //       });
+  //       playSound("/vtv.mp3");
+  //     }
 
-    // 3️⃣ Initialize tools
-    if (!isToolsInitialized.current) {
-      isToolsInitialized.current = true;
-      sendClientEvent(getTools(!!fileDataNamespace.current));
-    }
+  //     // 2️⃣ Chat/file memory
+  //     if (!isContextFeeded.current) {
+  //       isContextFeeded.current = true;
+  //       const data = await getSessionContext(id);
+  //       fileDataNamespace.current = data.fileDataNamespace;
+  //       const memoryText = [
+  //         `Chat Memory:\n${JSON.stringify(data.chatContext, null, 2)}`,
+  //         data.isFileData
+  //           ? `File Data: ${Array.isArray(data.fileNames) ? data.fileNames.join(", ") : data.fileNames}`
+  //           : "",
+  //         `Knowledge Graph:\n${data.knowledgeGraph || "N/A"}`,
+  //       ]
+  //         .filter(Boolean)
+  //         .join("\n\n");
+  //       sendClientEvent({
+  //         type: "conversation.item.create",
+  //         item: {
+  //           type: "message",
+  //           role: "system",
+  //           content: [{ type: "input_text", ext: memoryText }],
+  //         },
+  //       });
+  //       sendClientEvent({
+  //         type: "response.create",
+  //         response: { instructions: "" },
+  //       });
+  //     }
 
-    // 4️⃣ Increase tokens
-    if (!isMaxTokenIncreased.current) {
-      isMaxTokenIncreased.current = true;
-      sendClientEvent({
-        type: "session.update",
-        session: { max_response_output_tokens: "inf" },
-      });
-    }
-  }
+  //     // 3️⃣ Initialize tools
+  //     if (!isToolsInitialized.current) {
+  //       isToolsInitialized.current = true;
+  //       sendClientEvent(getTools(!!fileDataNamespace.current));
+  //     }
+
+  //     // 4️⃣ Increase tokens
+  //     if (!isMaxTokenIncreased.current) {
+  //       isMaxTokenIncreased.current = true;
+  //       sendClientEvent({
+  //         type: "session.update",
+  //         session: { max_response_output_tokens: "inf" },
+  //       });
+  //     }
+  //   }
+
   async function startSession() {
     try {
       setWaitingMessage("Connecting to AI...");
@@ -140,12 +150,18 @@ export default function VoiceInputBlock({
       const dc = pc.createDataChannel("oai-events");
       // initialize only once channel is open
       dc.onopen = () => {
+        console.log("🔗 DataChannel is open");
         setIsSessionActive(true);
         setEvents([]);
-        // setTranscripts([]);
         setWaitingMessage("Ready to chat!");
-        // now safe to send greeting, memory, tools
-        initOnOpen();
+        // Flush any queued messages immediately:
+        pendingQueue.current.forEach((message) => {
+          console.debug("→ Resending queued message:", message);
+          sendClientEvent(message);
+        });
+        pendingQueue.current = [];
+        // Now send your greeting, context, tools, etc.
+        // initOnOpen(dc);
       };
       dc.onerror = (e) => {
         console.error("DataChannel error:", e);
@@ -286,10 +302,26 @@ export default function VoiceInputBlock({
       }
     }
   }
+  useEffect(() => {
+    // If pendingQueue changes, process any queued messages
+    if (pendingQueue.current.length > 0) {
+      console.warn("Processing pending messages:", pendingQueue.current);
+      while (pendingQueue.current.length > 0) {
+        const message = pendingQueue.current.shift();
+        console.debug("→ Resending queued message:", message);
+        sendClientEvent(message);
+      }
+    }
+  }, [pendingQueue.current]);
 
   function sendClientEvent(message) {
-    if (!dataChannel || dataChannel.readyState !== "open") {
-      console.warn("DataChannel not open; cannot send:", message);
+    if (!dataChannel) {
+      console.warn(
+        "DataChannel not ready, queuing message:",
+        message,
+        pendingQueue,
+      );
+      pendingQueue.current.push(message);
       return;
     }
     // log every event for diagnostics:
@@ -372,16 +404,41 @@ export default function VoiceInputBlock({
                 payload = JSON.stringify(fileData, null, 2);
                 break;
               }
+              case "create_visualization":
+                {
+                  const { chartType, prompt } = JSON.parse(output.arguments);
+                  addLoadingConversation(
+                    `Creating ${chartType} chart for ${prompt}...`,
+                  );
+
+                  const chart = await createVisualization(prompt, chartType);
+
+                  if (chart.success) {
+                    payload = JSON.stringify({
+                      chart: chart.visualizationData || "error",
+                      howToShow: `render the whole <dataChart> tag in your response without that element in your response it will now be render , properly show the whole tag ex. <dataChart>\n<chartType>type</chartType>\n<dataId>number</dataId>\n<dataName>name</dataName>\n<dataLabel>label</dataLabel>\n</dataChart>`,
+                    });
+                    console.warn(payload, "visualization payload");
+                  }
+                }
+                break;
               default: {
                 errorMessage = `Unknown function call: ${output.name}`;
                 payload = JSON.stringify({ error: errorMessage });
               }
             }
           } catch (err) {
-            errorMessage = `Tool call failed: ${output.name} - ${err?.message || err}`;
+            errorMessage = `Tool call failed: ${output.name} - ${err?.message || err} try again to call the same tool or check the arguments you passed and it will work .`;
             payload = JSON.stringify({ error: errorMessage });
           }
-
+          console.log(
+            {
+              type: "function_call_output",
+              call_id: output.call_id,
+              output: payload,
+            },
+            "visual 129730",
+          );
           // Send the tool-output (success or error):
           sendClientEvent({
             type: "conversation.item.create",
@@ -535,18 +592,309 @@ export default function VoiceInputBlock({
 
         const incoming = event.transcript?.trim() || "";
 
+        const processStreamingContent = (input, forceComplete = false) => {
+          if (!input) return [];
+
+          /** helper to push a text block if non-empty */
+          const pushText = (arr, txt) => {
+            const t = txt.trim();
+            if (t) arr.push({ type: "text", content: t, isComplete: true });
+          };
+
+          // --- 1. Extract balanced <document> blocks ---
+          const documentBlocks = [];
+          const docRegex = /<document>/gi;
+          let match;
+          while ((match = docRegex.exec(input)) !== null) {
+            const start = match.index;
+            let depth = 1;
+            let pos = start + match[0].length;
+            while (depth > 0 && pos < input.length) {
+              const nextOpen = input.indexOf("<document>", pos);
+              const nextClose = input.indexOf("</document>", pos);
+              if (nextClose === -1) break;
+              if (nextOpen !== -1 && nextOpen < nextClose) {
+                depth++;
+                pos = nextOpen + 10;
+              } else {
+                depth--;
+                pos = nextClose + 11;
+              }
+            }
+            if (depth === 0) {
+              const end = pos;
+              let inner = input.slice(start + 10, end - 11).trim();
+              let name = "Document";
+              const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+              if (nm) {
+                name = nm[1].trim();
+                inner = inner.replace(nm[0], "").trim();
+              }
+              documentBlocks.push({
+                type: "document",
+                name,
+                content: inner,
+                isComplete: true,
+                start,
+                end,
+              });
+              docRegex.lastIndex = end;
+            }
+          }
+
+          // --- 2. Mask document spans to avoid nested matches ---
+          let masked = input;
+          documentBlocks.forEach(({ start, end }) => {
+            masked =
+              masked.slice(0, start) +
+              " ".repeat(end - start) +
+              masked.slice(end);
+          });
+
+          // --- 3. Define other block patterns ---
+          const blockDefs = [
+            {
+              type: "visual",
+              regex: /<visual>([\s\S]*?)<\/visual>/gi,
+              handler: (m, start, end) => {
+                let inner = m[1].trim();
+                let name = "Visualization";
+                const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+                if (nm) {
+                  name = nm[1].trim();
+                  inner = inner.replace(nm[0], "").trim();
+                }
+                return {
+                  type: "visual",
+                  name,
+                  content: inner,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "mermaid",
+              regex: /```mermaid([\s\S]*?)```/gi,
+              handler: (m, start, end) => ({
+                type: "mermaid",
+                content: m[1].trim(),
+                isComplete: true,
+                start,
+                end,
+              }),
+            },
+            {
+              type: "automationDaily",
+              regex: /<automationCard>([\s\S]*?)<\/automationCard>/gi,
+              handler: (m, start, end) => {
+                const inner = m[1];
+                const tag = (t) =>
+                  new RegExp(`<${t}>([\\s\\S]*?)<\/${t}>`, "i")
+                    .exec(inner)?.[1]
+                    ?.trim() || "";
+                return {
+                  type: "automationDaily",
+                  name: tag("name"),
+                  task: tag("task"),
+                  time: tag("time"),
+                  outputFormat: tag("outputFormat"),
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "showUniProt",
+              regex: /<showUniProt>([\s\S]*?)<\/showUniProt>/gi,
+              handler: (m, start, end) => {
+                let inner = m[1].trim();
+                let name = "";
+                const nm = /<name>([\s\S]*?)<\/name>/i.exec(inner);
+                if (nm) {
+                  name = nm[1].trim();
+                  inner = inner.replace(nm[0], "").trim();
+                }
+                return {
+                  type: "showUniProt",
+                  name,
+                  uniProt: inner,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "chart",
+              regex: /<dataChart>([\s\S]*?)<\/dataChart>/gi,
+              handler: (m, start, end) => {
+                let inner = m[1].trim();
+
+                const extractTag = (tag, source) => {
+                  const regex = new RegExp(
+                    `<${tag}>([\\s\\S]*?)<\\/${tag}>`,
+                    "i",
+                  );
+                  const match = regex.exec(source);
+                  return match ? match[1].trim() : null;
+                };
+
+                const chartType = extractTag("chartType", inner);
+                const dataId = extractTag("dataId", inner);
+                const dataName = extractTag("dataName", inner);
+                const dataLabel = extractTag("dataLabel", inner);
+
+                return {
+                  type: "chart",
+                  chartType,
+                  dataId,
+                  dataName,
+                  dataLabel,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+
+            {
+              type: "persona",
+              regex: /<\|agent\|([\s\S]*?)<\|end\|>/gi,
+              handler: (m, start, end) => {
+                const rawContent = m[1].trim();
+
+                // Important: Don't use m[1] directly for parsing — use rawContent + manually remove tail
+                const parsed = parseAgentBlock(
+                  rawContent
+                    .replaceAll("<visual>", "")
+                    .replaceAll("</visual>", ""),
+                );
+                return {
+                  type: "persona",
+                  ...parsed,
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "vectorStoreJob",
+              regex: /<newVectorStoreJob>([\s\S]*?)<\/newVectorStoreJob>/gi,
+              handler: (m, start, end) => {
+                const rawContent = m[1].trim();
+
+                // Extract values from XML-style tags manually
+                const vsIdMatch = rawContent.match(/<vsId>([\s\S]*?)<\/vsId>/i);
+                const taskMatch = rawContent.match(/<task>([\s\S]*?)<\/task>/i);
+                const nameMatch = rawContent.match(/<name>([\s\S]*?)<\/name>/i);
+
+                return {
+                  type: "vectorStoreJob",
+                  vsId: vsIdMatch?.[1]?.trim() || null,
+                  task: taskMatch?.[1]?.trim() || null,
+                  name: nameMatch?.[1]?.trim() || "Vector Store Scrapper",
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+            {
+              type: "urlScraper",
+              regex: /<urlScraper>([\s\S]*?)<\/urlScraper>/gi,
+              handler: (m, start, end) => {
+                const inner = m[1].trim();
+
+                const extractTag = (tag, source) => {
+                  const regex = new RegExp(
+                    `<${tag}>([\\s\\S]*?)<\\/${tag}>`,
+                    "i",
+                  );
+                  const match = regex.exec(source);
+                  return match ? match[1].trim() : null;
+                };
+
+                return {
+                  type: "urlScraper",
+                  jobId: extractTag("jobid", inner),
+                  name: extractTag("name", inner),
+                  numOfUrls: extractTag("numOfUrls", inner),
+                  isComplete: true,
+                  start,
+                  end,
+                };
+              },
+            },
+          ];
+
+          // --- 4. Find other blocks in masked content ---
+          const found = [];
+          blockDefs.forEach((def) => {
+            let rx = def.regex;
+            let m;
+            while ((m = rx.exec(masked)) !== null) {
+              found.push(def.handler(m, m.index, rx.lastIndex));
+            }
+          });
+
+          // Combine and sort all blocks
+          const allBlocks = [...documentBlocks, ...found].sort(
+            (a, b) => a.start - b.start,
+          );
+
+          // --- 5. Walk through content and build result ---
+          const result = [];
+          let cursor = 0;
+
+          allBlocks.forEach((block) => {
+            if (block.start > cursor) {
+              pushText(result, input.slice(cursor, block.start));
+            }
+            block.isComplete =
+              forceComplete ||
+              Boolean(block.content && block.content.length > 0);
+            result.push(block);
+            cursor = block.end;
+          });
+
+          if (cursor < input.length) pushText(result, input.slice(cursor));
+
+          if (result.length === 0) {
+            result.push({
+              type: "text",
+              content: input.trim(),
+              isComplete: true,
+            });
+          }
+
+          // --- 6. Merge persona blocks into a simulation at original position ---
+          const personas = result.filter((b) => b.type === "persona");
+          if (personas.length) {
+            const idx = result.findIndex((b) => b.type === "persona");
+            const simulation = {
+              type: "simulation",
+              items: personas,
+              isComplete: true,
+            };
+            const filtered = result.filter((b) => b.type !== "persona");
+            filtered.splice(idx, 0, simulation);
+            return filtered;
+          }
+
+          return result;
+        };
+
         newMessage = {
           role: "ai",
           type: "quick",
           isLoading: false,
           isComplete: true,
-          message: [
-            {
-              type: "text",
-              content: incoming,
-              isComplete: true,
-            },
-          ],
+          message: processStreamingContent(incoming, true),
+          createdAt: now,
           cot: "",
           citations: [],
           agenticCitations: [],
@@ -622,114 +970,110 @@ export default function VoiceInputBlock({
     }
   }, [isSessionActive]);
 
-  //   useEffect(() => {
-  //     async function init() {
-  //       if (!isSessionActive) return;
-  //       // 1️⃣ Greeting (only once)
-  //       if (!greetingDone.current) {
-  //         greetingDone.current = true;
-
-  //         // Send a system message into the conversation
-  //         sendClientEvent({
-  //           type: "conversation.item.create",
-  //           item: {
-  //             type: "message",
-  //             role: "system",
-  //             content: [
-  //               {
-  //                 type: "input_text",
-  //                 text: "Greet the user with a friendly message and say: 'I am ARX agent, ready to operate.' Ask them to start speaking.",
-  //               },
-  //             ],
-  //           },
-  //         });
-
-  //         // Now ask the model to generate that greeting
-  //         sendClientEvent({
-  //           type: "response.create",
-  //           response: {
-  //             instructions: "", // no extra instructions needed here
-  //           },
-  //         });
-
-  //         playSound("/vtv.mp3");
-  //       }
-
-  //       // 2️⃣ Feed in your chat/file memory as a **system** message (only once)
-  //       if (!isContextFeeded.current) {
-  //         isContextFeeded.current = true;
-  //         const data = await getSessionContext(id);
-  //         console.log("Session context data:", data);
-  //         fileDataNamespace.current = data.fileDataNamespace || null;
-  //         const memoryText = `
-  // Here is the context of the chat (if any):
-
-  // Chat Memory:
-  // ${JSON.stringify(data.chatContext, null, 2)}
-
-  // ${
-  //   data.isFileData
-  //     ? `File Data:\n${
-  //         Array.isArray(data.fileNames)
-  //           ? data.fileNames.join(", ")
-  //           : data.fileNames
-  //       }\n`
-  //     : ""
-  // }
-
-  // Knowledge Graph:
-  // ${data.knowledgeGraph || "N/A"}
-
-  // Whenever I ask about frameworks, only mention frameworks from this graph.
-  //       `.trim();
-
-  //         // Inject as a system message
-  //         sendClientEvent({
-  //           type: "conversation.item.create",
-  //           item: {
-  //             type: "message",
-  //             role: "system",
-  //             content: [{ type: "input_text", text: memoryText }],
-  //           },
-  //         });
-
-  //         // Now trigger the model turn so it “sees” that memory
-  //         sendClientEvent({
-  //           type: "response.create",
-  //           response: { instructions: "" },
-  //         });
-
-  //         console.log("Chat context sent to AI");
-  //       }
-
-  //       // 3️⃣ Initialize tools (only once)
-  //       if (!isToolsInitialized.current) {
-  //         isToolsInitialized.current = true;
-  //         sendClientEvent(
-  //           getTools(
-  //             fileDataNamespace.current && fileDataNamespace.current !== "",
-  //           ),
-  //         );
-  //         console.log("Tools initialized");
-  //       }
-  //     }
-
-  //     if (!isMaxTokenIncreased.current) {
-  //       isMaxTokenIncreased.current = true;
-
-  //       sendClientEvent({
-  //         type: "session.update",
-  //         session: { max_response_output_tokens: "inf" },
-  //       });
-  //       console.log("Max response tokens increased to 4096");
-  //     }
-
-  //     init();
-  //   }, [isSessionActive]);
-
   useEffect(() => {
-    console.log("fileNamepsace", fileDataNamespace.current);
-  }, [fileDataNamespace.current]);
+    async function init() {
+      if (!isSessionActive || !dataChannel) return;
+      // 1️⃣ Greeting (only once)
+      if (!greetingDone.current) {
+        greetingDone.current = true;
+
+        // Send a system message into the conversation
+        sendClientEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "system",
+            content: [
+              {
+                type: "input_text",
+                text: "Greet the user with a friendly message and say: 'I am ARX agent, ready to operate.' Ask them to start speaking.",
+              },
+            ],
+          },
+        });
+
+        // Now ask the model to generate that greeting
+        sendClientEvent({
+          type: "response.create",
+          response: {
+            instructions: "", // no extra instructions needed here
+          },
+        });
+
+        playSound("/vtv.mp3");
+      }
+
+      // 2️⃣ Feed in your chat/file memory as a **system** message (only once)
+      if (!isContextFeeded.current) {
+        isContextFeeded.current = true;
+        const data = await getSessionContext(id);
+        console.log("Session context data:", data);
+        fileDataNamespace.current = data.fileDataNamespace || null;
+        const memoryText = `
+  Here is the context of the chat (if any):
+
+  Chat Memory:
+  ${JSON.stringify(data.chatContext, null, 2)}
+
+  ${
+    data.isFileData
+      ? `File Data:\n${
+          Array.isArray(data.fileNames)
+            ? data.fileNames.join(", ")
+            : data.fileNames
+        }\n`
+      : ""
+  }
+
+  Knowledge Graph:
+  ${data.knowledgeGraph || "N/A"}
+
+  Whenever I ask about frameworks, only mention frameworks from this graph.
+        `.trim();
+
+        // Inject as a system message
+        sendClientEvent({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "system",
+            content: [{ type: "input_text", text: memoryText }],
+          },
+        });
+
+        // Now trigger the model turn so it “sees” that memory
+        sendClientEvent({
+          type: "response.create",
+          response: { instructions: "" },
+        });
+
+        console.log("Chat context sent to AI");
+      }
+
+      // 3️⃣ Initialize tools (only once)
+      if (!isToolsInitialized.current) {
+        isToolsInitialized.current = true;
+        sendClientEvent(
+          getTools(
+            fileDataNamespace.current && fileDataNamespace.current !== "",
+          ),
+        );
+        console.log("Tools initialized");
+      }
+    }
+
+    if (!isMaxTokenIncreased.current) {
+      isMaxTokenIncreased.current = true;
+
+      sendClientEvent({
+        type: "session.update",
+        session: { max_response_output_tokens: "inf" },
+      });
+      console.log("Max response tokens increased to 4096");
+    }
+
+    init();
+  }, [isSessionActive]);
 
   return (
     <div className="w-full mb-4 flex justify-between bg-slate-900 p-10 rounded-3xl">

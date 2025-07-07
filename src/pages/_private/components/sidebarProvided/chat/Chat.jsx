@@ -954,7 +954,7 @@ function Chat() {
     return result;
   }
 
-  const processStreamingContent = (input, forceComplete = false) => {
+   const processStreamingContent = (input, forceComplete = false) => {
     if (!input) return [];
 
     /** helper to push a text block if non-empty */
