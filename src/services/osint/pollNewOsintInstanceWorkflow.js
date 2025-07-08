@@ -5,7 +5,7 @@ export async function pollNewOsintInstanceWorkflow(workflowId) {
     try {
         const response = await axios.get(newOsintInstancePollingUrl.replace(":workflowId", workflowId));
         if (response.status === 200) {
-            return response.data;
+            return response.data?.data || null;
         } else {
             throw new Error(`Failed to poll OSINT instance workflow: ${response.statusText}`);
         }

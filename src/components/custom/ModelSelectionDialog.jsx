@@ -10,9 +10,13 @@ import {
   CalendarHeart,
   ChartBarStacked,
   Globe,
+  Microscope,
   Orbit,
+  PersonStanding,
+  Proportions,
   QrCode,
   Scroll,
+  Search,
   Target,
   Telescope,
 } from "lucide-react";
@@ -66,7 +70,25 @@ export const models = [
     name: "URL Finder Tool",
     value: "url_finder_tool",
     description: "Find Large Number of URLs.",
-    icon:<QrCode />
+    icon: <QrCode />,
+  },
+  {
+    name: "OSINT - Start New Entity Search ",
+    value: "osint_find_new_entity",
+    description: "Find New Entity using OSINT.",
+    icon: <PersonStanding />,
+  },
+  {
+    name: "OSINT - Search Existing Entity",
+    value: "osint_search_existing_entity",
+    description: "Search Existing Entity using OSINT.",
+    icon: <Search />,
+  },
+  {
+    name: "Alphafold",
+    value: "alphafold",
+    description: "For protein structure prediction using AlphaFold.",
+    icon: <Microscope />,
   },
 ];
 
