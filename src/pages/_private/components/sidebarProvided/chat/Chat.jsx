@@ -33,6 +33,8 @@ import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapp
 import { sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
+import OsintNewInstanceSidebar from "@/components/custom/osint/OsintNewInstanceSidebar";
+// import VoiceInterface from "@/components/custom/VoiceInterface";
 
 function Chat() {
   // exploitation
@@ -213,6 +215,20 @@ function Chat() {
         {
           header: name, // or replace with appropriate value or variable
           component: <SidebarVectorStoreScrapper dbId={dbId} name={name} />,
+        },
+      ];
+    });
+  }, []);
+
+  const memorizedNewOsintInstance = useCallback((workflowId, name) => {
+    console.log("New OSINT Instance:", workflowId, name);
+    setSidebarStack(() => {
+      return [
+        {
+          header: name,
+          component: (
+            <OsintNewInstanceSidebar name={name} workflowId={workflowId} />
+          ),
         },
       ];
     });
@@ -954,7 +970,7 @@ function Chat() {
     return result;
   }
 
-   const processStreamingContent = (input, forceComplete = false) => {
+  const processStreamingContent = (input, forceComplete = false) => {
     if (!input) return [];
 
     /** helper to push a text block if non-empty */
@@ -1175,6 +1191,28 @@ function Chat() {
             jobId: extractTag("jobid", inner),
             name: extractTag("name", inner),
             numOfUrls: extractTag("numOfUrls", inner),
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
+      {
+        type: "osintInstance",
+        regex: /<newOsintInstance>([\s\S]*?)<\/newOsintInstance>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          return {
+            type: "osintInstance",
+            name: extractTag("name", inner) || "OSINT Instance",
+            osintWorkflowId: extractTag("osintWorkflowId", inner),
             isComplete: true,
             start,
             end,

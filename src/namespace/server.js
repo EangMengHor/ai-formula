@@ -98,6 +98,9 @@ export const getVectorStoreCompleteDataUrl = `${import.meta.env.VITE_SOCKET_URL}
 export const getUrlScrapedUrl = `${import.meta.env.VITE_SOCKET_URL}/api/urlScraper/getUrlScraper/:id`;
 export const pollVectorStoreScrapperStatusUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/progress-update-knowledge/:id`;
 
+
+export const newOsintInstancePollingUrl = `${import.meta.env.VITE_SOCKET_URL}/api/osint/getNewOsintInstanceWorkflowUpdate/:workflowId`;
+
 export const voiceToVoiceStoreMessageBatchUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/storeMessageChunks`;
 
 export const getVoiceToVoiceSessionContextUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/getSessionContext`;
