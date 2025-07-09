@@ -99,6 +99,7 @@ const Conversation = forwardRef(
       citations,
       agentSimulationObj,
       agenticCitation,
+      item,
     ) => {
       const styles = isDeepThink ? tableStyles.deepThink : tableStyles.regular;
       const data = block.content
@@ -187,6 +188,7 @@ const Conversation = forwardRef(
               handlePdfDownload={handlePdfDownload}
               pdfFileName={pdfFileName}
               setPdfDialogOpen={setPdfDialogOpen}
+              item={item}
             />
           )}
         </div>
@@ -408,6 +410,7 @@ const Conversation = forwardRef(
                           item.citations,
                           simulation,
                           item.agenticCitations,
+                          item,
                         );
                       } else if (block.type === "mermaid") {
                         return renderMermaidBlock(block, blockIdx);
