@@ -64,6 +64,7 @@ export default function RenderActionButtons({
    */
   async function copyToClipboard(markdownText, citations = []) {
     try {
+      console.log(markdownText, "markdownText in copyToClipboard", citations);
       setIsCopyLoading(true);
 
       /* 1️⃣  link-ify [1] → <a href> while still in Markdown */

@@ -6,16 +6,27 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"; // assuming shadcn is installed
+import { useUser } from "./context/UserContext";
 
 export default function ChatModes({ modes } = { modes: [] }) {
   const [selectedIndex, setSelectedIndex] = useState(1);
   const isInitialRendered = useRef(null);
+  const { getMode } = useUser();
   useEffect(() => {
     if (!isInitialRendered.current) {
-      isInitialRendered.current = true;
-      modes?.onClick && modes.onClick?.();
+      const mode = getMode();
+
+      if (mode === "swarm") {
+        setSelectedIndex(2);
+      } else if (mode === "deep") {
+        setSelectedIndex(1);
+      } else {
+        setSelectedIndex(0);
+      }
+
+      console.log("Selected mode: isSwarmMode in ChatInput 2", mode);
     }
-  });
+  }, []);
   return (
     <TooltipProvider delayDuration={100}>
       <div className="flex items-center gap-1 mr-2 bg-slate-800 p-1 rounded-2xl shadow-md w-fit transition-all">
@@ -25,10 +36,7 @@ export default function ChatModes({ modes } = { modes: [] }) {
               <button
                 onClick={() => {
                   setSelectedIndex(index);
-                  console.log(
-                    "Selected mode: isSwarmMode in ChatInput 1",
-                    mode.name,
-                  );
+
                   mode.onClick && mode.onClick();
                 }}
                 className={`flex items-center justify-center  p-2 rounded-xl transition-all duration-200

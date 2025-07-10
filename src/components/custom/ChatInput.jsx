@@ -64,7 +64,6 @@ import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUs
 import { debounce, set } from "lodash";
 import InternalKnowledgeDialog from "./InternalKnowledgeDialog";
 import { useCollection } from "../../context/CollectionContext";
-import Test from "@/ChatModes";
 import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 import VoiceInputBlock from "./VoiceTVoice/VoiceInputBlock";
 import ChatModes from "@/ChatModes";

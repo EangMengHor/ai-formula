@@ -28,7 +28,7 @@ export const UserProvider = ({ children }) => {
   });
   const { toast } = useToast(); // Add toast for logout notification
   const tokenRefreshTimerRef = useRef(null); // Reference to store the timer
-  const [isDeepThinkMode, setIsDeepThinkMode] = useState(true); // Default to Quick Response
+  const [isDeepThinkMode, setIsDeepThinkMode] = useState(false); // Default to Quick Response
   // swarm
   const [isSwarmMode, setIsSwarmMode] = useState(false);
   const [isAutoSwarmContextState, setIsAutoSwarmContextState] = useState(false);
@@ -89,6 +89,16 @@ export const UserProvider = ({ children }) => {
       }
     };
   }, []);
+
+  function getMode() {
+    if (isSwarmMode) {
+      return "swarm";
+    } else if (isDeepThinkMode) {
+      return "deep";
+    } else {
+      return "quick";
+    }
+  }
 
   // Reset the timer whenever authToken changes
   useEffect(() => {
@@ -152,6 +162,7 @@ export const UserProvider = ({ children }) => {
         promptTemplatePrompt,
         setPromptTemplatePrompt,
         selectedModel,
+        getMode,
         setSelectedModel,
       }}
     >

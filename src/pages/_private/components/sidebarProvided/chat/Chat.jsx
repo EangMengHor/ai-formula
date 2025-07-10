@@ -57,7 +57,6 @@ function Chat() {
     isSwarmMode,
     isAutoSwarmContextState,
     selectedSuperiorPersona,
-
     isDeepThinkMode,
     setIsUserBanned,
     refreshAccessToken,
