@@ -116,29 +116,7 @@ export const stripHtml = (html = "") =>
         .replace(/\s+/g, " ")
         .trim();
 
-export const copyToClipboard = async (content) => {
-    try {
-        // Extract plain text from markdown
-        const plainText = content
-            .replace(/\*\*(.*?)\*\*/g, "$1") // Bold
-            .replace(/\*(.*?)\*/g, "$1") // Italic
-            .replace(/\[(.*?)\]\((.*?)\)/g, "$1: $2") // Links
-            .replace(/#{1,6}\s(.*?)(\n|$)/g, "$1\n") // Headers
-            .replace(/```[a-zA-Z]*\n([\s\S]*?)```/g, "$1") // Code blocks
-            .replace(/`(.*?)`/g, "$1"); // Inline code
 
-        await navigator.clipboard.writeText(plainText);
-
-        setTimeout(() => setIsCopied(false), 2000);
-    } catch (error) {
-        console.error("Failed to copy: ", error);
-        toast({
-            title: "Error",
-            description: "Failed to copy to clipboard",
-            variant: "destructive",
-        });
-    }
-};
 export function response(success, message, data = null) {
 
     return {

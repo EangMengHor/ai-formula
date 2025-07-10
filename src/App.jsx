@@ -37,7 +37,7 @@ import OasisLayout from "./pages/_oasis/OasisLayout";
 import OasisDashboard from "./pages/_oasis/components/OasisDashboard";
 import UserFormProgress from "./pages/_oasis/components/createNewUserTemplate/UserFormProgress";
 import Workshop from "./pages/_private/components/sidebarProvided/components/Workshop";
-import Test from "./Test";
+import Test from "./ChatModes";
 import UserManualLayout from "./pages/_userManual/UserManualLayout";
 import DetailPage from "./pages/_userManual/components/DetailPage";
 import PersonalProfileForm from "./components/custom/arxPersonalProfile/arxPersonalProfile";

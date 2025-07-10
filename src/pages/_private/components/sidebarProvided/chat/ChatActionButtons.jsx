@@ -10,7 +10,7 @@ import {
   Sparkle,
   Volume2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -23,15 +23,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { sanitizeFileName, stripHtml } from "@/lib/utils";
 import TTSPrompt from "@/components/custom/TTSPrompt";
 import SourcesIndicator from "@/components/custom/CitationSources";
+import ReactDOM from "react-dom/client";
+import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import rehypeRaw from "rehype-raw";
+
 const buttonWrapperClass =
-  "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
+  "px-3  bg-transparent bg-slate-900 hover:bg-slate-700 rounded-xl flex items-center justify-center";
 const iconClass = "h-6 w-6";
+
 export default function RenderActionButtons({
   content,
   blockIdx,
   citations,
   setpPdfFileName,
-  copyToClipboard = () => {},
   setCurrentContent,
   currentContent,
   handlePdfDownload = () => {},
@@ -43,6 +52,160 @@ export default function RenderActionButtons({
   const [isPdfAutonameLoading, setIsPdfAutonameLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
+  const [fullContent, setFullContent] = useState("");
+  const [isCopyLoading, setIsCopyLoading] = useState(false);
+
+  // ⬇️ 2.  unchanged helpers (setIsCopyLoading, toast, …)
+
+  /**
+   * Copy BOTH:
+   *   • text/plain  → untouched Markdown (with LaTeX)
+   *   • text/html   → rendered Markdown (LaTeX still visible as \text{…})
+   */
+  async function copyToClipboard(markdownText, citations = []) {
+    try {
+      setIsCopyLoading(true);
+
+      /* 1️⃣  link-ify [1] → <a href> while still in Markdown */
+      const linked = markdownText.replace(/\[(\d+)\]/g, (_, n) => {
+        const key = `[${n}]`;
+        const href = citations[n - 1]
+          ? typeof citations[n - 1] === "string"
+            ? citations[n - 1]
+            : citations[n - 1].url
+          : null;
+        return href ? `<a href="${href}" target="_blank">${key}</a>` : key;
+      });
+
+      /* append refs list */
+      const refs = citations.length
+        ? "\n\n### References\n" +
+          citations
+            .map((c, i) => {
+              const url = typeof c === "string" ? c : c.url;
+              const title = c?.title || c?.siteName || url;
+              return `${i + 1}. [${title}](${url})`;
+            })
+            .join("\n")
+        : "";
+      const finalMD = linked + refs;
+
+      /* 2️⃣  render to HTML (KaTeX + tables) in a hidden container */
+      const host = document.createElement("div");
+      host.style.cssText =
+        "position:fixed;left:-9999px;top:0;pointer-events:none;opacity:0;";
+      document.body.appendChild(host);
+
+      const root = ReactDOM.createRoot(host);
+      await new Promise((done) => {
+        root.render(
+          <ReactMarkdown
+            children={finalMD}
+            remarkPlugins={[remarkGfm]} // ⬅️ drop remarkMath
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              table: (p) => (
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    marginTop: "1.5rem",
+                    fontSize: "0.95rem",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                  }}
+                >
+                  {p.children}
+                </table>
+              ),
+              thead: (p) => (
+                <thead
+                  style={{
+                    backgroundColor: "#f3f4f6",
+                    color: "#111827",
+                    borderBottom: "1px solid #d1d5db",
+                  }}
+                >
+                  {p.children}
+                </thead>
+              ),
+              th: (p) => (
+                <th
+                  style={{
+                    padding: "12px 16px",
+                    fontWeight: 600,
+                    background: "#e5e7eb",
+                    borderBottom: "1px solid #d1d5db",
+                  }}
+                >
+                  {p.children}
+                </th>
+              ),
+              td: (p) => (
+                <td
+                  style={{
+                    padding: "12px 16px",
+                    color: "#374151",
+                    borderBottom: "1px solid #e5e7eb",
+                  }}
+                >
+                  {p.children}
+                </td>
+              ),
+              tr: (p) => (
+                <tr
+                  style={{ transition: "background-color 0.15s ease" }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#f3f4f6")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#ffffff")
+                  }
+                >
+                  {p.children}
+                </tr>
+              ),
+            }}
+          />,
+        );
+        setTimeout(done, 200); // let KaTeX & copy-tex finish
+      });
+
+      const htmlBlob = new Blob([`<div>${host.innerHTML}</div>`], {
+        type: "text/html",
+      });
+      const textBlob = new Blob([finalMD], { type: "text/plain" });
+
+      /* 3️⃣  write both flavours */
+      await navigator.clipboard.write([
+        new ClipboardItem({ "text/html": htmlBlob, "text/plain": textBlob }),
+      ]);
+
+      root.unmount();
+      document.body.removeChild(host);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    } finally {
+      setIsCopyLoading(false);
+    }
+  }
+  useEffect(() => {
+    if (item) {
+      setFullContent(
+        item?.message
+          .filter((item) => item.type == "text")
+          ?.map((item) => item.content)
+          ?.join("\n\n") ||
+          "Error" ||
+          "document",
+      );
+    }
+  }, [item]);
+
+  useEffect(() => {
+    console.log(fullContent, "fullContent in RenderActionButtons");
+  }, [fullContent]);
 
   console.log(item, "item in RenderActionButtons");
   async function fetchAutoFileName() {
@@ -72,13 +235,16 @@ export default function RenderActionButtons({
   }
 
   return (
-    <div className="flex gap-2">
-      <div className="flex justify-start  p-1 rounded-md bg-slate-900  items-center gap-2 mt-4 ">
+    <div className="flex w-full">
+      <div className="flex justify-start rounded-md w-fit  items-center gap-2 mt-4 ">
         {/* Copy */}
         <Button
           className={buttonWrapperClass}
-          onClick={() => {
-            copyToClipboard(content);
+          onClick={async () => {
+            await copyToClipboard(
+              fullContent || "No content available",
+              citations,
+            );
             setIsCopied(true);
             setTimeout(() => {
               setIsCopied(false);
@@ -90,13 +256,22 @@ export default function RenderActionButtons({
             });
           }}
         >
-          {isCopied ? (
-            <Check className={iconClass} />
+          {isCopyLoading ? (
+            <div className="flex gap-2 items-center">
+              <Loader2 className={`animate-spin ${iconClass}`} />
+              <p>Copying...</p>
+            </div>
+          ) : isCopied ? (
+            <div className="flex gap-2 items-center">
+              <Check className={iconClass} />
+              <p>Copied</p>
+            </div>
           ) : (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger className="p-0">
+                <TooltipTrigger className="flex gap-2 items-center mr-3">
                   <Copy className={iconClass} />
+                  <p>Copy</p>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Copy Content</p>
@@ -114,7 +289,7 @@ export default function RenderActionButtons({
             }
           }}
         >
-          <DialogTrigger asChild className="p-0 m-0 h-fit">
+          <DialogTrigger asChild className="">
             <Button
               className={buttonWrapperClass}
               onClick={() => {
@@ -123,8 +298,9 @@ export default function RenderActionButtons({
             >
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger className="flex gap-2 items-center">
                     <FolderDown className={iconClass} />
+                    <p>Download</p>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Download Content</p>
@@ -166,13 +342,7 @@ export default function RenderActionButtons({
                 className="bg-slate-600 w-1/2 hover:bg-slate-500 text-white mt-4"
                 onClick={() =>
                   handlePdfDownload({
-                    currContent:
-                      item?.message
-                        .filter((item) => item.type == "text")
-                        ?.map((item) => item.content)
-                        ?.join("\n\n") ||
-                      "Error" ||
-                      "document",
+                    currContent: fullContent || "Error" || "document",
                     pdfFileName: sanitizeFileName(pdfFileName || "Document"),
                     setIsPdfDownloadLoading,
                     setPdfDialogOpen,
@@ -198,21 +368,30 @@ export default function RenderActionButtons({
 
         {/* TTS */}
         <TTSPrompt
-          prompt={content || "No Content available"}
+          prompt={fullContent || "No Content available"}
           startButton={
-            <div className={buttonWrapperClass}>
-              <Volume2 className={iconClass} />
-            </div>
+            <Button className={buttonWrapperClass}>
+              <div className="flex items-center gap-2">
+                <Volume2 className={iconClass} />
+                <p>Voice</p>
+              </div>
+            </Button>
           }
           StopButton={
-            <div className={buttonWrapperClass}>
-              <CircleStop className={iconClass} />
-            </div>
+            <Button className={`${buttonWrapperClass} border-2 border-white `}>
+              <div className="flex items-center gap-2">
+                <CircleStop className={iconClass} />
+                <p>Stop</p>
+              </div>
+            </Button>
           }
           loadingButton={
-            <div className={buttonWrapperClass}>
-              <Loader2 className={iconClass + " animate-spin"} />
-            </div>
+            <Button className={buttonWrapperClass}>
+              <div className="flex items-center gap-2">
+                <Loader2 className={`${iconClass} animate-spin`} />
+                <p>Starting...</p>
+              </div>
+            </Button>
           }
         />
       </div>

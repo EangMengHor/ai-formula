@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"; // assuming shadcn is installed
 
-export default function Test({ modes } = { modes: [] }) {
+export default function ChatModes({ modes } = { modes: [] }) {
   const [selectedIndex, setSelectedIndex] = useState(1);
   const isInitialRendered = useRef(null);
   useEffect(() => {
