@@ -37,11 +37,14 @@ export default function RenderActionButtons({
   handlePdfDownload = () => {},
   pdfFileName = "Document",
   setPdfDialogOpen = () => {},
+  item = {},
 }) {
   const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
   const [isPdfAutonameLoading, setIsPdfAutonameLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
+
+  console.log(item, "item in RenderActionButtons");
   async function fetchAutoFileName() {
     setIsPdfAutonameLoading(true);
     try {
@@ -163,7 +166,13 @@ export default function RenderActionButtons({
                 className="bg-slate-600 w-1/2 hover:bg-slate-500 text-white mt-4"
                 onClick={() =>
                   handlePdfDownload({
-                    currContent: currentContent || "document",
+                    currContent:
+                      item?.message
+                        .filter((item) => item.type == "text")
+                        ?.map((item) => item.content)
+                        ?.join("\n\n") ||
+                      "Error" ||
+                      "document",
                     pdfFileName: sanitizeFileName(pdfFileName || "Document"),
                     setIsPdfDownloadLoading,
                     setPdfDialogOpen,

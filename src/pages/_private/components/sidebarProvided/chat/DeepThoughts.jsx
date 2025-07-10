@@ -26,7 +26,8 @@ const DeepThoughts = ({
 
   return (
     <div
-      className="bg-g1 rounded-2xl shadow-md "
+
+      className={`${cleanedText.length < 3 && "hidden"}  bg-g1 rounded-2xl shadow-md `}
       onClick={() => setIsCollapsed((prev) => !prev)}
     >
       <div
