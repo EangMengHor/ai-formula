@@ -30,7 +30,6 @@ import {
 import TTSPrompt from "@/components/custom/TTSPrompt";
 import rehypeRaw from "rehype-raw";
 import {
-  copyToClipboard,
   extractContentFromBlocks,
   getFavicon,
   processAgenticCitations,
@@ -184,7 +183,6 @@ const Conversation = forwardRef(
               setpPdfFileName={setpPdfFileName}
               currentContent={currentContent}
               setCurrentContent={setCurrentContent}
-              copyToClipboard={copyToClipboard}
               handlePdfDownload={handlePdfDownload}
               pdfFileName={pdfFileName}
               setPdfDialogOpen={setPdfDialogOpen}

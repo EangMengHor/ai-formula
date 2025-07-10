@@ -6,6 +6,7 @@ const DeepThoughts = ({
   text,
   isCollapsedByDefault = false,
   isLoading = false,
+  label = "Deep Thoughts",
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -25,6 +26,7 @@ const DeepThoughts = ({
 
   return (
     <div
+
       className={`${cleanedText.length < 3 && "hidden"}  bg-g1 rounded-2xl shadow-md `}
       onClick={() => setIsCollapsed((prev) => !prev)}
     >
@@ -36,7 +38,7 @@ const DeepThoughts = ({
       >
         <div className="flex gap-2 font-semibold items-center text-slate-200">
           <Diameter className={`w-5 h-5 ${isLoading && "animate-spin"}`} />
-          <p>Deep Thoughts</p>
+          <p>{label}</p>
         </div>
         <button className="text-slate-400 hover:text-slate-100 transition-colors duration-200 flex items-center gap-1">
           {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}

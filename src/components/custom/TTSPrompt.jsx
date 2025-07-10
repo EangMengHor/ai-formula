@@ -392,11 +392,11 @@ const TTSPrompt = forwardRef(
     return (
       <>
         {!isPlaying ? (
-          <button onClick={startTTS} disabled={loading} className="h-fit p-0">
+          <div onClick={startTTS} disabled={loading} className="h-fit p-0">
             {loading
               ? loadingButton || "Processing..."
               : startButton || "Speak"}
-          </button>
+          </div>
         ) : (
           <button onClick={stopTTS}>{StopButton || "Stop"}</button>
         )}
