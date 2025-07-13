@@ -171,6 +171,32 @@ Save time by parameterising frequent prompts.
 - click start , that's it.
 `,
       },
+
+      {
+        name: "QASF + Omni resilience",
+        description:
+          "QASF + Omni resilience is the feature where user can extract the highly refined and tested historical analysis and financial query optimization",
+        gradient: "from-purple-500 to-purple-800",
+        pageContent: `
+# QASF + Omni Resilience
+
+1. **QASF**:  
+   In simple words, this framework invokes multiple latent variables, identifies, tests, and executes the query for financial reasoning with an optimized framework.
+
+2. **Omni Resilience**:  
+   This feature allows users to extract highly refined and validated historical analysis, aiding in predictive stock and crypto analysis tasks.
+
+## Helper Prompts
+
+1. To force activate QASF:  
+   'use QASF {query}'
+
+2. To force activate Omni Resilience:  
+   'use omni resilience {query}'
+
+        
+    `,
+      },
     ],
   },
 
@@ -431,5 +457,5 @@ export default function UserManualLayout() {
 
       <FeatureSections sections={featuresData} />
     </main>
-);
+  );
 }
