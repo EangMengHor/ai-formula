@@ -50,6 +50,7 @@ import UrlShower from "@/components/custom/urlScraperSidebar/UrlShower";
 import OsintNewInstance from "@/components/custom/osint/OsintNewInstance";
 import { generateFileName } from "@/services/genereteFileName";
 import RenderActionButtons from "./ChatActionButtons";
+import OmniResilience from "@/components/custom/OmniResilience";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -476,6 +477,10 @@ const Conversation = forwardRef(
                             handleBlockSidebar={handleNewOsintInstance}
                           />
                         );
+                      } else if (block.type == "omni") {
+                        console.log(block, "omni block");
+
+                        return <OmniResilience block={block} />;
                       }
                     })}
                   {item && item?.isAbortManually && (

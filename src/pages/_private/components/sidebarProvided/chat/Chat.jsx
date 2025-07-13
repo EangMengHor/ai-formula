@@ -1218,6 +1218,51 @@ function Chat() {
           };
         },
       },
+      // ── Omni-Resilience block ──────────────────────────────────────────────────────
+      {
+        type: "omni",
+        regex: /<Omni>([\s\S]*?)<\/Omni>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          // Helper to extract any tag
+          const extractTag = (tag, source = inner) => {
+            const re = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = re.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          // Parse <shortTerm> or <longTerm> sections
+          const parseHorizon = (horizonTag) => {
+            const section = extractTag(horizonTag);
+            if (!section) return null;
+
+            const metrics = {};
+            const tagRe = /<(\w+)>([\s\S]*?)<\/\1>/g;
+            let match;
+            while ((match = tagRe.exec(section))) {
+              metrics[match[1]] = match[2].trim();
+            }
+            return metrics;
+          };
+
+          return {
+            type: "omni",
+            ticker: extractTag("ticker"),
+            assetType: extractTag("type"),
+            shortTerm: parseHorizon("shortTerm"),
+            longTerm: parseHorizon("longTerm"),
+            summary: extractTag("summary"),
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
+
+      // ───────────────────────────────────────────────────────────────────────────────
+
+      // ───────────────────────────────────────────────────────────────────────────────
     ];
 
     // --- 4. Find other blocks in masked content ---
