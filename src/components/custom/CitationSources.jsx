@@ -3,7 +3,12 @@
 import { getFavicon } from "@/lib/utils";
 import { useState } from "react";
 
-export default function SourcesIndicator({ citations, maxIcons = 3, onClick }) {
+export default function SourcesIndicator({
+  citations,
+  maxIcons = 3,
+  onClick,
+  className = "",
+}) {
   const [isHovered, setIsHovered] = useState(false);
 
   // Extract URLs from citations
@@ -18,7 +23,7 @@ export default function SourcesIndicator({ citations, maxIcons = 3, onClick }) {
     <div
       className={`inline-flex bg-slate-900 items-center gap-1 px-3 py-2 rounded-xl transition-all ${
         isHovered ? "hover:bg-slate-800" : ""
-      }`}
+      } ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}

@@ -193,8 +193,6 @@ Save time by parameterising frequent prompts.
 
 2. To force activate Omni Resilience:  
    'use omni resilience {query}'
-
-        
     `,
       },
     ],
@@ -208,7 +206,7 @@ Save time by parameterising frequent prompts.
     subtitle: "Orbital Features around Chat & Automation",
     isLargeCard: false,
     items: [
-      /* ---------- 3-A. File Upload ----------*/
+      /* ---------- 3-A. File Upload ----------*    /
       {
         name: "File Upload",
         description: "Drag-and-drop documents into context.",

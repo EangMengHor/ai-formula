@@ -73,6 +73,7 @@ const Conversation = forwardRef(
       handleNewOsintInstance,
       errorMessage = "Something Went Wrong!!",
       onRetry,
+      handleSubmit = () => {},
     },
     ref,
   ) => {
@@ -188,6 +189,7 @@ const Conversation = forwardRef(
               pdfFileName={pdfFileName}
               setPdfDialogOpen={setPdfDialogOpen}
               item={item}
+              handleSubmit={handleSubmit}
             />
           )}
         </div>
