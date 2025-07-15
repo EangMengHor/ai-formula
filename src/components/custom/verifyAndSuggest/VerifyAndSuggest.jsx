@@ -1,110 +1,86 @@
 import { Button } from "@/components/ui/button";
 import { useStackSidebar } from "@/context/StackSidebarContext";
-import { BadgeCheck, Globe } from "lucide-react";
+import { BadgeCheck, Globe, SquareTerminal } from "lucide-react";
 import StandardWorkflow from "../Workflow/StandardWorkflow";
 import { useEffect, useState } from "react";
 import { verifyAndSuggestion } from "@/services/verifyAndSuggest";
 import { useParams } from "react-router-dom";
 import SourcesIndicator from "../CitationSources";
-// event: verify-starterEvent
-// data: {"event":{"id":"fd5ec9f2-ebe2-4137-9dff-cbdd28af2862-chat-memory","message":"Check Conversation Memory"}}
 
-// event: verify-completeEventId
-// data: {"id":"fd5ec9f2-ebe2-4137-9dff-cbdd28af2862-chat-memory"}
-
-// event: verify-starterEvent
-// data: {"event":{"id":"fd5ec9f2-ebe2-4137-9dff-cbdd28af2862-planning","message":"Plan Verification & Suggestion Task"}}
-
-// event: verify-plain
-// data: {"id":"fd5ec9f2-ebe2-4137-9dff-cbdd28af2862-planning","text":[{"idx":0,"task":"Verify the accuracy of the real-time performance data for Grok 4, OpenAI GPT-4, Anthropic Claude Opus 4, and Gemini 2.5 Pro as of July 2025 "},{"idx":1,"task":"Check the validity of the cited sources and links provided for the performance data of the LLMs "},{"idx":2,"task":"Validate the claimed capabilities of the ARX System against known benchmarks and frameworks"},{"idx":3,"task":"Assess the feasibility of ARX System's 'infinite scalability and adaptability' claims using the V Framework and OmniSynth descriptions"},{"idx":4,"task":"Evaluate the uniqueness of ARX System features (e.g., God Particle, recursive learning) compared to existing LLMs"},{"idx":5,"task":"Suggest improvements or potential risks in ARX System's integration of multiple frameworks like ARCS, ARCF, and Advanced Quantitative Analysis"}]}
-
-// event: verify-completeEventId
-// data: {"id":"fd5ec9f2-ebe2-4137-9dff-cbdd28af2862-planning"}
-
-// event: verify-startingIndex
-// data: {"index":0}
-
-// event: verify-startingSearch
-// data: {"id":0}
-
-// event: verify-plain
-// data: {"id":0,"text":"The accuracy of the real-time performance data for Grok 4, OpenAI GPT-4, Anthropic Claude Opus 4, and Gemini 2.5 Pro as of July 2025 is partially verified. Grok 4 excels in reasoning and real-time data integration, particularly with X/Twitter. OpenAI GPT-4 is strong in general-purpose tasks but lacks real-time data capabilities. Claude Opus 4 is noted for its safety focus and coding abilities. Gemini 2.5 Pro is recognized for its multimodal capabilities, especially with video and long-context processing. However, specific metrics like ARC-AGI-2 scores and SWE-Bench performance are not directly confirmed in the latest sources. The ARX System's claims of infinite scalability and adaptability are not supported by current LLM benchmarks."}
-
-// event: verify-searchFinish
-// data: {"id":0,"urls":["https://felloai.com/2025/07/we-tested-grok-4-claude-gemini-gpt-4o-which-ai-should-you-use-in-july-2025/","https://collabnix.com/comparing-top-ai-models-in-2025-claude-grok-gpt-llama-gemini-and-deepseek-the-ultimate-guide/","https://propelcode.ai/blog/ai-code-review-showdown-claude-vs-gpt4-vs-gemini-2025","https://www.datastudios.org/post/chatgpt-vs-gemini-vs-claude-all-current-models-full-comparison-and-next-developments-july-2025","https://creatoreconomy.so/p/chatgpt-vs-claude-vs-gemini-the-best-ai-model-for-each-use-case-2025"]}
-
-// event: verify-startingIndex
-// data: {"index":0}
-
-// event: verify-startingSearch
-// data: {"id":0}
-
-// event: verify-plain
-// data: {"id":0,"text":"The cited sources and links provided for the performance data of the LLMs appear to be partially inaccurate or unverifiable. For instance, the links [1] and [2] are related to Grok and other LLM comparisons but do not directly support the specific performance metrics mentioned. The links [3] and [4] discuss various LLMs but do not provide the exact data or benchmarks listed in the content piece. Additionally, some links are not accessible or do not exist as described, which raises concerns about their validity. Overall, the accuracy of the performance data and the links provided cannot be fully verified based on the available information."}
-
-// event: verify-searchFinish
-// data: {"id":0,"urls":["https://www.youtube.com/watch?v=HTk6VpBgSus","https://www.getpassionfruit.com/blog/claude-4-vs-chatgpt-o3-vs-grok-3-vs-gemini-2-5-pro-complete-2025-comparison-for-seo-traditional-benchmarks-research","https://www.kommunicate.io/blog/gpt4-vs-claude-3-vs-gemini/","https://www.nitromediagroup.com/grok-4-ai-model-2025/","https://felloai.com/2025/05/we-tested-claude-4-gpt-4-5-gemini-2-5-pro-grok-3-whats-the-best-ai-to-use-in-may-2025/"]}
-
-// event: verify-startingIndex
-// data: {"index":0}
-
-// event: verify-startingIndex
-// data: {"index":0}
-
-// event: verify-startingIndex
-// data: {"index":0}
-
-// event: verify-startingIndex
-// data: {"index":0}
-
-function SearchStarted({
-  citations = [
-    "https://www.youtube.com/watch?v=HTk6VpBgSus",
-    "https://www.getpassionfruit.com/blog/claude-4-vs-chatgpt-o3-vs-grok-3-vs-gemini-2-5-pro-complete-2025-comparison-for-seo-traditional-benchmarks-research",
-    "https://www.kommunicate.io/blog/gpt4-vs-claude-3-vs-gemini/",
-    "https://www.nitromediagroup.com/grok-4-ai-model-2025/",
-    "https://felloai.com/2025/05/we-tested-claude-4-gpt-4-5-gemini-2-5-pro-grok-3-whats-the-best-ai-to-use-in-may-2025/",
-  ],
-}) {
+function SearchStarted({ citations = [], isLoading = false }) {
   return (
-    <div className="w-fit px-2 py-3 rounded-lg items-center bg-g1/50 flex gap-2">
-      <Globe className="w-4 h-4" />
-      <div>
-        <p className="text-sm">Browsing Internet . . .</p>
-        <SourcesIndicator
-          citations={citations.map((item) => ({ url: item }))}
-          maxIcons={5}
-        />
+    <div className="p-3 rounded-xl bg-g1/60 backdrop-blur-md shadow-sm w-fit transition-all duration-300">
+      <div className="flex items-center gap-2">
+        <Globe className="w-4 h-4 text-white/80 my-1" />
+        <div className="flex flex-col gap-0.5 space-y-2">
+          <span
+            className={`${isLoading ? "animate-pulse" : "fade-in"} text-sm text-white/90 font-medium`}
+          >
+            {isLoading
+              ? "Searching Internet For Cross Verification Sources . . ."
+              : "Cross Verification Sources Found"}
+          </span>
+        </div>
       </div>
+      {citations.length > 0 && (
+        <SourcesIndicator
+          citations={citations.map((url) => ({ url }))}
+          maxIcons={5}
+          className="bg-transparent px-0 py-0"
+        />
+      )}
     </div>
   );
 }
 
-export default function VerifyAndSuggest({ content = "", isRealtime = false }) {
+function PromptCorrections({ correctionPrompt = "", handleSubmit = () => {} }) {
+  return (
+    <div className="bg-g1/60 p-3  space-y-2 rounded-lg">
+      <div className="flex items-center gap-2   text-sm font-semibold rounded-xl">
+        <SquareTerminal className="w-5 h-5 text-white/80 my-1" />
+        Prompt Corrections
+      </div>
+      <div className="bg-slate-800 rounded-md p-2 text-wrap">
+        {correctionPrompt}
+      </div>
+      <button
+        onClick={(e) => {
+          handleSubmit(correctionPrompt);
+          e.target.style.display = "none";
+        }}
+        className="px-3 py-2 bg-white rounded-md font-semibold text-black hover:bg-slate-300 transition-all"
+      >
+        Apply Prompt
+      </button>
+    </div>
+  );
+}
+
+export default function VerifyAndSuggest({
+  content = "",
+  isRealtime = false,
+  handleSubmit = () => {},
+}) {
   const { setSidebarStack } = useStackSidebar();
   const { id } = useParams();
 
-  // Sidebar workflow component that manages its own state and API call
   function WorkflowSidebar() {
     const [workflow, setWorkflow] = useState([]);
     const [error, setError] = useState(null);
-    const [lockedTask, setLockedTask] = useState(false);
 
     useEffect(() => {
       async function startVerificationAndSuggestions() {
         function handleSSEvents({ type, data }) {
-          console.log("Received SSE event:", type, data);
           try {
             switch (type.trim()) {
               case "verify-starterEvent":
-                if (data && data?.event && data?.event?.message) {
-                  console.log(data, "is chat memory");
+                if (data?.event?.message) {
                   setWorkflow((prev) => [
                     ...prev,
                     {
-                      title: data?.event?.message,
+                      title: data.event.message,
                       description: "",
-                      id: data?.event?.id || null,
+                      id: data.event.id || null,
                       isCompleted: false,
                       isLoading: true,
                     },
@@ -112,58 +88,126 @@ export default function VerifyAndSuggest({ content = "", isRealtime = false }) {
                 }
                 break;
               case "verify-completeEventId":
-                if (data && data?.id && data?.id) {
+                if (data?.id) {
                   setWorkflow((prev) => {
-                    let foundElement = prev.find((item) => item.id === data.id);
-                    if (foundElement) {
-                      foundElement.isCompleted = true;
-                      foundElement.isLoading = false;
-                      foundElement.description = "Completed";
-                    }
-                    return [...prev];
+                    const updatedWorkflow = prev.map((item) =>
+                      item.id === data.id
+                        ? {
+                            ...item,
+                            isCompleted: true,
+                            isLoading: false,
+                            description: "Completed",
+                          }
+                        : item,
+                    );
+                    return updatedWorkflow;
                   });
                 }
-
                 break;
               case "verify-plain":
-                if (data && Array.isArray(data.text)) {
-                  console.log("Received plain text data:", data.text);
+                if (Array.isArray(data.text)) {
                   setWorkflow((prev) => [
                     ...prev,
                     ...data.text.map((item) => ({
                       title: item.task || "Task",
                       description: null,
                       isCompleted: false,
-                      id: item?.idx,
+                      id: item.idx,
                     })),
                   ]);
                 }
                 break;
               case "verify-startingIndex":
                 setWorkflow((prev) => {
-                  const foundElement = prev.find(
-                    (task) => task.id === data.index,
+                  const updatedWorkflow = prev.map((task) =>
+                    task.id === data.index
+                      ? {
+                          ...task,
+                          description: "Working ...",
+                          isLoading: true,
+                          isCompleted: false,
+                        }
+                      : task,
                   );
-                  if (foundElement) {
-                    foundElement.description = "Working ...";
-                    foundElement.isLoading = true;
-                    foundElement.isCompleted = false;
-                  }
-                  return [...prev];
+                  return updatedWorkflow;
                 });
                 break;
               case "verify-startingSearch":
                 setWorkflow((prev) => {
-                  const foundElement = prev.find((task) => task.id === data.id);
-                  if (foundElement) {
-                    foundElement.description =
-                      "Searching Sources and content ...";
-                    foundElement.children = <SearchStarted />;
-                    foundElement.isLoading = true;
-                    foundElement.isCompleted = false;
-                  }
-                  return [...prev];
+                  const updatedWorkflow = prev.map((task) =>
+                    task.id === data.id
+                      ? {
+                          ...task,
+                          description: "Searching Sources and content ...",
+                          children: <SearchStarted isLoading={true} />,
+                          isLoading: true,
+                          isCompleted: false,
+                        }
+                      : task,
+                  );
+                  return updatedWorkflow;
                 });
+                break;
+              case "verify-completeText":
+                setWorkflow((prev) => {
+                  const updatedWorkflow = prev.map((task) =>
+                    task.id === data.id
+                      ? {
+                          ...task,
+                          description: data.text || "No text provided",
+                          isLoading: false,
+                          isCompleted: true,
+                        }
+                      : task,
+                  );
+                  return updatedWorkflow;
+                });
+                break;
+              case "verify-searchFinish":
+                if (Array.isArray(data.urls)) {
+                  setWorkflow((prev) => {
+                    const updatedWorkflow = prev.map((task) =>
+                      task.id === data.id
+                        ? {
+                            ...task,
+                            children: <SearchStarted citations={data.urls} />,
+                            isLoading: false,
+                            isCompleted: true,
+                          }
+                        : task,
+                    );
+                    return updatedWorkflow;
+                  });
+                }
+                break;
+              case "verify-isCorrectionNeeded":
+                if (data.isNeeded) {
+                  setWorkflow((prev) => [
+                    ...prev,
+                    {
+                      title: "Corrections Needed",
+                      description: "",
+                      isCompleted: true,
+                      isLoading: false,
+                      children: (
+                        <PromptCorrections
+                          correctionPrompt={data.correctionPrompt}
+                          handleSubmit={handleSubmit}
+                        />
+                      ),
+                    },
+                  ]);
+                } else {
+                  setWorkflow((prev) => [
+                    ...prev,
+                    {
+                      title: "No Corrections Needed",
+                      description:
+                        "The content is accurate and does not require changes.",
+                      isCompleted: true,
+                    },
+                  ]);
+                }
                 break;
               default:
                 break;
@@ -234,7 +278,7 @@ export default function VerifyAndSuggest({ content = "", isRealtime = false }) {
     }, [workflow]);
 
     return (
-      <div className="p-4">
+      <div className="p-4 transition-opacity duration-300">
         <StandardWorkflow data={workflow} />
         {error && <div className="text-red-500 mt-2">{error}</div>}
       </div>
@@ -252,10 +296,10 @@ export default function VerifyAndSuggest({ content = "", isRealtime = false }) {
             },
           ]);
         }}
-        className={`px-3  bg-transparent bg-slate-900 hover:bg-slate-700 rounded-xl flex items-center justify-center`}
+        className="px-3 bg-transparent bg-slate-900 hover:bg-slate-700 rounded-xl flex items-center justify-center transition-transform duration-300 "
       >
         <div className="flex items-center gap-2">
-          <BadgeCheck className={"h-6 w-6"} />
+          <BadgeCheck className="h-6 w-6" />
           <p>Verify & Suggest</p>
         </div>
       </Button>

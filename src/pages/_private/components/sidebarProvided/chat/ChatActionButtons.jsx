@@ -49,6 +49,7 @@ export default function RenderActionButtons({
   pdfFileName = "Document",
   setPdfDialogOpen = () => {},
   item = {},
+  handleSubmit = () => {},
 }) {
   const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
   const [isPdfAutonameLoading, setIsPdfAutonameLoading] = useState(false);
@@ -288,6 +289,7 @@ export default function RenderActionButtons({
         <VerifyAndSuggest
           content={fullContent}
           isRealtime={citations && citations.length > 0}
+          handleSubmit={handleSubmit}
         />
 
         {/* Download */}

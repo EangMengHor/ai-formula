@@ -1334,7 +1334,7 @@ function Chat() {
 
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
-      if (!prompt.trim() || prompt.length == 0) return;
+      if (!prompt.trim() || prompt.length == 0 || isNextChatLoading) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
 
@@ -1652,6 +1652,7 @@ function Chat() {
         setIsError={setIsError}
         errorMessage={errorMessage}
         onRetry={onRetry}
+        handleSubmit={handleSubmit}
       />
 
       <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">
