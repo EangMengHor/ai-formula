@@ -55,7 +55,6 @@ export const getJobDetailsUrl = `${url}/get-job-details`;
 export const getJobEachAgentResponseUrl = `${url}/get-job-each-agent-responses`;
 
 // prompt enhancer
-
 export const getPromptEnhancerUrl = `${url}/prompt-enhancer`;
 
 // user setting APIs
@@ -114,3 +113,5 @@ export const searchFileUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoic
 export const generateFileNameUrl = `${import.meta.env.VITE_SOCKET_URL}/api/utils/autoName`;
 
 export const createVisualizationToolUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/createVisualization  `;
+
+export const verifyAndSuggestUrl = `${import.meta.env.VITE_SOCKET_URL}/api/verify/verify`;

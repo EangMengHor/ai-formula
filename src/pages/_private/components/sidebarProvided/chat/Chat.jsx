@@ -1259,9 +1259,7 @@ function Chat() {
           };
         },
       },
-
       // ───────────────────────────────────────────────────────────────────────────────
-
       // ───────────────────────────────────────────────────────────────────────────────
     ];
 
@@ -1388,7 +1386,6 @@ function Chat() {
         let buffer = "";
 
         // Start inactivity check
-
         const processStream = async () => {
           while (true) {
             const { done, value } = await reader.read();

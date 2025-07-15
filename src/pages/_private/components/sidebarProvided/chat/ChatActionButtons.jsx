@@ -1,6 +1,7 @@
 import { useToast } from "@/hooks/use-toast";
 import { generateFileName } from "@/services/genereteFileName";
 import {
+  BadgeCheck,
   Check,
   CircleStop,
   Copy,
@@ -31,6 +32,7 @@ import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import rehypeRaw from "rehype-raw";
+import VerifyAndSuggest from "@/components/custom/verifyAndSuggest/VerifyAndSuggest";
 
 const buttonWrapperClass =
   "px-3  bg-transparent bg-slate-900 hover:bg-slate-700 rounded-xl flex items-center justify-center";
@@ -281,6 +283,12 @@ export default function RenderActionButtons({
             </TooltipProvider>
           )}
         </Button>
+        {/* verify and suggest */}
+
+        <VerifyAndSuggest
+          content={fullContent}
+          isRealtime={citations && citations.length > 0}
+        />
 
         {/* Download */}
         <Dialog
@@ -396,6 +404,7 @@ export default function RenderActionButtons({
           }
         />
       </div>
+
       {citations && citations.length > 0 && (
         <div className="flex items-center gap-2 mt-4">
           <Dialog>
