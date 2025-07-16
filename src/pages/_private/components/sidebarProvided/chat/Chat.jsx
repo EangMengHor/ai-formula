@@ -593,8 +593,7 @@ function Chat() {
     async function getData() {
       resetAllStates();
       await Promise.all([getUploadedDocumentHis(), fetchConversations()]);
-      // wait
-      await new Promise((resolve) => setTimeout(resolve, 10));
+
       isReplayMessages();
     }
 
@@ -620,6 +619,7 @@ function Chat() {
           type: msg.event,
           ...msg.object,
         });
+
         await handleSocketEvent({
           type: msg.event,
           ...msg.object,
@@ -663,7 +663,6 @@ function Chat() {
               else if (line.startsWith("data:"))
                 dataStr += line.replace("data:", "").trim();
             }
-
             let data = {};
             try {
               data = JSON.parse(dataStr);
@@ -671,7 +670,6 @@ function Chat() {
             } catch {
               data = { content: dataStr };
             }
-
             handleSocketEvent({ type: eventType, ...data });
           }
         }
@@ -891,9 +889,6 @@ function Chat() {
     if (event.type == "error") {
       console.error("Error event received:", event);
       setIsError(true);
-      setErrorMessage(
-        errorMessage + event.message || "An error occurred during the chat.",
-      );
       convesationCleanup();
       return;
     }
