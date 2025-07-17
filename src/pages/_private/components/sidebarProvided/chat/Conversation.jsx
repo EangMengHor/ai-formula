@@ -51,6 +51,7 @@ import OsintNewInstance from "@/components/custom/osint/OsintNewInstance";
 import { generateFileName } from "@/services/genereteFileName";
 import RenderActionButtons from "./ChatActionButtons";
 import OmniResilience from "@/components/custom/OmniResilience";
+import UserMessage from "@/components/custom/UserMessage";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -325,22 +326,11 @@ const Conversation = forwardRef(
           {conversation.map((item, index) => {
             if (item.role === "human") {
               return (
-                <div className="flex flex-col items-end w-full justify-end">
-                  <div className="bg-gradient-to-tr to-g2 via-g1 from-g1 max-w-[80%]  px-3 py-4 rounded-2xl shadow break-words whitespace-pre-wrap">
-                    {item.message
-                      ? item.message.replaceAll(
-                          "Provided Document : No document provided",
-                          "",
-                        )
-                      : "{Message Not found}"}
-                  </div>
-                  {item?.isRetry && (
-                    <div className="flex gap-1 items-center text-slate-500">
-                      <RotateCcw className="w-4 h-4  " />
-                      <p>Retried</p>
-                    </div>
-                  )}
-                </div>
+                <UserMessage
+                  content={item.message || ""}
+                  isRetried={item.isRetry}
+                  key={index}
+                />
               );
             } else {
               const isLoadingAndFinalResponseIsNotThere =
