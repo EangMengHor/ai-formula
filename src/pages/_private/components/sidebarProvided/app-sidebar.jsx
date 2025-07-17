@@ -284,6 +284,7 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">Your Automations</p>
               </div>
             </div>
+            <SearchChats />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
