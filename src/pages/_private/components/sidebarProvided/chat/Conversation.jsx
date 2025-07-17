@@ -329,7 +329,6 @@ const Conversation = forwardRef(
                 <UserMessage
                   content={item.message || ""}
                   isRetried={item.isRetry}
-                  
                   key={index}
                 />
               );
