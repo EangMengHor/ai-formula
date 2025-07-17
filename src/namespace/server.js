@@ -115,3 +115,5 @@ export const generateFileNameUrl = `${import.meta.env.VITE_SOCKET_URL}/api/utils
 export const createVisualizationToolUrl = `${import.meta.env.VITE_SOCKET_URL}/api/voiceToVoice/createVisualization  `;
 
 export const verifyAndSuggestUrl = `${import.meta.env.VITE_SOCKET_URL}/api/verify/verify`;
+
+export const searchChatThreadUrl = `${import.meta.env.VITE_SOCKET_URL}/api/search/searchChats`;

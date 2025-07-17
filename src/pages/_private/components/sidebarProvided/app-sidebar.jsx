@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import SearchChats from "@/components/custom/SearchChats";
 
 // This is sample data.
 const data = {
