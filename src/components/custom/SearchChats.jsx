@@ -32,25 +32,26 @@ export default function SearchChats() {
   //   dialog box
   const [dialogOpen, setDialogOpen] = useState(false);
   const navigate = useNavigate();
-   
+
   const handleRedirection = (sessionId) => {
     setDialogOpen(false);
     navigate(`/chat/${sessionId}`);
   };
- 
+
   const handleSearch = useCallback(
     debounce(async (value) => {
+      let userId = user?.id || null;
       if (!user || !user.id) {
         console.error("User is not authenticated", user);
         setIsError(true);
-        return;
+        userId = localStorage.getItem("id");
       }
       try {
         setIsLoading(true);
         setIsError(false);
 
         // api
-        const results = await searchChat(value, user.id);
+        const results = await searchChat(value, userId);
         if (results.length === 0) {
           setIsEmpty(true);
           setSearchResults([]);
