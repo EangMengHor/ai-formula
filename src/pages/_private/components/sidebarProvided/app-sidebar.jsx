@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import SearchChats from "@/components/custom/SearchChats";
 
 // This is sample data.
 const data = {
@@ -284,6 +285,7 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">Your Automations</p>
               </div>
             </div>
+            <SearchChats />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
