@@ -79,7 +79,6 @@ export default function InternalKnowledgeDialog({
                       );
                       const isDisabled =
                         !isSelected && selectedCollectionIds.length >= 5;
-
                       return (
                         <div
                           key={collection.id}
