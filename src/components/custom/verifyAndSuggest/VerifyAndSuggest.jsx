@@ -88,6 +88,11 @@ export default function VerifyAndSuggest({
                 }
                 break;
               case "verify-completeEventId":
+                console.log(
+                  data,
+                  "sujfkhsdk9381274zbjxkc98703425",
+                  data?.id?.includes("end"),
+                );
                 if (data?.id) {
                   setWorkflow((prev) => {
                     const updatedWorkflow = prev.map((item) =>
