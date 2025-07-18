@@ -1,3 +1,5 @@
+import PDFViewer from "@/components/custom/FileReader";
+import { set } from "lodash";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 export const StackSidebatContext = createContext();
@@ -54,6 +56,18 @@ export default function StackSidebarProvider({ children }) {
    * we update immediately.
    */
   function setSidebarStack(val) {
+    setsidebarStackData([
+      //   {
+      //     header: "Default Header",
+      //     component: (
+      //       <div className="h-screen w-full flex items-center justify-center">
+      //         <PDFViewer url="http://localhost:8080/files/report.pdf" />
+      //       </div>
+      //     ),
+      //     onClose: () => {},
+      //   },
+    ]);
+    // return;
     // If an animation is in progress, we can either ignore or queue the update.
     if (isAnimatingRef.current) {
       // For now, we update state immediately to avoid stacking animations.
