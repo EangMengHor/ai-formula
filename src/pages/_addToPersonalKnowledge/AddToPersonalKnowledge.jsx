@@ -7,12 +7,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useCollection } from "@/context/CollectionContext";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/hooks/use-toast";
 import { createNewVectorStore } from "@/services/personal-knowledge/createNewVectorStore";
+import { deleteVectorStoreName } from "@/services/personal-knowledge/deleteVectorStoreName";
+import { editVectorStoreName } from "@/services/personal-knowledge/editVectorStoreName";
 import { getPersonalKnowledgeFiles } from "@/services/user-setting-apis/getPersonalKnowledgeFiles";
 import { getUserPersonalKnowledgeCollection } from "@/services/user-setting-apis/getUserPersonalKnowledgeCollection";
-import { Database, DatabaseZap, RefreshCcw } from "lucide-react";
+import {
+  CircleArrowOutUpRight,
+  Database,
+  DatabaseZap,
+  RefreshCcw,
+} from "lucide-react";
+
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { use } from "react";
 import { useEffect, useState } from "react";
@@ -151,14 +161,84 @@ export default function AddToPersonalKnowledge() {
 
   // Card component for vector store
   function VectorStoreCard({ store }) {
-    const [hovered, setHovered] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [edittedName, setEdittedName] = useState(store.collectionName);
+    const { collectionList, setCollectionList } = useCollection();
+    const { toast } = useToast();
+
+    async function deleteName() {
+      try {
+        setIsLoading(true);
+        const res = await deleteVectorStoreName(store.id, user.id);
+        if (res.success) {
+          toast({
+            title: "Success",
+            description: "Vector store deleted successfully.",
+            variant: "success",
+          });
+          // Update the collection list in context
+          const updatedCollections = collectionList.filter(
+            (collection) => collection.id !== store.id,
+          );
+          setCollectionList(updatedCollections);
+
+          fetchUserVectorStore();
+        }
+      } catch (error) {
+        console.error("Error deleting vector store:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete vector store.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    async function editName() {
+      const userId = localStorage.getItem("id") || user.id;
+
+      try {
+        setIsLoading(true);
+
+        const response = await editVectorStoreName(
+          store.id,
+          userId,
+          edittedName,
+        );
+
+        if (response.success) {
+          toast({
+            title: "Success",
+            description: "Vector store name updated successfully.",
+            variant: "success",
+          });
+          // Update the collection list in context
+          const updatedCollections = collectionList.map((collection) =>
+            collection.id === store.id
+              ? { ...collection, collectionName: edittedName }
+              : collection,
+          );
+          setCollectionList(updatedCollections);
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to edit vector store name.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+      fetchUserVectorStore();
+      setEdittedName("");
+    }
+
     return (
       <div
         className="relative flex flex-col justify-between bg-[#23283a] border border-[#353b50] rounded-xl shadow-md min-h-[140px] w-full max-w-[400px] p-5 transition-colors"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         style={{ minWidth: 320 }}
-        onClick={() => navigate(`/vector-store/${store.id}`)}
       >
         {/* SVG background */}
         <CardBgSVG />
@@ -168,7 +248,7 @@ export default function AddToPersonalKnowledge() {
             <div className="font-semibold text-base text-white">
               {store.collectionName}
             </div>
-            <div className="text-xs text-slate-300">
+            <div className={` text-xs text-slate-300`}>
               {/* Show count of files for this collection */}
               {
                 files.filter((file) => file.collectionId === store.id).length
@@ -178,12 +258,76 @@ export default function AddToPersonalKnowledge() {
           </div>
         </div>
 
-        {/* Only show buttons on hover */}
-        <div
-          className={`absolute inset-0 bg-transparent transition-opacity duration-200 ${
-            hovered ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        />
+        <div className="flex gap-2 items-center mt-4">
+          <Dialog>
+            <DialogTrigger>
+              <button className="p-3 rounded-md bg-slate-700 hover:bg-slate-600 transition-all">
+                <Pencil className="w-4 h-4 text-white " />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl p-4 gap-0 rounded-2xl bg-gradient-to-r from-g2 to-g1 border-0 text-white ">
+              <div className="flex gap-2 items-center">
+                <Pencil className="w-5 h-5 text-white mb-2" />
+                <p className="font-semibold mb-2">Edit Vector Store Name</p>
+              </div>
+              <Input
+                type="text"
+                value={edittedName}
+                onChange={(e) => setEdittedName(e.target.value)}
+                placeholder="Enter new vector store name"
+                className="w-full my-5 p-2 rounded-md bg-blue-950 text-white border border-slate-300 focus-visible:ring-transparent"
+              />
+
+              <div className="flex  gap-2">
+                <button
+                  onClick={async () => {
+                    await editName();
+                  }}
+                  disabled={isLoading}
+                  className={`px-4 py-2 bg-blue-950 hover:bg-blue-950 text-white rounded-md transition-colors ${
+                    isLoading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {isLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <button
+            onClick={() => navigate(`/vector-store/${store.id}`)}
+            className="p-3 rounded-md bg-slate-700 hover:bg-slate-600 transition-all"
+          >
+            <CircleArrowOutUpRight className="w-4 h-4 text-white" />
+          </button>
+          <Dialog>
+            <DialogTrigger>
+              <button className="p-3 rounded-md bg-red-700/40 hover:bg-red-600/80 transition-all">
+                <Trash2 className="w-4 h-4 text-white " />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl p-6 gap-0 rounded-2xl bg-gradient-to-r from-g2 to-g1 border-0 text-white ">
+              <div className="flex gap-2 flex-col ">
+                <div className="flex gap-2">
+                  <Trash2 className="w-5 h-5 text-white mb-2" />
+                  <p className="font-semibold mb-2">
+                    Delete {store.collectionName}
+                  </p>
+                </div>
+                <p className="text-sm text-slate-400">
+                  Are you sure you want to delete this vector store? This action
+                  cannot be undone.
+                </p>
+                <button
+                  onClick={deleteName}
+                  className="mt-4 px-4 py-2 bg-red-600/50 hover:bg-red-700 text-white rounded-xl transition-colors w-fit"
+                >
+                  {isLoading ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     );
   }
