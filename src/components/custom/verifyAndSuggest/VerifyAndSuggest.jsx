@@ -33,7 +33,7 @@ function SearchStarted({ citations = [], isLoading = false }) {
   );
 }
 
-function PromptCorrections({ correctionPrompt = "", handleSubmit = () => {} }) {
+function PromptCorrections({ correctionPrompt = "", handleSubmit = () => { } }) {
   return (
     <div className="bg-g1/60 p-3  space-y-2 rounded-lg">
       <div className="flex items-center gap-2   text-sm font-semibold rounded-xl">
@@ -59,7 +59,7 @@ function PromptCorrections({ correctionPrompt = "", handleSubmit = () => {} }) {
 export default function VerifyAndSuggest({
   content = "",
   isRealtime = false,
-  handleSubmit = () => {},
+  handleSubmit = () => { },
 }) {
   const { setSidebarStack } = useStackSidebar();
   const { id } = useParams();
@@ -88,16 +88,19 @@ export default function VerifyAndSuggest({
                 }
                 break;
               case "verify-completeEventId":
+
+                console.log("this is end of the verification", data)
+
                 if (data?.id) {
                   setWorkflow((prev) => {
                     const updatedWorkflow = prev.map((item) =>
                       item.id === data.id
                         ? {
-                            ...item,
-                            isCompleted: true,
-                            isLoading: false,
-                            description: "Completed",
-                          }
+                          ...item,
+                          isCompleted: true,
+                          isLoading: false,
+                          description: "Completed",
+                        }
                         : item,
                     );
                     return updatedWorkflow;
@@ -122,11 +125,11 @@ export default function VerifyAndSuggest({
                   const updatedWorkflow = prev.map((task) =>
                     task.id === data.index
                       ? {
-                          ...task,
-                          description: "Working ...",
-                          isLoading: true,
-                          isCompleted: false,
-                        }
+                        ...task,
+                        description: "Working ...",
+                        isLoading: true,
+                        isCompleted: false,
+                      }
                       : task,
                   );
                   return updatedWorkflow;
@@ -137,12 +140,12 @@ export default function VerifyAndSuggest({
                   const updatedWorkflow = prev.map((task) =>
                     task.id === data.id
                       ? {
-                          ...task,
-                          description: "Searching Sources and content ...",
-                          children: <SearchStarted isLoading={true} />,
-                          isLoading: true,
-                          isCompleted: false,
-                        }
+                        ...task,
+                        description: "Searching Sources and content ...",
+                        children: <SearchStarted isLoading={true} />,
+                        isLoading: true,
+                        isCompleted: false,
+                      }
                       : task,
                   );
                   return updatedWorkflow;
@@ -153,11 +156,11 @@ export default function VerifyAndSuggest({
                   const updatedWorkflow = prev.map((task) =>
                     task.id === data.id
                       ? {
-                          ...task,
-                          description: data.text || "No text provided",
-                          isLoading: false,
-                          isCompleted: true,
-                        }
+                        ...task,
+                        description: data.text || "No text provided",
+                        isLoading: false,
+                        isCompleted: true,
+                      }
                       : task,
                   );
                   return updatedWorkflow;
@@ -169,11 +172,11 @@ export default function VerifyAndSuggest({
                     const updatedWorkflow = prev.map((task) =>
                       task.id === data.id
                         ? {
-                            ...task,
-                            children: <SearchStarted citations={data.urls} />,
-                            isLoading: false,
-                            isCompleted: true,
-                          }
+                          ...task,
+                          children: <SearchStarted citations={data.urls} />,
+                          isLoading: false,
+                          isCompleted: true,
+                        }
                         : task,
                     );
                     return updatedWorkflow;
