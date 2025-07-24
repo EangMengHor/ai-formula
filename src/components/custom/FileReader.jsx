@@ -6,12 +6,15 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 export default function PDFViewer({ url = "" }) {
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
   return (
-    <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-      <Viewer
-        fileUrl={url}
-        plugins={[defaultLayoutPluginInstance]}
-        viewMode="single"
-      />
-    </Worker>
+    <div className="h-screen w-full flex items-center justify-center rounded-xl sticky">
+
+      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+        <Viewer
+          fileUrl={url}
+          plugins={[defaultLayoutPluginInstance]}
+          viewMode="single"
+        />
+      </Worker>
+    </div>
   );
 }
