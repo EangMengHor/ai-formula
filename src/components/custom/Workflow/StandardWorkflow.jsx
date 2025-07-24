@@ -71,15 +71,15 @@ export default function StandardWorkflow({
                   transition={{ type: "spring", stiffness: 180, damping: 18 }}
                   className="w-[3px] bg-gradient-to-b from-slate-700 to-slate-500"
                   style={{ flex: 1, borderRadius: 2 }}
-                />  
+                />
               )}
             </AnimatePresence>
           </div>
 
           {/* Content */}
-          <motion.div className="pb-6" variants={contentVariants}>
-            <div className="text-sm font-semibold">{item.title}</div>
-            <div className="text-sm text-muted-foreground">
+          <motion.div className={`${item.isLoading && "animate-pulse"} pb-6`} variants={contentVariants}>
+            <div className={` text-sm font-semibold`}>{item.title}</div>
+            <div className={`text-ellipsis-sm text-muted-foreground`}>
               {item.description}
             </div>
             {item.children && <div className="mt-2">{item.children}</div>}

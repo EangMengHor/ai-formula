@@ -10,18 +10,12 @@ export async function getGeneratedVisualization(dataId) {
                 dataId: dataId,
             }
         )
-
         if (!res || !res.data || !res.data.success) {
             return response(false, "Failed to fetch visualization data", res.data.message || "Unknown error");
         }
-
         const visualizationData = res.data.data
         console.log("Visualization Data:", visualizationData);
-
         return response(true, "Visualization data fetched successfully", visualizationData);
-
-
-
     } catch (error) {
 
 

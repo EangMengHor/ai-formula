@@ -52,6 +52,7 @@ import { generateFileName } from "@/services/genereteFileName";
 import RenderActionButtons from "./ChatActionButtons";
 import OmniResilience from "@/components/custom/OmniResilience";
 import UserMessage from "@/components/custom/UserMessage";
+import FileBlock from "@/components/custom/generatedFile/FileBlock";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -71,6 +72,7 @@ const Conversation = forwardRef(
       handleMaterialSidebar,
       renderMermaidChart,
       handleUrlScraperSidebar,
+      handleGeneratedDocSidebar,
       handleNewOsintInstance,
       errorMessage = "Something Went Wrong!!",
       onRetry,
@@ -450,6 +452,20 @@ const Conversation = forwardRef(
                             name={name || "Url Scraper"}
                             numOfUrls={numOfUrls || "0"}
                             handleUrlScraperSidebar={handleUrlScraperSidebar}
+                          />
+                        );
+                      } else if (block.type == "genDoc") {
+                        const genId = block.genId;
+                        const name = block.name;
+                        const pages = block.pages || 1;
+
+                        return (
+                          <FileBlock
+                            genId={genId}
+                            name={name || "Generated Document"}
+                            pages={pages}
+                            handleFileBlockClick={handleGeneratedDocSidebar}
+                            key={`sidebar-file-block-${genId}`}
                           />
                         );
                       } else if (block.type == "vectorStoreJob") {
