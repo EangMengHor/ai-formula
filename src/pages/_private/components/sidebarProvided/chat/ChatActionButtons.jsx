@@ -45,11 +45,11 @@ export default function RenderActionButtons({
   setpPdfFileName,
   setCurrentContent,
   currentContent,
-  handlePdfDownload = () => {},
+  handlePdfDownload = () => { },
   pdfFileName = "Document",
-  setPdfDialogOpen = () => {},
+  setPdfDialogOpen = () => { },
   item = {},
-  handleSubmit = () => {},
+  handleSubmit = () => { },
 }) {
   const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
   const [isPdfAutonameLoading, setIsPdfAutonameLoading] = useState(false);
@@ -58,13 +58,7 @@ export default function RenderActionButtons({
   const [fullContent, setFullContent] = useState("");
   const [isCopyLoading, setIsCopyLoading] = useState(false);
 
-  // ⬇️ 2.  unchanged helpers (setIsCopyLoading, toast, …)
 
-  /**
-   * Copy BOTH:
-   *   • text/plain  → untouched Markdown (with LaTeX)
-   *   • text/html   → rendered Markdown (LaTeX still visible as \text{…})
-   */
   async function copyToClipboard(markdownText, citations = []) {
     try {
       console.log(markdownText, "markdownText in copyToClipboard", citations);
@@ -84,13 +78,13 @@ export default function RenderActionButtons({
       /* append refs list */
       const refs = citations.length
         ? "\n\n### References\n" +
-          citations
-            .map((c, i) => {
-              const url = typeof c === "string" ? c : c.url;
-              const title = c?.title || c?.siteName || url;
-              return `${i + 1}. [${title}](${url})`;
-            })
-            .join("\n")
+        citations
+          .map((c, i) => {
+            const url = typeof c === "string" ? c : c.url;
+            const title = c?.title || c?.siteName || url;
+            return `${i + 1}. [${title}](${url})`;
+          })
+          .join("\n")
         : "";
       const finalMD = linked + refs;
 
@@ -195,17 +189,48 @@ export default function RenderActionButtons({
     }
   }
   useEffect(() => {
-    if (item) {
-      setFullContent(
-        item?.message
-          .filter((item) => item.type == "text")
-          ?.map((item) => item.content)
-          ?.join("\n\n") ||
-          "Error" ||
-          "document",
-      );
+    if (!item) return;
+
+    console.log("item in RenderActionButtons useEffect", item);
+
+    const isSimulation = item?.message?.some((msg) => msg.type === "simulation");
+    console.log("isSimulation:", isSimulation, "messages:", item?.message);
+
+    let simualtionData = "";
+
+    if (isSimulation) {
+      const allAgent = item.message.find((msg) => msg.type === "simulation")?.items;
+      console.log("allAgent:", allAgent);
+
+      if (Array.isArray(allAgent) && allAgent.length > 0) {
+        allAgent.forEach((agent) => {
+          simualtionData += `
+
+---
+
+### Agent Name: **${agent?.title || "N/A"}**
+
+- **Goal:** ${agent?.goal || "N/A"}
+${agent?.team?.length ? `- **Collaborated With:** ${agent.team.join(", ")}` : ""}
+- **Response:**
+
+${agent?.content || "N/A"}
+
+`;
+        });
+
+        simualtionData = `# 🧪 Agentic Simulation\n\n${simualtionData}\n\n---\n\n## Final Output:\n\n`;
+      }
     }
+
+    const textContent = item.message
+      ?.filter((msg) => msg.type === "text")
+      ?.map((msg) => msg.content)
+      ?.join("\n\n") || "Error";
+
+    setFullContent(`${simualtionData}${textContent}`);
   }, [item]);
+
 
   useEffect(() => {
     console.log(fullContent, "fullContent in RenderActionButtons");
@@ -418,7 +443,7 @@ export default function RenderActionButtons({
                   })) || []
                 }
                 maxIcons={3}
-                onClick={() => {}}
+                onClick={() => { }}
               />
             </DialogTrigger>
             <DialogContent className="w-full max-w-3xl bg-slate-800 text-white">
