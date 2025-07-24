@@ -119,3 +119,6 @@ export const verifyAndSuggestUrl = `${import.meta.env.VITE_SOCKET_URL}/api/verif
 export const searchChatThreadUrl = `${import.meta.env.VITE_SOCKET_URL}/api/search/searchChats`;
 
 export const genDocUrl = `${import.meta.env.VITE_SOCKET_URL}/api/genDoc/status/:id`;
+export const renameKnowledgeBlockUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/updateUserPersonalKnowledge/:collectionId/:userId`;
+
+export const deleteKnowledgeBlockUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/deleteUserPersonalKnowledge/:collectionId/:userId`;

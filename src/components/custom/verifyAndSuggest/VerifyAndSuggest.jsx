@@ -89,8 +89,6 @@ export default function VerifyAndSuggest({
                 break;
               case "verify-completeEventId":
 
-                console.log("this is end of the verification", data)
-
                 if (data?.id) {
                   setWorkflow((prev) => {
                     const updatedWorkflow = prev.map((item) =>

@@ -108,6 +108,8 @@ const Conversation = forwardRef(
       const styles = isDeepThink ? tableStyles.deepThink : tableStyles.regular;
       const data = block.content
         .replace("undefined", "")
+        .replaceAll("Error: Aborted", "")
+        .replaceAll("Error: Timeout", "")
         //  [|1|] > sup
         .replace(
           /\[\|(\d+)\|\]/g,
