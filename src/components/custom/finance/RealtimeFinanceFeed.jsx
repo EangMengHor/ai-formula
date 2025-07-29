@@ -18,20 +18,71 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChartCandlestick, Coins, Loader2 } from "lucide-react";
+import { authApi } from "@/services/authApi";
 
-export default function RealtimeFinanceFeed({ ticker, type }) {
+export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
   const [lastUpdateDate, setLastUpdateDate] = useState(null);
   const [isRealtime, setIsRealtime] = useState(true);
   const [isRealtimeLoading, setIsRealtimeLoading] = useState(false);
+  const [isInitLoading, setIsInitLoading] = useState(true);
   const [dateTabValue, setDateTabValue] = useState("1D");
   const [graphData, setGraphData] = useState([]);
   const [summaryData, setSummaryData] = useState({});
   const intervalRef = useRef(null);
+  const requestLockRef = useRef(false); // Lock to prevent concurrent requests
+  const [iconSrc, setIconSrc] = useState("");
+  useEffect(() => {
+    const fetchIcon = async () => {
+      try {
+        await authApi(async () => {
+          const res = await axios.get(
+            `${import.meta.env.VITE_SOCKET_URL}/finance/icon/financial:icon:${ticker}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+              },
+              responseType: "blob",
+            },
+          );
+
+          if (res.status === 401) {
+            throw new Error("Unauthorized: Invalid or expired access token.");
+          }
+
+          const imageUrl = URL.createObjectURL(res.data);
+          setIconSrc(imageUrl);
+        });
+      } catch (error) {
+        console.error("Error fetching icon:", error);
+        if (error.response?.status === 401) {
+          throw new Error("401 Unauthorized – please re-authenticate.");
+        }
+      }
+    };
+    console.log("fetchIcon called for ticker:", summaryData);
+    if (
+      summaryData &&
+      summaryData?.image &&
+      summaryData?.image !== "" &&
+      !iconSrc
+    ) {
+      fetchIcon();
+    }
+  }, [ticker, summaryData]);
   useEffect(() => {
     async function fetchFinancialData(isInitialFetch = false) {
+      // Check if a request is already in progress
+      if (requestLockRef.current) {
+        console.log("Request already in progress, skipping...");
+        return;
+      }
       try {
+        requestLockRef.current = true;
         if (!isInitialFetch) {
           setIsRealtimeLoading(true);
+        } else {
+          setIsInitLoading(true);
         }
         const response = await axios.post(financialFeedUrl, {
           ticker: ticker,
@@ -45,7 +96,7 @@ export default function RealtimeFinanceFeed({ ticker, type }) {
             current: response?.data?.currData,
             dayMove: response?.data?.dayMove,
             afterHours: response?.data?.afterHours,
-            image: response?.data?.imageIcon,
+            image: response?.data?.imageIcon || "",
             price: response?.data?.currentPrice,
           });
           setLastUpdateDate(new Date(response.data.responseDate));
@@ -55,6 +106,9 @@ export default function RealtimeFinanceFeed({ ticker, type }) {
         setLastUpdateDate(null);
       } finally {
         setIsRealtimeLoading(false);
+        setIsInitLoading(false);
+        // Release the lock
+        requestLockRef.current = false;
       }
     }
 
@@ -67,12 +121,20 @@ export default function RealtimeFinanceFeed({ ticker, type }) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+
+      // Reset the lock when starting fresh
+      requestLockRef.current = false;
+
       fetchFinancialData(true);
       // start polling for real-time updates
       intervalRef.current = setInterval(() => {
         fetchFinancialData();
       }, 5000); // Poll every 5 seconds
-      return () => clearInterval(intervalRef.current); // Cleanup on unmount
+
+      return () => {
+        clearInterval(intervalRef.current); // Cleanup on unmount
+        requestLockRef.current = false; // Reset lock on cleanup
+      };
     }
   }, [dateTabValue, ticker, type]);
 
@@ -116,153 +178,45 @@ export default function RealtimeFinanceFeed({ ticker, type }) {
   };
 
   return (
-    <div className="space-y-4 bg-black ">
-      {/* Header with ticker info */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div className="flex items-center space-x-2">
-            <CardTitle className="text-2xl font-bold">
-              {ticker?.toUpperCase()}
-            </CardTitle>
-            {summaryData.current && (
-              <Badge
-                variant={
-                  summaryData.dayMove?.direction === "up"
-                    ? "default"
-                    : "destructive"
-                }
-              >
-                {summaryData.dayMove?.direction === "up" ? "+" : ""}
-                {summaryData.dayMove?.diff}({summaryData.dayMove?.percent}%)
-              </Badge>
-            )}
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">
-              ${summaryData.price?.toFixed(2) || "--"}
+    <div className="bg-gradient-to-r from-g2/70 to-g1/70 rounded-xl p-4">
+      <div className="flex w-full justify-between items-center ">
+        <div>
+          {isInitLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="animate-spin w-5 h-5 text-blue-500" />
+              <p>Loading {name} chart</p>
             </div>
-            {lastUpdateDate && (
-              <div className="text-sm text-muted-foreground">
-                Last updated: {lastUpdateDate.toLocaleTimeString()}
-              </div>
-            )}
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Time period tabs */}
-      <Tabs value={dateTabValue} onValueChange={setDateTabValue}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="1D">1D</TabsTrigger>
-          <TabsTrigger value="1W">1W</TabsTrigger>
-          <TabsTrigger value="1M">1M</TabsTrigger>
-          <TabsTrigger value="3M">3M</TabsTrigger>
-          <TabsTrigger value="1Y">1Y</TabsTrigger>
-          <TabsTrigger value="5Y">5Y</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Chart */}
-      <Card>
-        <CardContent>
-          {chartData.length > 0 ? (
-            <ChartContainer
-              config={chartConfig}
-              className="h-[calc(100vh-400px)]"
-            >
-              <AreaChart
-                accessibilityLayer
-                data={chartData}
-                margin={{
-                  left: 12,
-                  right: 12,
-                  top: 12,
-                  bottom: 12,
-                }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="displayTime"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={formatXAxisLabel}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={(value) => `$${value.toFixed(2)}`}
-                  domain={["dataMin - 1", "dataMax + 1"]}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(value) => {
-                        console.log(value, "value");
-                        if (dateTabValue === "1D") {
-                          return `Time: ${value}`;
-                        } else {
-                          return `Date: ${value}`;
-                        }
-                      }}
-                      formatter={(value) => [`$${value.toFixed(2)}`, "Price"]}
-                    />
-                  }
-                />
-                <Area
-                  dataKey="price"
-                  type="monotone"
-                  fill="var(--color-price)"
-                  fillOpacity={0.2}
-                  stroke="var(--color-price)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ChartContainer>
           ) : (
-            <div className="flex items-center justify-center text-muted-foreground">
-              {isRealtimeLoading
-                ? "Loading chart data..."
-                : "No data available"}
+            <div className="flex gap-2">
+              {summaryData.image && summaryData.image !== "" && (
+                <img
+                  src={iconSrc || "/placeholder.png"}
+                  alt={`${name} icon`}
+                  className="w-6 h-6 rounded-lg"
+                />
+              )}
+              <p className=" capitalize font-bold">{name}</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Summary cards */}
-      {summaryData.daily && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Open</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${summaryData.daily.open}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">High</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${summaryData.daily.high}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${summaryData.daily.low}</div>
-            </CardContent>
-          </Card>
+        {/* right */}
+        <div className="flex gap-2">
+          {type === "stock" ? (
+            <ChartCandlestick width={20} height={20} />
+          ) : (
+            <Coins width={20} height={20} />
+          )}
+          <p className=" text-sm">{type == "stock" ? "Stock" : "Crypto"}</p>
+        </div>
+      </div>
+
+      {!isInitLoading && (
+        <div className="my-2">
+          {/* realtime price */}
+          <div>
+            <p className="text-4xl">${summaryData.price}</p>
+          </div>
         </div>
       )}
     </div>

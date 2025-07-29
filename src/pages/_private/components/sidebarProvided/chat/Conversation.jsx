@@ -53,6 +53,7 @@ import RenderActionButtons from "./ChatActionButtons";
 import OmniResilience from "@/components/custom/OmniResilience";
 import UserMessage from "@/components/custom/UserMessage";
 import FileBlock from "@/components/custom/generatedFile/FileBlock";
+import RealtimeFinanceFeed from "@/components/custom/finance/RealtimeFinanceFeed";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -491,6 +492,19 @@ const Conversation = forwardRef(
                         console.log(block, "omni block");
 
                         return <OmniResilience block={block} />;
+                      } else if (block.type == "realtime") {
+                        console.log(block, "realtime block");
+                        return (
+                          <div>
+                            <RealtimeFinanceFeed
+                              ticker={block.ticker}
+                              type={block.assetType}
+                              name={
+                                block.generalName || "Realtime Finance Feed"
+                              }
+                            />
+                          </div>
+                        );
                       }
                     })}
                   {item && item?.isAbortManually && (
@@ -510,14 +524,6 @@ const Conversation = forwardRef(
                         </h2>
                         <p>{item.errorMessage || errorMessage}</p>
                       </div>
-                      <button
-                        className=" bg-red-500 px-7 py-3 rounded-2xl hover:bg-red-600"
-                        onClick={() => {
-                          onRetry();
-                        }}
-                      >
-                        Retry
-                      </button>
                     </div>
                   )}
                 </div>

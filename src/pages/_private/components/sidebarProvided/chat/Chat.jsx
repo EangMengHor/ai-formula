@@ -271,7 +271,8 @@ function Chat() {
           },
         ];
       });
-    },[]
+    },
+    [],
   );
 
   const memoizedHandleBlockSidebar = useCallback(
@@ -1167,6 +1168,30 @@ function Chat() {
           };
         },
       },
+      {
+        type: "realtime",
+        regex: /<realtime>([\s\S]*?)<\/realtime>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          return {
+            type: "realtime",
+            ticker: extractTag("ticker", inner),
+            assetType: extractTag("type", inner),
+            generalName: extractTag("generalName", inner),
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
+
       {
         type: "vectorStoreJob",
         regex: /<newVectorStoreJob>([\s\S]*?)<\/newVectorStoreJob>/gi,
