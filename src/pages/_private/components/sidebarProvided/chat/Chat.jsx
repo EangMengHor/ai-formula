@@ -492,7 +492,7 @@ function Chat() {
 
   useEffect(() => {
     if (localStorage.getItem("prompt")) {
-      localStorage.removeItem("prompt");
+      //   localStorage.removeItem("prompt");
     } else {
       setIsChatLoading(true);
     }
