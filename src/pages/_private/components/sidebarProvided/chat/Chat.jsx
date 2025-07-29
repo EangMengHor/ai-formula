@@ -34,6 +34,7 @@ import { sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
 import OsintNewInstanceSidebar from "@/components/custom/osint/OsintNewInstanceSidebar";
+import SidebarFileBlock from "@/components/custom/generatedFile/SidebarFileblock";
 // import VoiceInterface from "@/components/custom/VoiceInterface";
 
 function Chat() {
@@ -251,6 +252,26 @@ function Chat() {
       });
     },
     [],
+  );
+
+  const memorizedGeneratedDocumentBlockSidebar = useCallback(
+    (genId, name = "File", pages = "-") => {
+      setSidebarStack(() => {
+        return [
+          {
+            header: name,
+            component: (
+              <SidebarFileBlock
+                genId={genId}
+                name={name}
+                pages={pages}
+                key={`sidebar-file-block-${genId}`}
+              />
+            ),
+          },
+        ];
+      });
+    },[]
   );
 
   const memoizedHandleBlockSidebar = useCallback(
@@ -1254,8 +1275,29 @@ function Chat() {
           };
         },
       },
-      // ───────────────────────────────────────────────────────────────────────────────
-      // ───────────────────────────────────────────────────────────────────────────────
+      {
+        type: "genDoc",
+        regex: /<genDoc>([\s\S]*?)<\/genDoc>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          return {
+            type: "genDoc",
+            name: extractTag("name", inner) || "Generated Document",
+            genId: extractTag("genId", inner),
+            pages: parseInt(extractTag("pages", inner), 10) || 1,
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
     ];
 
     // --- 4. Find other blocks in masked content ---
@@ -1640,6 +1682,7 @@ function Chat() {
         handleMaterialSidebar={memoizedHandleMaterialSidebar}
         handleVectorStoreSidebar={memoizedHandleVectorStoreScrapperSidebar}
         handleUrlScraperSidebar={memorizedHandleUrlScraperSidebar}
+        handleGeneratedDocSidebar={memorizedGeneratedDocumentBlockSidebar}
         loadingMessage={currLoadingStatus}
         chatContainerRef={chatContainerRef}
         endRef={endRef}
