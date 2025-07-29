@@ -45,6 +45,17 @@ function Chat() {
 
   // --- Context ---
   const { id } = useParams();
+
+  // Add debugging for production
+  useEffect(() => {
+    console.log("Chat component mounted with ID:", id);
+    console.log(
+      "localStorage prompt at mount:",
+      localStorage.getItem("prompt"),
+    );
+    console.log("Environment:", process.env.NODE_ENV);
+  }, []);
+
   const { toast } = useToast();
   const {
     setFileCount,
@@ -154,8 +165,12 @@ function Chat() {
 
   // when sessionId changes then reset the state
   useEffect(() => {
+    console.log("Session ID changed:", id);
     setIsNextChatLoading(false);
     isSessionExploited && setIsSessionExploited(false);
+
+    // Also reset fallback prompt when session changes
+    setFallBackPrompt("");
   }, [id]);
 
   // --- Memoized/Callback Functions ---
@@ -480,9 +495,27 @@ function Chat() {
   useEffect(() => {
     async function getPurpose() {
       const localItem = localStorage.getItem("prompt");
+      console.log("getPurpose called, localItem:", localItem); // <-- added for testing
+
       if (localItem) {
-        setFallBackPrompt(localItem);
-        setIsNextChatLoading(true);
+        try {
+          // Parse if it's JSON, otherwise use as string
+          const parsedPrompt = localItem;
+
+          setFallBackPrompt(
+            typeof parsedPrompt === "string" ? parsedPrompt : localItem,
+          );
+          setIsNextChatLoading(true);
+
+          // Clear localStorage after successfully setting the fallback
+          localStorage.removeItem("prompt");
+        } catch (error) {
+          console.error("Error parsing localStorage prompt:", error);
+          // If parsing fails, use the raw string
+          setFallBackPrompt(localItem);
+          setIsNextChatLoading(true);
+          localStorage.removeItem("prompt");
+        }
       } else {
         setIsChatLoading(true);
       }
@@ -490,32 +523,38 @@ function Chat() {
     getPurpose();
   }, [id]);
 
-  useEffect(() => {
-    if (localStorage.getItem("prompt")) {
-      localStorage.removeItem("prompt");
-    } else {
-      setIsChatLoading(true);
-    }
-  }, [id]);
-
   // check the prompt coming from dashboard
   useEffect(() => {
-    if (fallBackPrompt.length > 30000) {
-      toast({
-        title: "Error",
-        description: "Prompt length exceeds 30000 characters.",
-        variant: "destructive",
-      });
-    }
-    if (fallBackPrompt.length > 0) {
-      // Use setTimeout to ensure handleSubmit is available
-      setTimeout(() => {
+    if (fallBackPrompt && fallBackPrompt.trim().length > 0) {
+      if (fallBackPrompt.length > 30000) {
+        toast({
+          title: "Error",
+          description: "Prompt length exceeds 30000 characters.",
+          variant: "destructive",
+        });
+        setFallBackPrompt(""); // Clear the fallback to prevent infinite retries
+        return;
+      }
+
+      console.log("Processing fallBackPrompt:", fallBackPrompt);
+
+      // Use a more reliable approach to ensure handleSubmit is called
+      const attemptSubmit = () => {
         if (typeof handleSubmitRef.current === "function") {
+          console.log("Submitting fallBackPrompt:", fallBackPrompt);
           handleSubmitRef.current(fallBackPrompt);
+          setFallBackPrompt(""); // Clear after successful submission
+        } else {
+          // If handleSubmitRef is not ready, try again in a short while
+          console.log("handleSubmitRef not ready, retrying...");
+          setTimeout(attemptSubmit, 100);
         }
-      }, 0);
+      };
+
+      // Small delay to ensure everything is initialized
+      setTimeout(attemptSubmit, 50);
     }
-  }, [fallBackPrompt]);
+  }, [fallBackPrompt, toast]);
 
   // get conversation history and uploaded documents for chat thread
   useEffect(() => {
@@ -1526,6 +1565,10 @@ function Chat() {
   // Update the ref whenever handleSubmit changes
   useEffect(() => {
     handleSubmitRef.current = handleSubmit;
+    console.log(
+      "handleSubmitRef updated, function available:",
+      typeof handleSubmit === "function",
+    );
   }, [handleSubmit]);
 
   const lastContent = useRef("");
