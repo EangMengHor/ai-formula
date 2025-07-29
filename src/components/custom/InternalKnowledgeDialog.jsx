@@ -69,7 +69,9 @@ export default function InternalKnowledgeDialog({
             </div>
           </div>
           <div className=" mb-4 overflow-y-scroll hide-scrollbar h-[calc(100vh-500px)]">
-            {filteredCollections.length > 0 ? (
+            {filteredCollections &&
+            Array.isArray(filteredCollections) &&
+            filteredCollections.reverse().length > 0 ? (
               <ScrollArea className="h-full overflow-auto">
                 <div className="p-2">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
