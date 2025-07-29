@@ -10,21 +10,37 @@ import { useCollection } from "@/context/CollectionContext";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Database, Search, X, CheckCircle2, Circle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { useParams } from "react-router-dom";
 
 export default function InternalKnowledgeDialog({
   isDialogOpen = false,
   setIsDialogOpen = () => {},
 }) {
-  const { collectionList, selectedCollectionIds, toggleCollectionSelection } =
-    useCollection();
+  const {
+    collectionList,
+    selectedCollectionIds,
+    toggleCollectionSelection,
+    fetchStoredCollections,
+  } = useCollection();
+  const { id } = useParams();
 
   const [searchValue, setSearchValue] = useState("");
 
   const filteredCollections = collectionList.filter((collection) =>
     collection.collectionName.toLowerCase().includes(searchValue.toLowerCase()),
   );
+
+  useEffect(() => {
+    if (
+      collectionList &&
+      Array.isArray(collectionList) &&
+      collectionList.length > 0
+    ) {
+      fetchStoredCollections(id);
+    }
+  }, [collectionList]);
 
   const handleChange = (e) => {
     setSearchValue(e.target.value);
@@ -84,10 +100,11 @@ export default function InternalKnowledgeDialog({
                       return (
                         <div
                           key={collection.id}
-                          onClick={() =>
+                          onClick={() => {
+                            console.log(id, "sessionId");
                             !isDisabled &&
-                            toggleCollectionSelection(collection.id)
-                          }
+                              toggleCollectionSelection(collection.id, id);
+                          }}
                           className={`
                           group relative p-3 sm:p-4 rounded-xl transition-all duration-200 cursor-pointer
                           ${

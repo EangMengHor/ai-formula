@@ -271,7 +271,8 @@ function Chat() {
           },
         ];
       });
-    },[]
+    },
+    [],
   );
 
   const memoizedHandleBlockSidebar = useCallback(
@@ -651,6 +652,9 @@ function Chat() {
     // replay
 
     try {
+      if (parseInt(lastReadedRelayIndex.current) < 0) {
+        return;
+      }
       const replayStreamRes = await replayStream(
         id,
         parseInt(lastReadedRelayIndex.current) || 0,
@@ -664,7 +668,6 @@ function Chat() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-
           buffer += decoder.decode(value, { stream: true });
           const parts = buffer.split("\n\n");
           buffer = parts.pop();

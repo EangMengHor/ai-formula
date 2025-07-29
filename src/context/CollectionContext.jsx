@@ -9,6 +9,7 @@ import React, {
 import { useToast } from "../hooks/use-toast";
 import { getUserPersonalKnowledgeCollection } from "@/services/user-setting-apis/getUserPersonalKnowledgeCollection";
 import { useUser } from "./UserContext";
+import { useParams } from "react-router-dom";
 
 const CollectionContext = createContext();
 
@@ -17,7 +18,6 @@ export const CollectionProvider = ({ children }) => {
   const [selectedCollectionIds, setSelectedCollectionIds] = useState([]);
   const { user } = useUser();
   const { toast } = useToast();
-
   useEffect(() => {
     let isMounted = true;
 
@@ -47,15 +47,55 @@ export const CollectionProvider = ({ children }) => {
     };
   }, [user?.id, toast]);
 
+  const fetchStoredCollections = (sessionId) => {
+    console.log(sessionId, "fetching prev");
+    const storedCollections = localStorage.getItem("selectedCollections");
+    if (storedCollections) {
+      const parsedCollections = JSON.parse(storedCollections);
+      if (parsedCollections[sessionId]) {
+        setSelectedCollectionIds(parsedCollections[sessionId]);
+      } else {
+        setSelectedCollectionIds([]);
+      }
+    }
+  };
+
+  const saveInLocalStorage = (collectionId, sessionId, type = "add") => {
+    console.log(collectionId, "asdasdasdased34123", sessionId, type);
+    const existing = localStorage.getItem("selectedCollections");
+    let selectedCollections = existing ? JSON.parse(existing) : {};
+    if (type === "add") {
+      selectedCollections[sessionId] = [
+        ...(selectedCollections[sessionId] || []),
+        collectionId,
+      ];
+    } else if (type === "remove") {
+      if (selectedCollections[sessionId]) {
+        console.log("removing", collectionId, "asdasdasdased34123");
+        selectedCollections[sessionId] = selectedCollections[sessionId].filter(
+          (id) => id !== collectionId,
+        );
+        if (selectedCollections[sessionId].length === 0) {
+          delete selectedCollections[sessionId];
+        }
+      }
+    }
+    localStorage.setItem(
+      "selectedCollections",
+      JSON.stringify(selectedCollections),
+    );
+  };
+
   const toggleCollectionSelection = useCallback(
-    (collectionId) => {
+    (collectionId, sessionId = "") => {
       setSelectedCollectionIds((prevSelected) => {
         const isSelected = prevSelected.includes(collectionId);
-
         if (isSelected) {
+          saveInLocalStorage(collectionId, sessionId, "remove");
           return prevSelected.filter((id) => id !== collectionId);
         } else {
           if (prevSelected.length < 5) {
+            saveInLocalStorage(collectionId, sessionId, "add");
             return [...prevSelected, collectionId];
           } else {
             toast({
@@ -70,7 +110,7 @@ export const CollectionProvider = ({ children }) => {
     },
     [toast],
   );
-
+  
   const getSelectedCollections = useMemo(
     () => () =>
       collectionList.filter((c) => selectedCollectionIds.includes(c.id)),
@@ -85,12 +125,14 @@ export const CollectionProvider = ({ children }) => {
       setSelectedCollectionIds,
       toggleCollectionSelection,
       getSelectedCollections,
+      fetchStoredCollections,
     }),
     [
       collectionList,
       selectedCollectionIds,
       toggleCollectionSelection,
       getSelectedCollections,
+      fetchStoredCollections,
     ],
   );
 
