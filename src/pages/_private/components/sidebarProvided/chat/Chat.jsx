@@ -45,6 +45,17 @@ function Chat() {
 
   // --- Context ---
   const { id } = useParams();
+
+  // Add debugging for production
+  useEffect(() => {
+    console.log("Chat component mounted with ID:", id);
+    console.log(
+      "localStorage prompt at mount:",
+      localStorage.getItem("prompt"),
+    );
+    console.log("Environment:", process.env.NODE_ENV);
+  }, []);
+
   const { toast } = useToast();
   const {
     setFileCount,
@@ -154,8 +165,12 @@ function Chat() {
 
   // when sessionId changes then reset the state
   useEffect(() => {
+    console.log("Session ID changed:", id);
     setIsNextChatLoading(false);
     isSessionExploited && setIsSessionExploited(false);
+
+    // Also reset fallback prompt when session changes
+    setFallBackPrompt("");
   }, [id]);
 
   // --- Memoized/Callback Functions ---
@@ -480,9 +495,19 @@ function Chat() {
   useEffect(() => {
     async function getPurpose() {
       const localItem = localStorage.getItem("prompt");
+      console.log("getPurpose called, localItem:", localItem); // <-- added for testing
+
       if (localItem) {
-        setFallBackPrompt(localItem);
-        setIsNextChatLoading(true);
+        try {
+          setFallBackPrompt(localItem);
+          localStorage.removeItem("prompt");
+        } catch (error) {
+          console.error("Error parsing localStorage prompt:", error);
+          // If parsing fails, use the raw string
+          setFallBackPrompt(localItem);
+          setIsNextChatLoading(true);
+          localStorage.removeItem("prompt");
+        }
       } else {
         setIsChatLoading(true);
       }
@@ -490,32 +515,42 @@ function Chat() {
     getPurpose();
   }, [id]);
 
-  useEffect(() => {
-    if (localStorage.getItem("prompt")) {
-      localStorage.removeItem("prompt");
-    } else {
-      setIsChatLoading(true);
-    }
-  }, [id]);
-
   // check the prompt coming from dashboard
   useEffect(() => {
-    if (fallBackPrompt.length > 30000) {
-      toast({
-        title: "Error",
-        description: "Prompt length exceeds 30000 characters.",
-        variant: "destructive",
-      });
-    }
-    if (fallBackPrompt.length > 0) {
-      // Use setTimeout to ensure handleSubmit is available
-      setTimeout(() => {
+    if (
+      fallBackPrompt &&
+      fallBackPrompt.trim().length > 0 &&
+      handleSubmitRef.current
+    ) {
+      if (fallBackPrompt.length > 30000) {
+        toast({
+          title: "Error",
+          description: "Prompt length exceeds 30000 characters.",
+          variant: "destructive",
+        });
+        setFallBackPrompt(""); // Clear the fallback to prevent infinite retries
+        return;
+      }
+
+      console.log("Processing fallBackPrompt:", fallBackPrompt);
+
+      // Use a more reliable approach to ensure handleSubmit is called
+      const attemptSubmit = () => {
         if (typeof handleSubmitRef.current === "function") {
+          console.log("Submitting fallBackPrompt:", fallBackPrompt);
           handleSubmitRef.current(fallBackPrompt);
+          setFallBackPrompt(""); // Clear after successful submission
+        } else {
+          // If handleSubmitRef is not ready, try again in a short while
+          console.log("handleSubmitRef not ready, retrying...");
+          setTimeout(attemptSubmit, 100);
         }
-      }, 0);
+      };
+
+      // Small delay to ensure everything is initialized
+      setTimeout(attemptSubmit, 50);
     }
-  }, [fallBackPrompt]);
+  }, [fallBackPrompt, toast, handleSubmitRef.current]);
 
   // get conversation history and uploaded documents for chat thread
   useEffect(() => {
@@ -652,9 +687,6 @@ function Chat() {
     // replay
 
     try {
-      if (parseInt(lastReadedRelayIndex.current) < 0) {
-        return;
-      }
       const replayStreamRes = await replayStream(
         id,
         parseInt(lastReadedRelayIndex.current) || 0,
@@ -668,6 +700,7 @@ function Chat() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+
           buffer += decoder.decode(value, { stream: true });
           const parts = buffer.split("\n\n");
           buffer = parts.pop();
@@ -1171,6 +1204,30 @@ function Chat() {
         },
       },
       {
+        type: "realtime",
+        regex: /<realtime>([\s\S]*?)<\/realtime>/gi,
+        handler: (m, start, end) => {
+          const inner = m[1].trim();
+
+          const extractTag = (tag, source) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+            const match = regex.exec(source);
+            return match ? match[1].trim() : null;
+          };
+
+          return {
+            type: "realtime",
+            ticker: extractTag("ticker", inner),
+            assetType: extractTag("type", inner),
+            generalName: extractTag("generalName", inner),
+            isComplete: true,
+            start,
+            end,
+          };
+        },
+      },
+
+      {
         type: "vectorStoreJob",
         regex: /<newVectorStoreJob>([\s\S]*?)<\/newVectorStoreJob>/gi,
         handler: (m, start, end) => {
@@ -1374,6 +1431,7 @@ function Chat() {
 
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
+      console.log("handleSubmit called with prompt:", prompt);
       if (!prompt.trim() || prompt.length == 0 || isNextChatLoading) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
@@ -1504,6 +1562,10 @@ function Chat() {
   // Update the ref whenever handleSubmit changes
   useEffect(() => {
     handleSubmitRef.current = handleSubmit;
+    console.log(
+      "handleSubmitRef updated, function available:",
+      typeof handleSubmit === "function",
+    );
   }, [handleSubmit]);
 
   const lastContent = useRef("");
