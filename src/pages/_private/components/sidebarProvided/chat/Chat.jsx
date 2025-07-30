@@ -550,6 +550,7 @@ function Chat() {
       // Small delay to ensure everything is initialized
       setTimeout(attemptSubmit, 50);
     }
+
   }, [fallBackPrompt, toast, handleSubmitRef.current]);
 
   // get conversation history and uploaded documents for chat thread

@@ -3,7 +3,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+.recharts-surface{
+    margin-left: -20px;
+}
 .chat-message {
   padding: 10px;
   background: #f9f9f9;

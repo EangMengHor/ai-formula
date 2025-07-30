@@ -122,3 +122,7 @@ export const genDocUrl = `${import.meta.env.VITE_SOCKET_URL}/api/genDoc/status/:
 export const renameKnowledgeBlockUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/updateUserPersonalKnowledge/:collectionId/:userId`;
 
 export const deleteKnowledgeBlockUrl = `${import.meta.env.VITE_SOCKET_URL}/api/personalKnowledge/deleteUserPersonalKnowledge/:collectionId/:userId`;
+
+
+// financial feed
+export const financialFeedUrl = `${import.meta.env.VITE_SOCKET_URL}/finance/poll`;

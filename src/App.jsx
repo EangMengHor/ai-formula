@@ -45,6 +45,7 @@ import AutomationPage from "./pages/_automations/AutomationPage";
 import AutomationJobDetails from "./pages/_automations/AutomationJobsDetails";
 import PromptTemplateLibrary from "./pages/_private/components/sidebarProvided/components/PromptTemplateLibrary";
 import EachVectorStore from "./pages/_addToPersonalKnowledge/EachVectorStore";
+import Test from "./components/custom/Test";
 
 export default function App() {
   const location = useLocation();
@@ -82,6 +83,7 @@ export default function App() {
 
           {/* user manual */}
           <Route path="/manual" element={<UserManualLayout />} />
+          <Route path="/test" element={<Test />} />
           <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
