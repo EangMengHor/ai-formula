@@ -17,19 +17,49 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartCandlestick, Check, Coins, Loader2 } from "lucide-react";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChartCandlestick,
+  Check,
+  ChevronDown,
+  Coins,
+  Loader2,
+} from "lucide-react";
 import { authApi } from "@/services/authApi";
 
 const tabValue = ["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y"];
-
+const referenceLineRef = [
+  {
+    value: "prevClose",
+    label: "Prev. Close",
+  },
+  {
+    value: "todayPreMarket",
+    label: "Today's Pre-market",
+  },
+  {
+    value: "afterHour",
+    label: "After Hour",
+  },
+  {
+    value: "prevLow",
+    label: "Prev. Low",
+  },
+  {
+    value: "prevHigh",
+    label: "Prev. High",
+  },
+  {
+    value: "prevOpen",
+    label: "Prev. Open",
+  },
+];
 export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
   const [lastUpdateDate, setLastUpdateDate] = useState(null);
   const [isRealtime, setIsRealtime] = useState(true);
@@ -38,6 +68,8 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
   const [dateTabValue, setDateTabValue] = useState("1D");
   const [graphData, setGraphData] = useState([]);
   const [summaryData, setSummaryData] = useState({});
+  const [selectedReferenceLine, setSelectedReferenceLine] =
+    useState("prevClose");
   const intervalRef = useRef(null);
   const requestLockRef = useRef(false); // Lock to prevent concurrent requests
   const [iconSrc, setIconSrc] = useState("");
@@ -116,15 +148,36 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
 
         if (response?.data && response?.data?.success) {
           setGraphData(response?.data?.data);
-          console.log("Graph data:", response?.data);
-          setSummaryData({
+          console.log("Graph data:", {
             daily: response?.data?.dailySummary,
             current: response?.data?.currData,
             dayMove: response?.data?.dayMove,
             afterHours: response?.data?.afterHours,
             image: response?.data?.imageIcon || "",
             price: response?.data?.currentPrice,
+            prev: response?.data?.previousSummary,
           });
+
+          const summaryDataObj = {
+            daily: response?.data?.dailySummary,
+            current: response?.data?.currData,
+            dayMove: response?.data?.dayMove,
+            afterHours: response?.data?.afterHours,
+            image: response?.data?.imageIcon || "",
+            price: response?.data?.currentPrice,
+            prev: response?.data?.previousSummary,
+          };
+
+          // Debug for reference line
+          console.log("Setting summary data for", type, ticker, {
+            hasClose: !!summaryDataObj?.prev?.close,
+            closeValue: summaryDataObj?.prev?.close,
+            closeType: typeof summaryDataObj?.prev?.close,
+            dateTab: dateTabValue,
+            fullPrev: summaryDataObj?.prev,
+          });
+
+          setSummaryData(summaryDataObj);
           setLastUpdateDate(new Date(response.data.responseDate));
         } else {
           // API returned unsuccessful response
@@ -210,6 +263,106 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
     },
   };
 
+  // Get reference line value and label based on selection
+  const getReferenceLineData = () => {
+    if (!summaryData?.prev && !summaryData?.daily) return null;
+
+    const referenceMap = {
+      prevClose: {
+        value: summaryData?.prev?.close,
+        label: "Prev. Close",
+      },
+      todayPreMarket: {
+        value: summaryData?.daily?.preMarket,
+        label: "Today's Pre-market",
+      },
+      afterHour: {
+        value: summaryData?.afterHours?.price,
+        label: "After Hour",
+      },
+      prevLow: {
+        value: summaryData?.prev?.low,
+        label: "Prev. Low",
+      },
+      prevHigh: {
+        value: summaryData?.prev?.high,
+        label: "Prev. High",
+      },
+      prevOpen: {
+        value: summaryData?.prev?.open,
+        label: "Prev. Open",
+      },
+    };
+
+    const selected = referenceMap[selectedReferenceLine];
+
+    // Check if the value exists and is a valid number
+    if (
+      selected &&
+      selected.value !== null &&
+      selected.value !== undefined &&
+      !isNaN(Number(selected.value))
+    ) {
+      return {
+        ...selected,
+        value: Number(selected.value), // Ensure it's a number
+      };
+    }
+
+    return null;
+  };
+
+  const referenceLineData = getReferenceLineData();
+
+  // Auto-fallback to available reference line if current selection is not available
+  useEffect(() => {
+    if (dateTabValue === "1D" && summaryData && !referenceLineData) {
+      // Find the first available reference line
+      const availableOptions = referenceLineRef.find((item) => {
+        switch (item.value) {
+          case "prevClose":
+            return !!(
+              summaryData?.prev?.close && !isNaN(Number(summaryData.prev.close))
+            );
+          case "todayPreMarket":
+            return !!(
+              summaryData?.daily?.preMarket &&
+              !isNaN(Number(summaryData.daily.preMarket))
+            );
+          case "afterHour":
+            return !!(
+              summaryData?.afterHours?.price &&
+              !isNaN(Number(summaryData.afterHours.price))
+            );
+          case "prevLow":
+            return !!(
+              summaryData?.prev?.low && !isNaN(Number(summaryData.prev.low))
+            );
+          case "prevHigh":
+            return !!(
+              summaryData?.prev?.high && !isNaN(Number(summaryData.prev.high))
+            );
+          case "prevOpen":
+            return !!(
+              summaryData?.prev?.open && !isNaN(Number(summaryData.prev.open))
+            );
+          default:
+            return false;
+        }
+      });
+
+      if (
+        availableOptions &&
+        selectedReferenceLine !== availableOptions.value
+      ) {
+        console.log(
+          `Auto-switching from ${selectedReferenceLine} to ${availableOptions.value} (not available)`,
+        );
+        setSelectedReferenceLine(availableOptions.value);
+      }
+    }
+  }, [summaryData, selectedReferenceLine, dateTabValue, referenceLineData]);
+
   // Return empty div if there's an error
   if (hasError) {
     return <div></div>;
@@ -227,7 +380,7 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
               </div>
             ) : (
               <div className="flex gap-2">
-                {summaryData.image && summaryData.image !== "" && (
+                {summaryData.image && summaryData.image !== "" && iconSrc && (
                   <img
                     src={iconSrc}
                     alt={`${name} icon`}
@@ -293,194 +446,361 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
             </div>
 
             {/* tabs */}
-            <div className="flex gap-4 pt-4 border-b   border-gray-400/40">
-              {tabValue.map((tab, index) => {
-                const isActive = dateTabValue === tab;
+            <div className="flex gap-4 pt-4 border-b w-full justify-between  items-center border-gray-400/40">
+              <div className="flex gap-4">
+                {tabValue.map((tab, index) => {
+                  const isActive = dateTabValue === tab;
 
-                return (
-                  <button
-                    onClick={() => setDateTabValue(tab)}
-                    className={`${isActive && "border-b-2  border-white"} pb-4 hover:text-white cursor-pointer `}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setDateTabValue(tab)}
+                      className={`${isActive && "border-b-2  border-white"} pb-4 hover:text-white cursor-pointer `}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+              {dateTabValue === "1D" && (
+                <div className="mb-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2  rounded-lg text-sm hover:text-white">
+                      {referenceLineData?.label || "None"}
+                      <ChevronDown className="w-4 h-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-slate-900  rounded-xl border-0 shadow-md shadow-neutral-100">
+                      <DropdownMenuLabel className="text-slate-300">
+                        Select Reference Line
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator className="bg-slate-600" />
+                      {referenceLineRef.map((item) => {
+                        const isAvailable = (() => {
+                          switch (item.value) {
+                            case "prevClose":
+                              return !!(
+                                summaryData?.prev?.close &&
+                                !isNaN(Number(summaryData.prev.close))
+                              );
+                            case "todayPreMarket":
+                              return !!(
+                                summaryData?.daily?.preMarket &&
+                                !isNaN(Number(summaryData.daily.preMarket))
+                              );
+                            case "afterHour":
+                              return !!(
+                                summaryData?.afterHours?.price &&
+                                !isNaN(Number(summaryData.afterHours.price))
+                              );
+                            case "prevLow":
+                              return !!(
+                                summaryData?.prev?.low &&
+                                !isNaN(Number(summaryData.prev.low))
+                              );
+                            case "prevHigh":
+                              return !!(
+                                summaryData?.prev?.high &&
+                                !isNaN(Number(summaryData.prev.high))
+                              );
+                            case "prevOpen":
+                              return !!(
+                                summaryData?.prev?.open &&
+                                !isNaN(Number(summaryData.prev.open))
+                              );
+                            default:
+                              return false;
+                          }
+                        })();
+
+                        // Get the value for display
+                        const getValue = () => {
+                          if (!isAvailable) return "N/A";
+
+                          switch (item.value) {
+                            case "prevClose":
+                              return Number(summaryData?.prev?.close).toFixed(
+                                2,
+                              );
+                            case "todayPreMarket":
+                              return Number(
+                                summaryData?.daily?.preMarket,
+                              ).toFixed(2);
+                            case "afterHour":
+                              return Number(
+                                summaryData?.afterHours?.price,
+                              ).toFixed(2);
+                            case "prevLow":
+                              return Number(summaryData?.prev?.low).toFixed(2);
+                            case "prevHigh":
+                              return Number(summaryData?.prev?.high).toFixed(2);
+                            case "prevOpen":
+                              return Number(summaryData?.prev?.open).toFixed(2);
+                            default:
+                              return "N/A";
+                          }
+                        };
+
+                        return (
+                          <DropdownMenuItem
+                            key={item.value}
+                            onClick={() => setSelectedReferenceLine(item.value)}
+                            className={`text-slate-300 hover:bg-slate-700 cursor-pointer ${
+                              selectedReferenceLine === item.value
+                                ? "bg-slate-700"
+                                : ""
+                            } ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                            disabled={!isAvailable}
+                          >
+                            <div className="flex justify-between gap-2 w-full">
+                              <span>{item.label}</span>
+                              <span
+                                className={`${isAvailable ? "text-slate-400" : "text-red-400"}`}
+                              >
+                                {isAvailable ? `$${getValue()}` : "N/A"}
+                              </span>
+                            </div>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )}
             </div>
 
             {/* graph */}
             {chartData.length > 0 && (
-              <ChartContainer
-                config={chartConfig}
-                style={{
-                  height: "240px",
-                  width: "100%",
-                  marginTop: "30px",
-                }}
-              >
-                <AreaChart
-                  accessibilityLayer
-                  data={chartData}
-                  margin={{
-                    left: 0,
-                    right: 12,
-                    top: 12,
-                    bottom: 12,
+              <div>
+                <ChartContainer
+                  config={chartConfig}
+                  style={{
+                    height: "240px",
+                    width: "100%",
+                    marginTop: "30px",
                   }}
                 >
-                  {dateTabValue == "1D" && (
-                    <ReferenceLine
-                      y={summaryData?.daily?.open}
-                      stroke="gray"
-                      strokeWidth={1}
-                      strokeDasharray="5 5"
-                      label={({ viewBox }) => (
-                        <text
-                          x={viewBox.x + viewBox.width - 5} // Position within chart area
-                          y={viewBox.y - 8}
-                          fill="white" // Changed to white for visibility
-                          fontSize={12}
-                          fontWeight="bold"
-                          textAnchor="end"
-                        >
-                          Prev. Close : {summaryData?.daily?.open}
-                        </text>
-                      )}
-                    />
-                  )}
-                  <CartesianGrid />
-                  <XAxis
-                    dataKey="displayTime"
-                    tickFormatter={formatXAxisLabel}
-                    interval={Math.floor(chartData.length / 4)} // Shows ~4-5 ticks
-                    className="w-fit text-md"
-                  />
-                  <YAxis
-                    tickFormatter={(value) => {
-                      if (value >= 1000000) {
-                        return `${(value / 1000000).toFixed(1)}M`;
-                      } else if (value >= 1000) {
-                        return `${(value / 1000).toFixed(1)}K`;
-                      } else {
-                        return value.toFixed(0);
-                      }
+                  <AreaChart
+                    accessibilityLayer
+                    data={chartData}
+                    margin={{
+                      left: 0,
+                      right: 12,
+                      top: 12,
+                      bottom: 12,
                     }}
-                    domain={(() => {
-                      const minPrice = Math.min(
-                        ...chartData.map((d) => d.price),
-                      );
-                      const maxPrice = Math.max(
-                        ...chartData.map((d) => d.price),
-                      );
-                      const range = maxPrice - minPrice;
+                  >
+                    {dateTabValue === "1D" && referenceLineData && (
+                      <ReferenceLine
+                        y={Number(referenceLineData.value)}
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        label={({ viewBox }) => {
+                          console.log("Reference line data:", {
+                            selectedType: selectedReferenceLine,
+                            value: referenceLineData.value,
+                            label: referenceLineData.label,
+                            type: type,
+                            dateTab: dateTabValue,
+                            viewBox: viewBox,
+                            chartDataRange: {
+                              min: Math.min(...chartData.map((d) => d.price)),
+                              max: Math.max(...chartData.map((d) => d.price)),
+                            },
+                          });
 
-                      // Dynamic padding based on range
-                      let padding;
-                      if (range > 10000)
-                        padding = range * 0.05; // Large range - 5% padding
-                      else if (range > 1000)
-                        padding = range * 0.1; // Medium range - 10% padding
-                      else if (range > 100)
-                        padding = range * 0.15; // Small range - 15% padding
-                      else padding = range * 0.2; // Very small range - 20% padding
+                          if (!viewBox || !referenceLineData.value) return null;
 
-                      return [minPrice - padding, maxPrice + padding];
-                    })()}
-                    ticks={(() => {
-                      const minPrice = Math.min(
-                        ...chartData.map((d) => d.price),
-                      );
-                      const maxPrice = Math.max(
-                        ...chartData.map((d) => d.price),
-                      );
-                      const range = maxPrice - minPrice;
-
-                      // Dynamic tick count and interval based on range
-                      let tickCount, interval;
-
-                      if (range > 10000) {
-                        // Large range - fewer ticks, larger intervals
-                        tickCount = 4;
-                        interval =
-                          Math.ceil(range / (tickCount - 1) / 1000) * 1000; // Round to nearest 1000
-                      } else if (range > 1000) {
-                        // Medium range - moderate ticks
-                        tickCount = 5;
-                        interval =
-                          Math.ceil(range / (tickCount - 1) / 100) * 100; // Round to nearest 100
-                      } else if (range > 100) {
-                        // Small range - more ticks for detail
-                        tickCount = 6;
-                        interval = Math.ceil(range / (tickCount - 1) / 10) * 10; // Round to nearest 10
-                      } else {
-                        // Very small range - maximum detail
-                        tickCount = 7;
-                        interval = Math.ceil(range / (tickCount - 1)); // Round to nearest 1
-                      }
-
-                      // Generate ticks with calculated interval
-                      const startTick =
-                        Math.floor(minPrice / interval) * interval;
-                      const ticks = [];
-
-                      for (let i = 0; i < tickCount; i++) {
-                        ticks.push(startTick + i * interval);
-                      }
-
-                      return ticks.filter(
-                        (tick) =>
-                          tick >= minPrice - range * 0.1 &&
-                          tick <= maxPrice + range * 0.1,
-                      );
-                    })()}
-                  />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        className="bg-white text-black p-3 rounded-lg shadow-lg border border-gray-200"
-                        labelFormatter={(value) => {
-                          if (dateTabValue === "1D") {
-                            const currentDate = new Date().toLocaleDateString(
-                              "en-US",
-                              {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                              },
-                            );
-                            return `${currentDate} • Time: ${value}`;
-                          } else {
-                            return `${value}`;
-                          }
+                          return (
+                            <text
+                              x={viewBox.x + viewBox.width - 80}
+                              y={viewBox.y - 5}
+                              fill="#ffffff"
+                              fontSize={12}
+                              fontWeight="600"
+                              textAnchor="end"
+                              opacity={1}
+                            >
+                              {referenceLineData.label}: $
+                              {Number(referenceLineData.value).toFixed(2)}
+                            </text>
+                          );
                         }}
-                        formatter={(value) => [
-                          `$${Number(value).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}`,
-                          " Price",
-                        ]}
                       />
-                    }
-                  />
-                  <Area
-                    dataKey="price"
-                    type="monotone"
-                    fill={
-                      summaryData?.dayMove?.direction === "up"
-                        ? "hsl(142, 76%, 36%)"
-                        : "hsl(0, 76%, 36%)"
-                    }
-                    fillOpacity={0.2}
-                    stroke={
-                      summaryData?.dayMove?.direction === "up"
-                        ? "hsl(142, 76%, 36%)"
-                        : "hsl(0, 76%, 36%)"
-                    }
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ChartContainer>
+                    )}
+                    <CartesianGrid />
+                    <XAxis
+                      dataKey="displayTime"
+                      tickFormatter={formatXAxisLabel}
+                      interval={Math.floor(chartData.length / 4)} // Shows ~4-5 ticks
+                      className="w-fit text-md"
+                    />
+                    <YAxis
+                      tickFormatter={(value) => {
+                        if (value >= 1000000) {
+                          return `${(value / 1000000).toFixed(1)}M`;
+                        } else if (value >= 1000) {
+                          return `${(value / 1000).toFixed(1)}K`;
+                        } else {
+                          return value.toFixed(0);
+                        }
+                      }}
+                      domain={(() => {
+                        // Ensure we have chart data
+                        if (!chartData || chartData.length === 0) {
+                          return [0, 100]; // Fallback domain
+                        }
+
+                        const prices = chartData
+                          .map((d) => d.price)
+                          .filter((p) => !isNaN(p));
+                        if (prices.length === 0) {
+                          return [0, 100]; // Fallback if no valid prices
+                        }
+
+                        const minPrice = Math.min(...prices);
+                        const maxPrice = Math.max(...prices);
+
+                        // Include selected reference line in domain calculation if available
+                        let domainMin = minPrice;
+                        let domainMax = maxPrice;
+
+                        if (
+                          dateTabValue === "1D" &&
+                          referenceLineData?.value &&
+                          !isNaN(Number(referenceLineData.value))
+                        ) {
+                          const refValue = Number(referenceLineData.value);
+                          domainMin = Math.min(minPrice, refValue);
+                          domainMax = Math.max(maxPrice, refValue);
+                        }
+
+                        const range = domainMax - domainMin;
+
+                        // Handle edge case where range is 0
+                        if (range === 0) {
+                          const center = domainMin || 100;
+                          return [center * 0.99, center * 1.01];
+                        }
+
+                        // Dynamic padding based on range
+                        let padding;
+                        if (range > 10000)
+                          padding = range * 0.05; // Large range - 5% padding
+                        else if (range > 1000)
+                          padding = range * 0.1; // Medium range - 10% padding
+                        else if (range > 100)
+                          padding = range * 0.15; // Small range - 15% padding
+                        else padding = range * 0.2; // Very small range - 20% padding
+
+                        console.log("Y-axis domain:", {
+                          originalMin: minPrice,
+                          originalMax: maxPrice,
+                          selectedReference: selectedReferenceLine,
+                          referenceValue: referenceLineData?.value,
+                          finalMin: domainMin - padding,
+                          finalMax: domainMax + padding,
+                        });
+
+                        return [domainMin - padding, domainMax + padding];
+                      })()}
+                      ticks={(() => {
+                        const minPrice = Math.min(
+                          ...chartData.map((d) => d.price),
+                        );
+                        const maxPrice = Math.max(
+                          ...chartData.map((d) => d.price),
+                        );
+                        const range = maxPrice - minPrice;
+
+                        // Dynamic tick count and interval based on range
+                        let tickCount, interval;
+
+                        if (range > 10000) {
+                          // Large range - fewer ticks, larger intervals
+                          tickCount = 4;
+                          interval =
+                            Math.ceil(range / (tickCount - 1) / 1000) * 1000; // Round to nearest 1000
+                        } else if (range > 1000) {
+                          // Medium range - moderate ticks
+                          tickCount = 5;
+                          interval =
+                            Math.ceil(range / (tickCount - 1) / 100) * 100; // Round to nearest 100
+                        } else if (range > 100) {
+                          // Small range - more ticks for detail
+                          tickCount = 6;
+                          interval =
+                            Math.ceil(range / (tickCount - 1) / 10) * 10; // Round to nearest 10
+                        } else {
+                          // Very small range - maximum detail
+                          tickCount = 7;
+                          interval = Math.ceil(range / (tickCount - 1)); // Round to nearest 1
+                        }
+
+                        // Generate ticks with calculated interval
+                        const startTick =
+                          Math.floor(minPrice / interval) * interval;
+                        const ticks = [];
+
+                        for (let i = 0; i < tickCount; i++) {
+                          ticks.push(startTick + i * interval);
+                        }
+
+                        return ticks.filter(
+                          (tick) =>
+                            tick >= minPrice - range * 0.1 &&
+                            tick <= maxPrice + range * 0.1,
+                        );
+                      })()}
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          className="bg-white text-black p-3 rounded-lg shadow-lg border border-gray-200"
+                          labelFormatter={(value) => {
+                            if (dateTabValue === "1D") {
+                              const currentDate = new Date().toLocaleDateString(
+                                "en-US",
+                                {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                },
+                              );
+                              return `${currentDate} • Time: ${value}`;
+                            } else {
+                              return `${value}`;
+                            }
+                          }}
+                          formatter={(value) => [
+                            `$${Number(value).toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}`,
+                            " Price",
+                          ]}
+                        />
+                      }
+                    />
+                    <Area
+                      dataKey="price"
+                      type="monotone"
+                      fill={
+                        summaryData?.dayMove?.direction === "up"
+                          ? "hsl(142, 76%, 36%)"
+                          : "hsl(0, 76%, 36%)"
+                      }
+                      fillOpacity={0.2}
+                      stroke={
+                        summaryData?.dayMove?.direction === "up"
+                          ? "hsl(142, 76%, 36%)"
+                          : "hsl(0, 76%, 36%)"
+                      }
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </div>
             )}
             {/* data */}
             <div className="grid grid-cols-2 gap-8">
@@ -509,7 +829,7 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Volume</span>
                   <span className="text-sm font-medium text-white">
-                    {summaryData?.daily?.volume?.toLocaleString()}
+                    {summaryData?.daily?.volume?.toLocaleString() || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -530,8 +850,8 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                             : "text-red-500"
                         }`}
                       >
-                        ({summaryData?.afterHours?.change >= 0 ? "+" : ""}
-                        {summaryData?.afterHours?.changePercent?.toFixed(2)}%)
+                        ({summaryData?.afterHours?.percent >= 0 ? "+" : ""}
+                        {summaryData?.afterHours?.percent?.toFixed(2)}%)
                       </span>
                     </span>
                   </div>
