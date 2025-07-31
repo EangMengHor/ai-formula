@@ -499,15 +499,7 @@ function Chat() {
 
       if (localItem) {
         try {
-          // Parse if it's JSON, otherwise use as string
-          const parsedPrompt = localItem;
-
-          setFallBackPrompt(
-            typeof parsedPrompt === "string" ? parsedPrompt : localItem,
-          );
-          setIsNextChatLoading(true);
-
-          // Clear localStorage after successfully setting the fallback
+          setFallBackPrompt(localItem);
           localStorage.removeItem("prompt");
         } catch (error) {
           console.error("Error parsing localStorage prompt:", error);
@@ -525,7 +517,11 @@ function Chat() {
 
   // check the prompt coming from dashboard
   useEffect(() => {
-    if (fallBackPrompt && fallBackPrompt.trim().length > 0) {
+    if (
+      fallBackPrompt &&
+      fallBackPrompt.trim().length > 0 &&
+      handleSubmitRef.current
+    ) {
       if (fallBackPrompt.length > 30000) {
         toast({
           title: "Error",
@@ -554,7 +550,8 @@ function Chat() {
       // Small delay to ensure everything is initialized
       setTimeout(attemptSubmit, 50);
     }
-  }, [fallBackPrompt, toast]);
+
+  }, [fallBackPrompt, toast, handleSubmitRef.current]);
 
   // get conversation history and uploaded documents for chat thread
   useEffect(() => {
@@ -1435,6 +1432,7 @@ function Chat() {
 
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
+      console.log("handleSubmit called with prompt:", prompt);
       if (!prompt.trim() || prompt.length == 0 || isNextChatLoading) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling

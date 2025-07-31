@@ -61,6 +61,16 @@ export default function App() {
     }
   }, [location.pathname, navigate]);
 
+  useEffect(() => {
+    if (!localStorage.getItem("refreshCache")) {
+      // First run: clear everything
+      localStorage.clear();
+
+      // Mark that cleanup has been done
+      localStorage.setItem("refreshCache", "true");
+    }
+  }, []);
+
   return (
     <>
       <Routes>

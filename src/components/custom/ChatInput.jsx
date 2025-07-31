@@ -546,7 +546,9 @@ function ChatInput({
                     type="Knowledge Block"
                     icon={<Grid2x2 className="w-5 h-5" />}
                     showIsRemove={true}
-                    onRemove={() => toggleCollectionSelection(collection.id)}
+                    onRemove={() =>
+                      toggleCollectionSelection(collection.id, id)
+                    }
                   />
                 ))}
               </div>
