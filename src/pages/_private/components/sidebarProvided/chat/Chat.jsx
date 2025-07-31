@@ -75,7 +75,7 @@ function Chat() {
     selectedModel,
     setSelectedModel,
   } = useUser();
-  const { sidebarStack, setSidebarStack } = useStackSidebar();
+  const { setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
   const { selectedCollectionIds } = useCollection();
 

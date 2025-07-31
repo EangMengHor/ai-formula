@@ -2,36 +2,35 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useFilesUploadMetadata } from "../context/FilesUploadMetadata";
 import { useToast } from "./use-toast";
 import { vectorizeOneFile } from "../services/n8n-apis/_core/vectorizeOneFile.api";
-import { useParams } from "react-router-dom";
 import { acceptedFiles } from "@/lib/config";
 
 /**
- * Custom hook for handling file upload via drag and drop
+ * Custom hook for handling file upload via drag and drop in Dashboard
+ * This version generates a client-side sessionId and defers vectorization until session is created
  * @param {Object} options - Configuration options
  * @param {boolean} options.enabled - Whether drag and drop is enabled
- * @param {Array} options.acceptedTypes - Array of accepted file types (e.g., ['.pdf', '.txt', '.docx'])
+ * @param {Array} options.acceptedTypes - Array of accepted file types
  * @param {number} options.maxFileSize - Maximum file size in bytes (default: 50MB)
  * @param {number} options.maxFiles - Maximum number of files allowed (default: 10)
  * @param {Function} options.onFilesAdded - Callback when files are successfully added
  * @param {string} options.excludeSelector - CSS selector for elements to exclude from drop zone
- * @param {boolean} options.disableVectorization - Whether to disable automatic vectorization (default: false)
  */
-export function useFileUpload({
+export function useDashboardFileUpload({
   enabled = true,
   acceptedTypes = acceptedFiles,
   maxFileSize = 50 * 1024 * 1024, // 50MB
   maxFiles = 10,
   onFilesAdded = () => {},
   excludeSelector = "[data-sidebar]",
-  disableVectorization = false,
 } = {}) {
   const [isDragActive, setIsDragActive] = useState(false);
   const [dragDepth, setDragDepth] = useState(0);
   const [isVectorizing, setIsVectorizing] = useState(false);
   const [processingFiles, setProcessingFiles] = useState(new Set());
+  const [clientSessionId, setClientSessionId] = useState(null);
+  const [pendingFiles, setPendingFiles] = useState([]); // Files waiting to be vectorized
   const dragCounter = useRef(0);
   const { toast } = useToast();
-  const { id } = useParams();
 
   const {
     files,
@@ -43,6 +42,15 @@ export function useFileUpload({
     memorizedFiles,
     setMemorizedFiles,
   } = useFilesUploadMetadata();
+
+  /**
+   * Generate a client-side session ID
+   */
+  const generateClientSessionId = useCallback(() => {
+    const sessionId = crypto.randomUUID();
+    setClientSessionId(sessionId);
+    return sessionId;
+  }, []);
 
   /**
    * Validates if a file is acceptable based on type and size
@@ -83,26 +91,23 @@ export function useFileUpload({
   /**
    * Vectorizes a file using the existing vectorization API
    */
-  const vectorizeFile = useCallback(
-    async (file) => {
-      if (!id) {
-        console.warn("No session ID available for vectorization");
-        return { success: false, message: "No session ID available" };
-      }
+  const vectorizeFile = useCallback(async (file, sessionId) => {
+    if (!sessionId) {
+      console.warn("No session ID available for vectorization");
+      return { success: false, message: "No session ID available" };
+    }
 
-      try {
-        const result = await vectorizeOneFile(file, id);
-        return result;
-      } catch (error) {
-        console.error("Error vectorizing file:", error);
-        return { success: false, message: error.message };
-      }
-    },
-    [id],
-  );
+    try {
+      const result = await vectorizeOneFile(file, sessionId);
+      return result;
+    } catch (error) {
+      console.error("Error vectorizing file:", error);
+      return { success: false, message: error.message };
+    }
+  }, []);
 
   /**
-   * Processes and adds files to the context, then vectorizes them
+   * Processes files and adds them to context, but doesn't vectorize yet
    */
   const processFiles = useCallback(
     async (fileList) => {
@@ -110,7 +115,7 @@ export function useFileUpload({
       const validFiles = [];
       const errors = [];
 
-      console.log("Processing files:", newFiles);
+      console.log("Processing files for dashboard:", newFiles);
 
       // Check if adding these files would exceed the limit
       if (fileCount + newFiles.length > maxFiles) {
@@ -141,13 +146,17 @@ export function useFileUpload({
         });
       }
 
-      // Add valid files
+      // Add valid files to context and pending list
       if (validFiles.length > 0) {
+        // Generate session ID if not already generated
+        const sessionId = clientSessionId || generateClientSessionId();
+
         const processedFiles = validFiles.map((file) => ({
           name: file.name,
           type: file.type || `application/${file.name.split(".").pop()}`,
           size: file.size,
           file: file, // Keep reference to actual file object
+          sessionId: sessionId, // Store the session ID with the file
         }));
 
         setFiles((prevFiles) => [...processedFiles, ...prevFiles]);
@@ -157,63 +166,17 @@ export function useFileUpload({
           ...prevNames,
         ]);
 
-        // Skip vectorization if disabled (e.g., for dashboard use case)
-        if (disableVectorization) {
-          console.log("Vectorization disabled, files added without processing");
-          onFilesAdded(processedFiles);
-          return;
-        }
-
-        // Start vectorization process
-        setIsVectorizing(true);
-        const vectorizationResults = [];
-
-        for (const file of validFiles) {
-          try {
-            // Mark file as processing
-            setProcessingFiles((prev) => new Set([...prev, file.name]));
-
-            const result = await vectorizeFile(file);
-            vectorizationResults.push(result);
-
-            if (result.success) {
-              setMemorizedFiles((prevMemo) => [
-                ...prevMemo,
-                result.data?.vectorizedDocumentName || file.name,
-              ]);
-            } else {
-              console.error(
-                `Failed to vectorize ${file.name}:`,
-                result.message,
-              );
-              toast({
-                title: "Vectorization Error",
-                description: `Failed to process ${file.name}: ${result.message}`,
-                variant: "destructive",
-              });
-            }
-          } catch (error) {
-            console.error(`Error processing ${file.name}:`, error);
-            toast({
-              title: "Processing Error",
-              description: `Error processing ${file.name}: ${error.message}`,
-              variant: "destructive",
-            });
-          } finally {
-            // Remove file from processing set
-            setProcessingFiles((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(file.name);
-              return newSet;
-            });
-          }
-        }
-
-        setIsVectorizing(false);
-        console.log("Vectorization results:", vectorizationResults);
+        // Add to pending files for later vectorization
+        setPendingFiles((prevPending) => [...prevPending, ...processedFiles]);
 
         // Call success callback
         onFilesAdded(processedFiles);
+
+        toast({
+          title: "Files Added",
+          description: `${validFiles.length} file${validFiles.length > 1 ? "s" : ""} added. They will be processed when you start your conversation.`,
+          variant: "success",
+        });
       }
     },
     [
@@ -223,12 +186,82 @@ export function useFileUpload({
       setFiles,
       setFileCount,
       setFileName,
-      setMemorizedFiles,
-      vectorizeFile,
       onFilesAdded,
       toast,
-      disableVectorization,
+      clientSessionId,
+      generateClientSessionId,
     ],
+  );
+
+  /**
+   * Vectorizes all pending files once a session is created
+   */
+  const vectorizePendingFiles = useCallback(
+    async (sessionId) => {
+      if (pendingFiles.length === 0) return;
+
+      setIsVectorizing(true);
+      const vectorizationResults = [];
+
+      console.log("Vectorizing pending files for session:", sessionId);
+
+      for (const fileData of pendingFiles) {
+        try {
+          // Mark file as processing
+          setProcessingFiles((prev) => new Set([...prev, fileData.name]));
+
+          const result = await vectorizeFile(fileData.file, sessionId);
+          vectorizationResults.push(result);
+
+          if (result.success) {
+            setMemorizedFiles((prevMemo) => [
+              ...prevMemo,
+              result.data?.vectorizedDocumentName || fileData.name,
+            ]);
+          } else {
+            console.error(
+              `Failed to vectorize ${fileData.name}:`,
+              result.message,
+            );
+            toast({
+              title: "Vectorization Error",
+              description: `Failed to process ${fileData.name}: ${result.message}`,
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error(`Error processing ${fileData.name}:`, error);
+          toast({
+            title: "Processing Error",
+            description: `Error processing ${fileData.name}: ${error.message}`,
+            variant: "destructive",
+          });
+        } finally {
+          // Remove file from processing set
+          setProcessingFiles((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(fileData.name);
+            return newSet;
+          });
+        }
+      }
+
+      setIsVectorizing(false);
+
+      // Clear pending files after vectorization
+      setPendingFiles([]);
+
+      const successCount = vectorizationResults.filter((r) => r.success).length;
+      toast({
+        title: "Files Processed",
+        description: `Successfully processed ${successCount} out of ${pendingFiles.length} file${pendingFiles.length > 1 ? "s" : ""}`,
+        variant:
+          successCount === pendingFiles.length ? "success" : "destructive",
+      });
+
+      console.log("Vectorization results:", vectorizationResults);
+    },
+    [pendingFiles, vectorizeFile, setMemorizedFiles, toast],
   );
 
   /**
@@ -393,6 +426,9 @@ export function useFileUpload({
       setMemorizedFiles((prevMemo) =>
         prevMemo.filter((name) => name !== fileName),
       );
+      setPendingFiles((prevPending) =>
+        prevPending.filter((file) => file.name !== fileName),
+      );
     },
     [setFiles, setFileCount, setFileName, setMemorizedFiles],
   );
@@ -404,8 +440,12 @@ export function useFileUpload({
     processingFiles,
     files,
     fileCount,
+    clientSessionId,
+    pendingFiles,
     selectFiles,
     removeFile,
+    vectorizePendingFiles,
+    generateClientSessionId,
     isEnabled: enabled,
   };
 }

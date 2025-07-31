@@ -163,12 +163,20 @@ export default function FileUploadDialog() {
         title: "Creating New Session",
         description: "Please wait while we create a new session for you...",
       });
-      const res = await getNewSession("New Document Uploaded", user.id);
+
+      // Check if we're in dashboard and have a pre-generated session ID
+      const dashboardSessionId = localStorage.getItem("dashboardSessionId");
+
+      const res = await getNewSession(
+        "New Document Uploaded",
+        user.id,
+        dashboardSessionId,
+      );
       if (res.success) {
         appendToChatHistory(res.data);
-        // localStorage.setItem('prompt', "New Document Uploaded");
-        // localStorage.setItem('isFallbackedUser', 'true');
         localStorage.setItem("filesFallBack", "true");
+        // Clear the dashboard session ID since we're creating the actual session
+        localStorage.removeItem("dashboardSessionId");
         navigate(`/chat/${res.data.sessionid}`);
       }
     } catch (error) {
@@ -212,51 +220,98 @@ export default function FileUploadDialog() {
       }));
 
       try {
+        // Handle dashboard case differently
         if (pathname == "/dashboard") {
-          await handleOpenNewSession();
-        }
-        const file = files.find((file) => file.name === fileNameToMemorize);
-        let res;
-        if (pathname == addToPermenentKnowledgeBase) {
-          res = await vectorizeOneFile(file, id, "global");
-        } else {
-          res = await vectorizeOneFile(file, id);
-        }
+          // For dashboard, use the pre-generated session ID or generate one
+          let sessionId = localStorage.getItem("dashboardSessionId");
+          if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            localStorage.setItem("dashboardSessionId", sessionId);
+          }
 
-        if (res && res.data && !res.data.success) {
-          setMemorizationStatuses((prev) => ({
-            ...prev,
-            [fileNameToMemorize]: "error",
-          }));
-          setFileQueueError((prev) => [
-            ...prev,
-            {
-              index: files.findIndex((f) => f.name === fileNameToMemorize),
-              message: res.data.message || "Error Occured",
-            },
-          ]);
-          setFileName((prev) => [...prev, file.name]);
-        } else if (res.success) {
-          setMemorizationStatuses((prev) => ({
-            ...prev,
-            [fileNameToMemorize]: "memorized",
-          }));
-          setMemorizedFiles((prevMemorizedFiles) => [
-            ...prevMemorizedFiles,
-            res.data.vectorizedDocumentName,
-          ]);
+          const file = files.find((file) => file.name === fileNameToMemorize);
+          let res = await vectorizeOneFile(file, sessionId);
+
+          if (res && res.data && !res.data.success) {
+            setMemorizationStatuses((prev) => ({
+              ...prev,
+              [fileNameToMemorize]: "error",
+            }));
+            setFileQueueError((prev) => [
+              ...prev,
+              {
+                index: files.findIndex((f) => f.name === fileNameToMemorize),
+                message: res.data.message || "Error Occured",
+              },
+            ]);
+            setFileName((prev) => [...prev, file.name]);
+          } else if (res.success) {
+            setMemorizationStatuses((prev) => ({
+              ...prev,
+              [fileNameToMemorize]: "memorized",
+            }));
+            setMemorizedFiles((prevMemorizedFiles) => [
+              ...prevMemorizedFiles,
+              res.data.vectorizedDocumentName,
+            ]);
+          } else {
+            setMemorizationStatuses((prev) => ({
+              ...prev,
+              [fileNameToMemorize]: "error",
+            }));
+            setFileQueueError((prev) => [
+              ...prev,
+              {
+                index: files.findIndex((f) => f.name === fileNameToMemorize),
+                message: res.message || "Error Occured",
+              },
+            ]);
+          }
         } else {
-          setMemorizationStatuses((prev) => ({
-            ...prev,
-            [fileNameToMemorize]: "error",
-          }));
-          setFileQueueError((prev) => [
-            ...prev,
-            {
-              index: files.findIndex((f) => f.name === fileNameToMemorize),
-              message: res.message || "Error Occured",
-            },
-          ]);
+          // Original behavior for non-dashboard routes
+          const file = files.find((file) => file.name === fileNameToMemorize);
+          let res;
+          if (pathname == addToPermenentKnowledgeBase) {
+            res = await vectorizeOneFile(file, id, "global");
+          } else {
+            res = await vectorizeOneFile(file, id);
+          }
+
+          if (res && res.data && !res.data.success) {
+            setMemorizationStatuses((prev) => ({
+              ...prev,
+              [fileNameToMemorize]: "error",
+            }));
+            setFileQueueError((prev) => [
+              ...prev,
+              {
+                index: files.findIndex((f) => f.name === fileNameToMemorize),
+                message: res.data.message || "Error Occured",
+              },
+            ]);
+            setFileName((prev) => [...prev, file.name]);
+          } else if (res.success) {
+            setMemorizationStatuses((prev) => ({
+              ...prev,
+              [fileNameToMemorize]: "memorized",
+            }));
+            setMemorizedFiles((prevMemorizedFiles) => [
+              ...prevMemorizedFiles,
+              res.data.vectorizedDocumentName,
+            ]);
+          } else {
+            setMemorizationStatuses((prev) => ({
+              ...prev,
+              [fileNameToMemorize]: "error",
+            }));
+            setFileQueueError((prev) => [
+              ...prev,
+              {
+                index: files.findIndex((f) => f.name === fileNameToMemorize),
+                message: res.message || "Error Occured",
+              },
+            ]);
+          }
         }
       } catch (error) {
         setMemorizationStatuses((prev) => ({

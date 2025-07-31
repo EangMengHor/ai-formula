@@ -68,7 +68,44 @@ import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 import VoiceInputBlock from "./VoiceTVoice/VoiceInputBlock";
 import ChatModes from "@/ChatModes";
 const maxRows = 30;
-
+const AttachmentCard = ({
+  title = "",
+  type = "",
+  icon = () => {},
+  showIsRemove = true,
+  onRemove = () => {},
+  isProcessing = false,
+}) => {
+  return (
+    <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
+      <div className="p-2 pl-3">
+        {isProcessing ? (
+          <LoaderCircle className="w-5 h-5 text-blue-400 animate-spin" />
+        ) : (
+          icon
+        )}
+      </div>
+      <div className="flex items-center gap-2 py-2 pr-4">
+        <span className="text-white text-xs h-full min-w-max">
+          {title}
+          <p className={`text-slate-400 ${isProcessing ? "opacity-70" : ""}`}>
+            {isProcessing ? "Processing..." : type}
+          </p>
+        </span>
+      </div>
+      {showIsRemove && !isProcessing && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-slate-800 rounded-xl p-2 m-2 hover:bg-slate-700 text-white"
+          onClick={onRemove}
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      )}
+    </div>
+  );
+};
 function ChatInput({
   conversationProp = [],
   input,
@@ -80,6 +117,7 @@ function ChatInput({
   onAbort,
   isAborting,
   currConversationId,
+  processingFiles = new Set(),
   isVoiceMode = false,
   setIsVoiceMode = () => {},
 }) {
@@ -393,45 +431,6 @@ function ChatInput({
     },
   ];
 
-  const AttachmentCard = ({
-    title = "",
-    type = "",
-    icon = () => {},
-    showIsRemove = true,
-    onRemove = () => {},
-    isProcessing = false,
-  }) => {
-    return (
-      <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
-        <div className="p-2 pl-3">
-          {isProcessing ? (
-            <LoaderCircle className="w-5 h-5 text-blue-400 animate-spin" />
-          ) : (
-            icon
-          )}
-        </div>
-        <div className="flex items-center gap-2 py-2 pr-4">
-          <span className="text-white text-xs h-full min-w-max">
-            {title}
-            <p className={`text-slate-400 ${isProcessing ? "opacity-70" : ""}`}>
-              {isProcessing ? "Processing..." : type}
-            </p>
-          </span>
-        </div>
-        {showIsRemove && !isProcessing && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-slate-800 rounded-xl p-2 m-2 hover:bg-slate-700 text-white"
-            onClick={onRemove}
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-    );
-  };
-
   useEffect(() => {
     console.log(selectedCollections, "Selected Collections in ChatInput");
   }, []);
@@ -489,7 +488,7 @@ function ChatInput({
               }}
               transition={{ duration: 0.2, ease: "easeInOut" }}
             >
-              <div className="flex gap-2 ml-2 items-center overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+              <div className="flex gap-2 ml-2 items-center w-full overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
                 {selectedModel.length > 0 &&
                   selectedModel.map((model, index) => {
                     const dataObj = models.find((m) => m.value == model);
@@ -513,6 +512,8 @@ function ChatInput({
                 {files.length > 0 &&
                   files.map((file, index) => {
                     const isVectorized = memorizedFiles.includes(file.name);
+                    const isProcessing =
+                      processingFiles.has(file.name) || !isVectorized;
 
                     return (
                       <AttachmentCard
@@ -521,7 +522,7 @@ function ChatInput({
                         type={file.type.replaceAll("application/", "")}
                         icon={<FileText className="w-5 h-5" />}
                         showIsRemove={false}
-                        isProcessing={!isVectorized}
+                        isProcessing={isProcessing}
                       />
                     );
                   })}
@@ -576,28 +577,7 @@ function ChatInput({
                     setTrigger={setIsTransribed}
                   />
                 </div>
-                {pathname !== "/dashboard" ? (
-                  <FileUploadDialog />
-                ) : (
-                  <div>
-                    <TooltipProvider>
-                      <Tooltip delayDuration={0}>
-                        <TooltipTrigger>
-                          <div className="flex items-center rounded-xl p-2 ">
-                            <Paperclip className="w-5 h-5  drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-slate-600 p-2 rounded-md">
-                          <p className="capitalize">
-                            Please First Start The Conversation to get the
-                            Document Upload Section (Start By Saying Hello Or
-                            Hi!)
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                )}
+                <FileUploadDialog />
 
                 {/* chat mode */}
 
