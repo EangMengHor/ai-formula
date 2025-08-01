@@ -54,6 +54,7 @@ import OmniResilience from "@/components/custom/OmniResilience";
 import UserMessage from "@/components/custom/UserMessage";
 import FileBlock from "@/components/custom/generatedFile/FileBlock";
 import RealtimeFinanceFeed from "@/components/custom/finance/RealtimeFinanceFeed";
+import { Pre } from "@/components/custom/CodeBlock";
 const buttonWrapperClass =
   "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
 
@@ -179,6 +180,7 @@ const Conversation = forwardRef(
               ),
               th: ({ children }) => <th style={styles.th}>{children}</th>,
               td: ({ children }) => <td style={styles.td}>{children}</td>,
+              pre: ({ children }) => <Pre children={children} />,
             }}
           />
 

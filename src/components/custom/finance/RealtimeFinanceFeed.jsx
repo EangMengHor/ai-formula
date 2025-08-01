@@ -60,6 +60,15 @@ const referenceLineRef = [
     label: "Prev. Open",
   },
 ];
+
+/**
+ * RealtimeFinanceFeed Component
+ *
+ * Timezone Handling Strategy:
+ * - Stocks: Display times in Eastern Time (ET) for better user experience since US markets operate in ET
+ * - Crypto: Display times in UTC since crypto markets are global and operate 24/7
+ * - API provides both UTC timestamp and easternTime/easternTimestamp for flexibility
+ */
 export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
   const [lastUpdateDate, setLastUpdateDate] = useState(null);
   const [isRealtime, setIsRealtime] = useState(true);
@@ -80,7 +89,12 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
   useEffect(() => {
     const timeInterval = setInterval(() => {
       if (lastUpdateDate) {
-        setTimeAgo(Math.floor((Date.now() - lastUpdateDate.getTime()) / 1000));
+        // Ensure we're comparing UTC times correctly
+        const now = new Date();
+        const diffInSeconds = Math.floor(
+          (now.getTime() - lastUpdateDate.getTime()) / 1000,
+        );
+        setTimeAgo(diffInSeconds);
       }
     }, 1000);
 
@@ -148,7 +162,7 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
 
         if (response?.data && response?.data?.success) {
           setGraphData(response?.data?.data);
-          console.log("Graph data:", {
+          console.log("Graph data with new timestamp structure:", {
             daily: response?.data?.dailySummary,
             current: response?.data?.currData,
             dayMove: response?.data?.dayMove,
@@ -156,6 +170,8 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
             image: response?.data?.imageIcon || "",
             price: response?.data?.currentPrice,
             prev: response?.data?.previousSummary,
+            sampleDataPoint: response?.data?.data?.[0], // Log first data point to verify new structure
+            assetType: type, // Log asset type for timezone reference
           });
 
           const summaryDataObj = {
@@ -168,17 +184,28 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
             prev: response?.data?.previousSummary,
           };
 
-          // Debug for reference line
+          // Debug for reference line with priority system
           console.log("Setting summary data for", type, ticker, {
             hasClose: !!summaryDataObj?.prev?.close,
             closeValue: summaryDataObj?.prev?.close,
             closeType: typeof summaryDataObj?.prev?.close,
             dateTab: dateTabValue,
             fullPrev: summaryDataObj?.prev,
+            dailySummary: summaryDataObj?.daily,
+            priorityCheck: {
+              dailyClose: summaryDataObj?.daily?.close,
+              prevClose: summaryDataObj?.prev?.close,
+              finalClose:
+                summaryDataObj?.daily?.close || summaryDataObj?.prev?.close,
+            },
           });
 
           setSummaryData(summaryDataObj);
-          setLastUpdateDate(new Date(response.data.responseDate));
+          // Parse the responseDate as UTC (should already be in proper ISO format with Z)
+          const utcDate = response.data.responseDate
+            ? new Date(response.data.responseDate)
+            : new Date();
+          setLastUpdateDate(utcDate);
         } else {
           // API returned unsuccessful response
           setHasError(true);
@@ -230,7 +257,25 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
 
     return graphData.map((item) => ({
       ...item,
-      displayTime: dateTabValue === "1D" ? item.time : item.date,
+      // Use appropriate time format based on asset type and date range
+      displayTime: (() => {
+        if (dateTabValue === "1D") {
+          // For 1D charts, show time based on asset type
+          if (type === "stock") {
+            // For stocks, use Eastern time (with fallback to UTC time)
+            return item.easternTime || item.time;
+          } else {
+            // For crypto, use UTC time
+            return item.time;
+          }
+        } else {
+          // For longer periods, show date
+          return item.date;
+        }
+      })(),
+      // Store both timestamps for potential use (with fallbacks)
+      utcTimestamp: item.timestamp || item.time,
+      easternTimestamp: item.easternTimestamp || item.time,
       price: Number.parseFloat(item.price),
     }));
   };
@@ -238,14 +283,22 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
   // Format X-axis labels
   const formatXAxisLabel = (value) => {
     if (dateTabValue === "1D") {
-      // For 1D, show time (e.g., "7:25 am" -> "7:25")
-      return value;
+      // For 1D, show time with timezone indicator
+      if (type === "stock") {
+        // For stocks, show Eastern time with ET indicator
+        return `${value} ET`;
+      } else {
+        // For crypto, show UTC time with UTC indicator
+        return `${value} UTC`;
+      }
     } else {
       // For other periods, show date (e.g., "2025-07-25" -> "Jul 25")
-      const date = new Date(value);
+      // Parse as UTC to avoid timezone conversion issues
+      const date = new Date(value + "T00:00:00.000Z");
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
+        timeZone: "UTC",
       });
     }
   };
@@ -269,27 +322,36 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
 
     const referenceMap = {
       prevClose: {
-        value: summaryData?.prev?.close,
+        // First priority: dailySummary.close, then previousSummary.close
+        value: summaryData?.daily?.close || summaryData?.prev?.close,
         label: "Prev. Close",
       },
       todayPreMarket: {
-        value: summaryData?.daily?.preMarket,
+        // First priority: dailySummary.preMarket, then previousSummary.preMarket
+        value: summaryData?.daily?.preMarket || summaryData?.prev?.preMarket,
         label: "Today's Pre-market",
       },
       afterHour: {
-        value: summaryData?.afterHours?.price,
+        // First priority: dailySummary.afterHours, then previousSummary.afterHours, then afterHours.price
+        value:
+          summaryData?.daily?.afterHours ||
+          summaryData?.prev?.afterHours ||
+          summaryData?.afterHours?.price,
         label: "After Hour",
       },
       prevLow: {
-        value: summaryData?.prev?.low,
+        // First priority: dailySummary.low, then previousSummary.low
+        value: summaryData?.daily?.low || summaryData?.prev?.low,
         label: "Prev. Low",
       },
       prevHigh: {
-        value: summaryData?.prev?.high,
+        // First priority: dailySummary.high, then previousSummary.high
+        value: summaryData?.daily?.high || summaryData?.prev?.high,
         label: "Prev. High",
       },
       prevOpen: {
-        value: summaryData?.prev?.open,
+        // First priority: dailySummary.open, then previousSummary.open
+        value: summaryData?.daily?.open || summaryData?.prev?.open,
         label: "Prev. Open",
       },
     };
@@ -317,34 +379,49 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
   // Auto-fallback to available reference line if current selection is not available
   useEffect(() => {
     if (dateTabValue === "1D" && summaryData && !referenceLineData) {
-      // Find the first available reference line
+      // Find the first available reference line using priority system
       const availableOptions = referenceLineRef.find((item) => {
         switch (item.value) {
           case "prevClose":
             return !!(
-              summaryData?.prev?.close && !isNaN(Number(summaryData.prev.close))
+              (summaryData?.daily?.close &&
+                !isNaN(Number(summaryData.daily.close))) ||
+              (summaryData?.prev?.close &&
+                !isNaN(Number(summaryData.prev.close)))
             );
           case "todayPreMarket":
             return !!(
-              summaryData?.daily?.preMarket &&
-              !isNaN(Number(summaryData.daily.preMarket))
+              (summaryData?.daily?.preMarket &&
+                !isNaN(Number(summaryData.daily.preMarket))) ||
+              (summaryData?.prev?.preMarket &&
+                !isNaN(Number(summaryData.prev.preMarket)))
             );
           case "afterHour":
             return !!(
-              summaryData?.afterHours?.price &&
-              !isNaN(Number(summaryData.afterHours.price))
+              (summaryData?.daily?.afterHours &&
+                !isNaN(Number(summaryData.daily.afterHours))) ||
+              (summaryData?.prev?.afterHours &&
+                !isNaN(Number(summaryData.prev.afterHours))) ||
+              (summaryData?.afterHours?.price &&
+                !isNaN(Number(summaryData.afterHours.price)))
             );
           case "prevLow":
             return !!(
-              summaryData?.prev?.low && !isNaN(Number(summaryData.prev.low))
+              (summaryData?.daily?.low &&
+                !isNaN(Number(summaryData.daily.low))) ||
+              (summaryData?.prev?.low && !isNaN(Number(summaryData.prev.low)))
             );
           case "prevHigh":
             return !!(
-              summaryData?.prev?.high && !isNaN(Number(summaryData.prev.high))
+              (summaryData?.daily?.high &&
+                !isNaN(Number(summaryData.daily.high))) ||
+              (summaryData?.prev?.high && !isNaN(Number(summaryData.prev.high)))
             );
           case "prevOpen":
             return !!(
-              summaryData?.prev?.open && !isNaN(Number(summaryData.prev.open))
+              (summaryData?.daily?.open &&
+                !isNaN(Number(summaryData.daily.open))) ||
+              (summaryData?.prev?.open && !isNaN(Number(summaryData.prev.open)))
             );
           default:
             return false;
@@ -410,9 +487,14 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
               <div className="flex gap-2 items-end">
                 <p className="text-4xl">
                   $
-                  {(summaryData?.price || summaryData?.daily?.preMarket || 0)
-                    ?.toFixed(2)
-                    ?.toLocaleString()}
+                  {(
+                    summaryData?.price ||
+                    summaryData?.daily?.preMarket ||
+                    0
+                  )?.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </p>
                 <p>USD</p>
               </div>
@@ -435,7 +517,18 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                       }`}
                     >
                       {summaryData.dayMove.diff !== 0
-                        ? `${summaryData.dayMove.diff < 0 ? "-" : "+"}$${Math.abs(summaryData.dayMove.diff).toFixed(2)} (${summaryData.dayMove.percent > 0 ? "+" : ""}${summaryData.dayMove.percent.toFixed(2)}%)`
+                        ? `${summaryData.dayMove.diff < 0 ? "-" : "+"}$${Math.abs(
+                            summaryData.dayMove.diff,
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })} (${summaryData.dayMove.percent > 0 ? "+" : ""}${summaryData.dayMove.percent.toLocaleString(
+                            "en-US",
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            },
+                          )}%)`
                         : "No change (0.00%)"}
                     </p>
                   ) : (
@@ -462,110 +555,191 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                   );
                 })}
               </div>
-              {dateTabValue === "1D" && (
-                <div className="mb-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2  rounded-lg text-sm hover:text-white">
-                      {referenceLineData?.label || "None"}
-                      <ChevronDown className="w-4 h-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="bg-slate-900  rounded-xl border-0 shadow-md shadow-neutral-100">
-                      <DropdownMenuLabel className="text-slate-300">
-                        Select Reference Line
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator className="bg-slate-600" />
-                      {referenceLineRef.map((item) => {
-                        const isAvailable = (() => {
-                          switch (item.value) {
-                            case "prevClose":
-                              return !!(
-                                summaryData?.prev?.close &&
-                                !isNaN(Number(summaryData.prev.close))
-                              );
-                            case "todayPreMarket":
-                              return !!(
-                                summaryData?.daily?.preMarket &&
-                                !isNaN(Number(summaryData.daily.preMarket))
-                              );
-                            case "afterHour":
-                              return !!(
-                                summaryData?.afterHours?.price &&
-                                !isNaN(Number(summaryData.afterHours.price))
-                              );
-                            case "prevLow":
-                              return !!(
-                                summaryData?.prev?.low &&
-                                !isNaN(Number(summaryData.prev.low))
-                              );
-                            case "prevHigh":
-                              return !!(
-                                summaryData?.prev?.high &&
-                                !isNaN(Number(summaryData.prev.high))
-                              );
-                            case "prevOpen":
-                              return !!(
-                                summaryData?.prev?.open &&
-                                !isNaN(Number(summaryData.prev.open))
-                              );
-                            default:
-                              return false;
-                          }
-                        })();
+              <div className="flex items-center gap-4">
+                {/* Timezone indicator for 1D charts */}
+                {dateTabValue === "1D" && (
+                  <div className="text-xs text-gray-400 bg-gray-800/50 px-4  py-2 rounded">
+                    {type === "stock" ? "Times in ET" : "Times in UTC"}
+                  </div>
+                )}
+                {dateTabValue === "1D" && (
+                  <div className="mb-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2  rounded-lg text-sm hover:text-white">
+                        {referenceLineData?.label || "None"}
+                        <ChevronDown className="w-4 h-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="bg-slate-900  rounded-xl border-0 shadow-md shadow-neutral-100">
+                        <DropdownMenuLabel className="text-slate-300">
+                          Select Reference Line
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-slate-600" />
+                        {referenceLineRef.map((item) => {
+                          const isAvailable = (() => {
+                            switch (item.value) {
+                              case "prevClose":
+                                return !!(
+                                  (summaryData?.daily?.close &&
+                                    !isNaN(Number(summaryData.daily.close))) ||
+                                  (summaryData?.prev?.close &&
+                                    !isNaN(Number(summaryData.prev.close)))
+                                );
+                              case "todayPreMarket":
+                                return !!(
+                                  (summaryData?.daily?.preMarket &&
+                                    !isNaN(
+                                      Number(summaryData.daily.preMarket),
+                                    )) ||
+                                  (summaryData?.prev?.preMarket &&
+                                    !isNaN(Number(summaryData.prev.preMarket)))
+                                );
+                              case "afterHour":
+                                return !!(
+                                  (summaryData?.daily?.afterHours &&
+                                    !isNaN(
+                                      Number(summaryData.daily.afterHours),
+                                    )) ||
+                                  (summaryData?.prev?.afterHours &&
+                                    !isNaN(
+                                      Number(summaryData.prev.afterHours),
+                                    )) ||
+                                  (summaryData?.afterHours?.price &&
+                                    !isNaN(
+                                      Number(summaryData.afterHours.price),
+                                    ))
+                                );
+                              case "prevLow":
+                                return !!(
+                                  (summaryData?.daily?.low &&
+                                    !isNaN(Number(summaryData.daily.low))) ||
+                                  (summaryData?.prev?.low &&
+                                    !isNaN(Number(summaryData.prev.low)))
+                                );
+                              case "prevHigh":
+                                return !!(
+                                  (summaryData?.daily?.high &&
+                                    !isNaN(Number(summaryData.daily.high))) ||
+                                  (summaryData?.prev?.high &&
+                                    !isNaN(Number(summaryData.prev.high)))
+                                );
+                              case "prevOpen":
+                                return !!(
+                                  (summaryData?.daily?.open &&
+                                    !isNaN(Number(summaryData.daily.open))) ||
+                                  (summaryData?.prev?.open &&
+                                    !isNaN(Number(summaryData.prev.open)))
+                                );
+                              default:
+                                return false;
+                            }
+                          })();
 
-                        // Get the value for display
-                        const getValue = () => {
-                          if (!isAvailable) return "N/A";
+                          // Get the value for display using priority system
+                          const getValue = () => {
+                            if (!isAvailable) return "N/A";
 
-                          switch (item.value) {
-                            case "prevClose":
-                              return Number(summaryData?.prev?.close).toFixed(
-                                2,
-                              );
-                            case "todayPreMarket":
-                              return Number(
-                                summaryData?.daily?.preMarket,
-                              ).toFixed(2);
-                            case "afterHour":
-                              return Number(
-                                summaryData?.afterHours?.price,
-                              ).toFixed(2);
-                            case "prevLow":
-                              return Number(summaryData?.prev?.low).toFixed(2);
-                            case "prevHigh":
-                              return Number(summaryData?.prev?.high).toFixed(2);
-                            case "prevOpen":
-                              return Number(summaryData?.prev?.open).toFixed(2);
-                            default:
-                              return "N/A";
-                          }
-                        };
+                            switch (item.value) {
+                              case "prevClose":
+                                const closeValue =
+                                  summaryData?.daily?.close ||
+                                  summaryData?.prev?.close;
+                                return Number(closeValue).toLocaleString(
+                                  "en-US",
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  },
+                                );
+                              case "todayPreMarket":
+                                const preMarketValue =
+                                  summaryData?.daily?.preMarket ||
+                                  summaryData?.prev?.preMarket;
+                                return Number(preMarketValue).toLocaleString(
+                                  "en-US",
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  },
+                                );
+                              case "afterHour":
+                                const afterHourValue =
+                                  summaryData?.daily?.afterHours ||
+                                  summaryData?.prev?.afterHours ||
+                                  summaryData?.afterHours?.price;
+                                return Number(afterHourValue).toLocaleString(
+                                  "en-US",
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  },
+                                );
+                              case "prevLow":
+                                const lowValue =
+                                  summaryData?.daily?.low ||
+                                  summaryData?.prev?.low;
+                                return Number(lowValue).toLocaleString(
+                                  "en-US",
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  },
+                                );
+                              case "prevHigh":
+                                const highValue =
+                                  summaryData?.daily?.high ||
+                                  summaryData?.prev?.high;
+                                return Number(highValue).toLocaleString(
+                                  "en-US",
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  },
+                                );
+                              case "prevOpen":
+                                const openValue =
+                                  summaryData?.daily?.open ||
+                                  summaryData?.prev?.open;
+                                return Number(openValue).toLocaleString(
+                                  "en-US",
+                                  {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  },
+                                );
+                              default:
+                                return "N/A";
+                            }
+                          };
 
-                        return (
-                          <DropdownMenuItem
-                            key={item.value}
-                            onClick={() => setSelectedReferenceLine(item.value)}
-                            className={`text-slate-300 hover:bg-slate-700 cursor-pointer ${
-                              selectedReferenceLine === item.value
-                                ? "bg-slate-700"
-                                : ""
-                            } ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
-                            disabled={!isAvailable}
-                          >
-                            <div className="flex justify-between gap-2 w-full">
-                              <span>{item.label}</span>
-                              <span
-                                className={`${isAvailable ? "text-slate-400" : "text-red-400"}`}
-                              >
-                                {isAvailable ? `$${getValue()}` : "N/A"}
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
+                          return (
+                            <DropdownMenuItem
+                              key={item.value}
+                              onClick={() =>
+                                setSelectedReferenceLine(item.value)
+                              }
+                              className={`text-slate-300 hover:bg-slate-700 cursor-pointer ${
+                                selectedReferenceLine === item.value
+                                  ? "bg-slate-700"
+                                  : ""
+                              } ${!isAvailable ? "opacity-50 cursor-not-allowed" : ""}`}
+                              disabled={!isAvailable}
+                            >
+                              <div className="flex justify-between gap-2 w-full">
+                                <span>{item.label}</span>
+                                <span
+                                  className={`${isAvailable ? "text-slate-400" : "text-red-400"}`}
+                                >
+                                  {isAvailable ? `$${getValue()}` : "N/A"}
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* graph */}
@@ -622,7 +796,13 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                               opacity={1}
                             >
                               {referenceLineData.label}: $
-                              {Number(referenceLineData.value).toFixed(2)}
+                              {Number(referenceLineData.value).toLocaleString(
+                                "en-US",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                },
+                              )}
                             </text>
                           );
                         }}
@@ -638,11 +818,20 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                     <YAxis
                       tickFormatter={(value) => {
                         if (value >= 1000000) {
-                          return `${(value / 1000000).toFixed(1)}M`;
+                          return `$${(value / 1000000).toLocaleString("en-US", {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })}M`;
                         } else if (value >= 1000) {
-                          return `${(value / 1000).toFixed(1)}K`;
+                          return `$${(value / 1000).toLocaleString("en-US", {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })}K`;
                         } else {
-                          return value.toFixed(0);
+                          return `$${value.toLocaleString("en-US", {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}`;
                         }
                       }}
                       domain={(() => {
@@ -759,15 +948,12 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                           className="bg-white text-black p-3 rounded-lg shadow-lg border border-gray-200"
                           labelFormatter={(value) => {
                             if (dateTabValue === "1D") {
-                              const currentDate = new Date().toLocaleDateString(
-                                "en-US",
-                                {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                },
-                              );
-                              return `${currentDate} • Time: ${value}`;
+                              // Show appropriate timezone based on asset type
+                              if (type === "stock") {
+                                return `${value} ET (Eastern Time)`;
+                              } else {
+                                return `${value} UTC`;
+                              }
                             } else {
                               return `${value}`;
                             }
@@ -808,19 +994,31 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Open</span>
                   <span className="text-sm font-medium text-white">
-                    ${summaryData?.daily?.open?.toLocaleString()}
+                    $
+                    {summaryData?.daily?.open?.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">High</span>
                   <span className="text-sm font-medium text-white">
-                    ${summaryData?.daily?.high?.toLocaleString()}
+                    $
+                    {summaryData?.daily?.high?.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Low</span>
                   <span className="text-sm font-medium text-white">
-                    ${summaryData?.daily?.low?.toLocaleString()}
+                    $
+                    {summaryData?.daily?.low?.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "N/A"}
                   </span>
                 </div>
               </div>
@@ -835,14 +1033,22 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-400">Pre Market</span>
                   <span className="text-sm font-medium text-white">
-                    ${summaryData?.daily?.preMarket?.toLocaleString()}
+                    $
+                    {summaryData?.daily?.preMarket?.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "N/A"}
                   </span>
                 </div>
                 {summaryData?.afterHours && summaryData?.afterHours?.price && (
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-400">After Hours</span>
                     <span className="text-sm font-medium text-white">
-                      ${summaryData?.afterHours?.price?.toLocaleString()}
+                      $
+                      {summaryData?.afterHours?.price?.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                       <span
                         className={`ml-2 text-xs ${
                           summaryData?.afterHours?.change >= 0
@@ -851,7 +1057,14 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
                         }`}
                       >
                         ({summaryData?.afterHours?.percent >= 0 ? "+" : ""}
-                        {summaryData?.afterHours?.percent?.toFixed(2)}%)
+                        {summaryData?.afterHours?.percent?.toLocaleString(
+                          "en-US",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          },
+                        )}
+                        %)
                       </span>
                     </span>
                   </div>
@@ -873,7 +1086,7 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
             <span className="text-sm text-gray-400">
               {lastUpdateDate &&
                 !isRealtimeLoading &&
-                `Updated ${timeAgo} seconds ago`}
+                `Updated ${timeAgo} second${timeAgo !== 1 ? "s" : ""} ago`}
               {isRealtimeLoading && <p>Updating . . .</p>}
             </span>
           </div>
@@ -881,11 +1094,27 @@ export default function RealtimeFinanceFeed({ ticker, type, name = "" }) {
           {/* last updated date in right side */}
           <div className="text-xs text-gray-500">
             {lastUpdateDate &&
-              lastUpdateDate.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              })}
+              (() => {
+                if (type === "stock") {
+                  // For stocks, show Eastern time
+                  return lastUpdateDate.toLocaleString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    timeZone: "America/New_York",
+                    timeZoneName: "short",
+                  });
+                } else {
+                  // For crypto, show UTC
+                  return lastUpdateDate.toLocaleString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    timeZone: "UTC",
+                    timeZoneName: "short",
+                  });
+                }
+              })()}
           </div>
         </div>
       )}

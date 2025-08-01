@@ -9,6 +9,9 @@ import AnimatedBadge from "../../../../../components/custom/AnimatedBadge";
 import Attachments from "./Attachments";
 import { promptTemplate, promptTemplateCategories } from "@/lib/config";
 import PromptTemplateDialog from "./PromptTemplateDialog";
+import { useFileUpload } from "../../../../../hooks/use-file-upload";
+import { Upload } from "lucide-react";
+import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
 
 function useDebouncedValue(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -72,12 +75,51 @@ function Dashboard() {
   const { appendToChatHistory } = _useSidebar();
   const [searchParams] = useSearchParams();
   const isSubmit = searchParams.get("isSubmit");
+  const [clientSessionId, setClientSessionId] = useState(null);
+  const { isMemorizationLoading } = useFilesUploadMetadata();
+
+  // Generate client session ID when files are first uploaded
+  const generateClientSessionId = () => {
+    if (!clientSessionId) {
+      const newSessionId = crypto.randomUUID();
+      setClientSessionId(newSessionId);
+      // Store in localStorage so file-upload-dialog can access it
+      localStorage.setItem("dashboardSessionId", newSessionId);
+      return newSessionId;
+    }
+    return clientSessionId;
+  };
+
+  // File upload functionality - disable vectorization in hook for dashboard
+  // Let file-upload-dialog handle the actual vectorization with proper session ID
+  const { isDragActive } = useFileUpload({
+    enabled: !isChatLoading,
+    maxFiles: 200,
+    disableVectorization: true, // Disable vectorization in hook for dashboard
+    onFilesAdded: (files) => {
+      console.log("Files added via drag and drop:", files);
+      // Generate session ID immediately when files are added
+      generateClientSessionId();
+    },
+    excludeSelector: "[data-sidebar], .sidebar",
+  });
+
   useEffect(() => {
     setValue(promptTemplatePrompt);
     if (isSubmit) {
       handleSubmit(promptTemplatePrompt);
     }
   }, [promptTemplatePrompt]);
+
+  // Clean up dashboard session ID when component unmounts
+  useEffect(() => {
+    return () => {
+      // Don't clear if we're navigating to chat (handled in handleSubmit)
+      if (!window.location.pathname.includes("/chat/")) {
+        localStorage.removeItem("dashboardSessionId");
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function refreshSession() {
@@ -89,13 +131,32 @@ function Dashboard() {
   async function handleSubmit(passedValue) {
     const localValud = passedValue || value.trim();
     console.log("Submitting value:", localValud);
+
+    // Don't allow submission if files are still being processed
+    if (isMemorizationLoading) {
+      toast({
+        title: "Please Wait",
+        description:
+          "Files are still being uploaded. Please wait until all files are processed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsChatLoading(true);
     try {
-      const res = await getNewSession(localValud, user.id);
+      // Use client-generated session ID if files were uploaded
+      const sessionIdToUse = clientSessionId;
+
+      const res = await getNewSession(localValud, user.id, sessionIdToUse);
       if (res.success) {
         appendToChatHistory(res.data);
         localStorage.setItem("prompt", localValud);
         localStorage.setItem("isFallbackedUser", "true");
+
+        // Clear the dashboard session ID from localStorage
+        localStorage.removeItem("dashboardSessionId");
+
         navigate(`/chat/${res.data.sessionid}`);
       }
     } catch (error) {
@@ -134,17 +195,35 @@ function Dashboard() {
         backgroundPosition: "center",
       }}
     >
+      {/* Drag and drop overlay */}
+      {isDragActive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="bg-white/10 backdrop-blur-md border-2 border-dashed border-blue-300 rounded-xl p-8 max-w-md mx-4 text-center">
+            <Upload className="w-16 h-16 text-blue-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Drop files to upload
+            </h3>
+            <p className="text-blue-200 text-sm">
+              Drop your files anywhere to add them to your conversation
+            </p>
+            <div className="mt-4 text-xs text-blue-300">
+              Supported: PDF, TXT, DOCX, XLSX, PPTX, MD, CSV
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="absolute top-5 w-full flex items-center justify-center mb-[10%]">
         <AnimatedBadge onClick={() => navigate("/manual")}>
           Work Along With Interactive User Manual
         </AnimatedBadge>
       </div>
-      <div className="w-full max-w-[70%] mt-[10%] md:w-full relative">
+      <div className="max-w-5xl  w-full mx-auto">
         <ChatInput
           input={value}
           setInput={setValue}
           handleSubmit={handleSubmit}
-          isLoading={isChatLoading}
+          isLoading={isChatLoading || isMemorizationLoading}
           setLoading={setIsChatLoading}
         />
         <div className="mt-6">
