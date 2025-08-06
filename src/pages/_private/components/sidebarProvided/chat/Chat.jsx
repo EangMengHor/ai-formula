@@ -550,7 +550,6 @@ function Chat() {
       // Small delay to ensure everything is initialized
       setTimeout(attemptSubmit, 50);
     }
-
   }, [fallBackPrompt, toast, handleSubmitRef.current]);
 
   // get conversation history and uploaded documents for chat thread
@@ -832,8 +831,11 @@ function Chat() {
           );
 
           setConversation((prevConv) => {
+            console.log("🔄 Updating conversation...");
             const convCopy = [...prevConv];
             let lastSim = convCopy[convCopy.length - 1];
+
+            console.log("📌 Last message before update:", lastSim);
 
             const isLastMessageSimulation =
               lastSim &&
@@ -842,16 +844,46 @@ function Chat() {
               lastSim.message.length > 0 &&
               lastSim.message[0]?.type === "simulation";
 
+            console.log(
+              "✅ Is last message a simulation?",
+              isLastMessageSimulation,
+            );
+
             if (!isLastMessageSimulation) {
+              console.log("➕ Creating new simulation message");
               lastSim = newAiMessage("simulation");
               convCopy.push(lastSim);
             }
 
             if (!lastSim.message || lastSim.message.length === 0) {
+              console.log("🆕 Initializing message array");
               lastSim.message = [{ type: "simulation", items: [] }];
             }
 
-            lastSim.message[0].items.push(...simItems);
+            // ✅ Ensure simItems is an array
+            const simArray = Array.isArray(simItems) ? simItems : [simItems];
+
+            // 🚨 Track incoming items
+            console.log("📥 Incoming simItems:", simArray);
+
+            // ✅ Filter invalid entries
+            const validItems = simArray.filter((item, index) => {
+              const isValid = item !== undefined && item !== null;
+              if (!isValid) {
+                console.warn(
+                  `⚠️ Item at index ${index} is invalid (filtered out):`,
+                  item,
+                );
+              }
+              return isValid;
+            });
+
+            console.log("✅ Valid items after filtering:", validItems);
+
+            lastSim.message[0].items.push(...validItems);
+
+            console.log("📤 Updated conversation message:", lastSim.message);
+
             return convCopy;
           });
         });
