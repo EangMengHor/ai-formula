@@ -16,6 +16,8 @@ import {
   FolderDown,
   CircleStop,
   Sparkle,
+  SquareMousePointer,
+  AppWindowMac,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -360,6 +362,34 @@ const Conversation = forwardRef(
                       isLoadingAndFinalResponseIsNotThere,
                     )}
 
+                  {/* Browser Tabs */}
+                  {item?.crawlingPages?.length > 0 && (
+                    <div className="mt-2 p-2 bg-g2 rounded-2xl">
+                      <div className="flex items-center gap-2 mb-2 px-2">
+                        <AppWindowMac className="w-5 h-5" />
+                        <p className="font-semibold">Browser Tabs</p>
+                      </div>
+                      {item?.crawlingPages?.map((page, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2 mt-2 bg-g1 p-2 rounded-2xl"
+                        >
+                          {page?.favicon && (
+                            <img
+                              src={page?.favicon}
+                              className="p-1 w-12 bg-white m-1 rounded-xl"
+                            />
+                          )}
+                          <div className="truncate">
+                            <div className="truncate">{page?.title || "-"}</div>
+                            <p className="text-xs text-slate-400 truncate">
+                              {page?.description || "-"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {Array.isArray(item.message) &&
                     item.message.map((block, blockIdx) => {
                       // to show action buttons
