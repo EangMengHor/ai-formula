@@ -233,7 +233,18 @@ ${agent?.content || "N/A"}
         ?.map((msg) => msg.content)
         ?.join("\n\n") || "Error";
 
-    setFullContent(`${simualtionData}${textContent}`);
+    const citationsArray = item?.citations;
+    let citationsBlock = "";
+    console.log("Citations Array:", citationsArray, item);
+    console.log(citationsArray, "citationsArray");
+    if (Array.isArray(citationsArray) && citationsArray.length > 0) {
+      citationsBlock += `\n\n### Citations:\n\n`;
+      citationsArray.forEach((citation, i) => {
+        citationsBlock += `${i + 1}. [${citation?.url}](${citation?.url})\n`;
+      });
+      console.log(citationsBlock, "citationsBlock");
+    }
+    setFullContent(`${simualtionData}${textContent}${citationsBlock}`);
   }, [item]);
 
   useEffect(() => {
