@@ -573,6 +573,7 @@ function Chat() {
                 citations: item?.citations || [],
                 cot: item.cot,
                 agenticCitations: item.agenticCitations || [],
+                crawlingPages: [],
               };
             }
           });
@@ -764,6 +765,7 @@ function Chat() {
     tempContent: "", // streaming buffer
     cot: "",
     isOpen: false,
+    crawlingPages: [],
   });
 
   const newHumanMessage = ({ prompt, isRetry = false }) => ({
@@ -967,6 +969,54 @@ function Chat() {
         setIsChatLoading(false);
         setIsAborting(false);
         last.isAbortManually = true;
+      }
+      // {
+      //     "type": "crawlPageStatus",
+      //     "cid": "bcdce60c-5750-479f-9dee-a6546912c47f",
+      //     "url": "https://www.tesla.com/",
+      //     "metadata": {
+      //         "title": "Electric Cars, Solar & Clean Energy | Tesla",
+      //         "description": "Tesla is accelerating the world's transition to sustainable energy with electric cars, solar and integrated renewable energy solutions for homes and businesses.",
+      //         "favicon": "https://www.tesla.com/themes/custom/tesla_frontend/assets/favicons/favicon.ico"
+      //     }
+      // }
+      if (event.type == "crawlPageStatus") {
+        const { cid, url, metadata = {} } = event;
+        console.log("Crawl page status received:", cid, url, metadata);
+
+        // Find the last AI message
+        const lastMessage = conv[conv.length - 1];
+        if (lastMessage && lastMessage.role === "ai") {
+          if (
+            metadata &&
+            metadata?.title &&
+            metadata?.favicon &&
+            metadata?.description
+          ) {
+            lastMessage.crawlingPages.push({
+              title: metadata.title,
+              favicon: metadata.favicon,
+              description: metadata.description,
+            });
+          }
+        } else {
+          // Create a new AI message if none exists
+          const newMessage = newAiMessage("quick");
+          conv.push(newMessage);
+          if (
+            metadata &&
+            metadata?.title &&
+            metadata?.favicon &&
+            metadata?.description
+          ) {
+            newMessage.crawlingPages.push({
+              title: metadata.title,
+              favicon: metadata.favicon,
+              description: metadata.description,
+            });
+          }
+        }
+        return conv;
       }
       // agentic citation
       if (event.type == "agenticCitation") {
@@ -1465,7 +1515,11 @@ function Chat() {
 
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
-      console.log("handleSubmit called with prompt:", prompt);
+      console.log(
+        "handleSubmit called with prompt:",
+        prompt,
+        isNextChatLoading,
+      );
       if (!prompt.trim() || prompt.length == 0 || isNextChatLoading) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
