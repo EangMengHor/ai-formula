@@ -12,6 +12,7 @@ import PromptTemplateDialog from "./PromptTemplateDialog";
 import { useFileUpload } from "../../../../../hooks/use-file-upload";
 import { Upload } from "lucide-react";
 import { useFilesUploadMetadata } from "../../../../../context/FilesUploadMetadata";
+import { useChatCtx } from "@/context/ChatContext";
 
 function useDebouncedValue(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -71,6 +72,8 @@ function Dashboard() {
     setPromptTemplatePrompt,
     promptTemplatePrompt,
   } = useUser();
+  const { conversation, setConversation } = useChatCtx();
+
   const [isChatLoading, setIsChatLoading] = useState(false);
   const { appendToChatHistory } = _useSidebar();
   const [searchParams] = useSearchParams();
@@ -80,14 +83,11 @@ function Dashboard() {
 
   // Generate client session ID when files are first uploaded
   const generateClientSessionId = () => {
-    if (!clientSessionId) {
-      const newSessionId = crypto.randomUUID();
-      setClientSessionId(newSessionId);
-      // Store in localStorage so file-upload-dialog can access it
-      localStorage.setItem("dashboardSessionId", newSessionId);
-      return newSessionId;
-    }
-    return clientSessionId;
+    const newSessionId = crypto.randomUUID();
+    setClientSessionId(newSessionId);
+    // Store in localStorage so file-upload-dialog can access it
+    localStorage.setItem("dashboardSessionId", newSessionId);
+    return newSessionId;
   };
 
   // File upload functionality - disable vectorization in hook for dashboard
@@ -156,7 +156,7 @@ function Dashboard() {
 
         // Clear the dashboard session ID from localStorage
         localStorage.removeItem("dashboardSessionId");
-
+        setConversation([]);
         navigate(`/chat/${res.data.sessionid}`);
       }
     } catch (error) {

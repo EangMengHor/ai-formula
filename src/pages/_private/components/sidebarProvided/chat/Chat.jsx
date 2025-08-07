@@ -1465,7 +1465,7 @@ function Chat() {
 
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
-      console.log("handleSubmit called with prompt:", prompt);
+      console.log("handleSubmit called with prompt:", prompt,isNextChatLoading);
       if (!prompt.trim() || prompt.length == 0 || isNextChatLoading) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
