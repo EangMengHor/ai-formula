@@ -33,6 +33,7 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import rehypeRaw from "rehype-raw";
 import VerifyAndSuggest from "@/components/custom/verifyAndSuggest/VerifyAndSuggest";
+import DownloadThreadWithUser from "@/components/custom/downloadThread/DownloadThreadWithUser";
 
 const buttonWrapperClass =
   "px-3  bg-transparent bg-slate-900 hover:bg-slate-700 rounded-xl flex items-center justify-center";
@@ -45,11 +46,11 @@ export default function RenderActionButtons({
   setpPdfFileName,
   setCurrentContent,
   currentContent,
-  handlePdfDownload = () => { },
+  handlePdfDownload = () => {},
   pdfFileName = "Document",
-  setPdfDialogOpen = () => { },
+  setPdfDialogOpen = () => {},
   item = {},
-  handleSubmit = () => { },
+  handleSubmit = () => {},
 }) {
   const [isPdfDownloadLoading, setIsPdfDownloadLoading] = useState(false);
   const [isPdfAutonameLoading, setIsPdfAutonameLoading] = useState(false);
@@ -57,7 +58,6 @@ export default function RenderActionButtons({
   const { toast } = useToast();
   const [fullContent, setFullContent] = useState("");
   const [isCopyLoading, setIsCopyLoading] = useState(false);
-
 
   async function copyToClipboard(markdownText, citations = []) {
     try {
@@ -78,13 +78,13 @@ export default function RenderActionButtons({
       /* append refs list */
       const refs = citations.length
         ? "\n\n### References\n" +
-        citations
-          .map((c, i) => {
-            const url = typeof c === "string" ? c : c.url;
-            const title = c?.title || c?.siteName || url;
-            return `${i + 1}. [${title}](${url})`;
-          })
-          .join("\n")
+          citations
+            .map((c, i) => {
+              const url = typeof c === "string" ? c : c.url;
+              const title = c?.title || c?.siteName || url;
+              return `${i + 1}. [${title}](${url})`;
+            })
+            .join("\n")
         : "";
       const finalMD = linked + refs;
 
@@ -193,13 +193,17 @@ export default function RenderActionButtons({
 
     console.log("item in RenderActionButtons useEffect", item);
 
-    const isSimulation = item?.message?.some((msg) => msg.type === "simulation");
+    const isSimulation = item?.message?.some(
+      (msg) => msg.type === "simulation",
+    );
     console.log("isSimulation:", isSimulation, "messages:", item?.message);
 
     let simualtionData = "";
 
     if (isSimulation) {
-      const allAgent = item.message.find((msg) => msg.type === "simulation")?.items;
+      const allAgent = item.message.find(
+        (msg) => msg.type === "simulation",
+      )?.items;
       console.log("allAgent:", allAgent);
 
       if (Array.isArray(allAgent) && allAgent.length > 0) {
@@ -223,14 +227,14 @@ ${agent?.content || "N/A"}
       }
     }
 
-    const textContent = item.message
-      ?.filter((msg) => msg.type === "text")
-      ?.map((msg) => msg.content)
-      ?.join("\n\n") || "Error";
+    const textContent =
+      item.message
+        ?.filter((msg) => msg.type === "text")
+        ?.map((msg) => msg.content)
+        ?.join("\n\n") || "Error";
 
     setFullContent(`${simualtionData}${textContent}`);
   }, [item]);
-
 
   useEffect(() => {
     console.log(fullContent, "fullContent in RenderActionButtons");
@@ -310,41 +314,20 @@ ${agent?.content || "N/A"}
           )}
         </Button>
         {/* verify and suggest */}
-
         <VerifyAndSuggest
           content={fullContent}
           isRealtime={citations && citations.length > 0}
           handleSubmit={handleSubmit}
         />
-
         {/* Download */}
-        <Dialog
+        {/* <Dialog
           onOpenChange={(open) => {
             if (!open) {
               setCurrentContent("");
             }
           }}
         >
-          <DialogTrigger asChild className="">
-            <Button
-              className={buttonWrapperClass}
-              onClick={() => {
-                setCurrentContent(content || "No content available");
-              }}
-            >
-              <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                  <TooltipTrigger className="flex gap-2 items-center">
-                    <FolderDown className={iconClass} />
-                    <p>Download</p>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Download Content</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger asChild className=""></DialogTrigger>
 
           <DialogContent className="max-w-4xl bg-slate-800">
             <h1 className="font-semibold text-lg text-white mb-3">
@@ -400,8 +383,31 @@ ${agent?.content || "N/A"}
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
-
+        </Dialog> */}
+        <DownloadThreadWithUser
+          button={
+            <Button
+              className={buttonWrapperClass}
+              onClick={() => {
+                setCurrentContent(content || "No content available");
+              }}
+            >
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger className="flex gap-2 items-center">
+                    <FolderDown className={iconClass} />
+                    <p>Download</p>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download Content</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Button>
+          }
+          dialogHeader="Download Response"
+          content={fullContent || "No content available"}
+        />
         {/* TTS */}
         <TTSPrompt
           prompt={fullContent || "No Content available"}
@@ -443,7 +449,7 @@ ${agent?.content || "N/A"}
                   })) || []
                 }
                 maxIcons={3}
-                onClick={() => { }}
+                onClick={() => {}}
               />
             </DialogTrigger>
             <DialogContent className="w-full max-w-3xl bg-slate-800 text-white">

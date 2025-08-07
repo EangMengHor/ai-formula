@@ -28,17 +28,25 @@ import Workshop from "./components/Workshop";
 import AutomationPage from "@/pages/_automations/AutomationPage";
 import AutomationJobDetails from "@/pages/_automations/AutomationJobsDetails";
 import PromptTemplateLibrary from "./components/PromptTemplateLibrary";
+import { useChatCtx } from "@/context/ChatContext";
+import DownloadThreadWithUser from "@/components/custom/downloadThread/DownloadThreadWithUser";
+import { Button } from "@/components/ui/button";
+import { CircleArrowDown } from "lucide-react";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
   const { currentActiveChat } = _useSidebar();
   const { sidebarStack, setSidebarStack } = useStackSidebar();
-
+  const { conversation, setConversation } = useChatCtx();
   useEffect(() => {
     if (pathname) {
       setSidebarStack([]);
     }
   }, [pathname]);
+
+  useEffect(() => {
+    console.log(conversation, "conversation in sidebar");
+  }, [conversation, setConversation]);
 
   return (
     <SidebarProvider>
@@ -46,13 +54,22 @@ export default function Page() {
         <AppSidebar />
       </div>
       <SidebarInset>
-        <header className="flex fixed justify-between bg-black w-full z-50 h-12 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex fixed   bg-black w-full z-50 h-12 shrink-0 items-center border-b px-4">
           <div className="flex gap-2 items-center">
             <SidebarTrigger className="-ml-1 text-white" />
             <Separator orientation="vertical" className="mr-2 h-4" />
           </div>
-          <p className="text-white font-medium">{currentActiveChat}</p>
-          <div className="w-1/4"></div>
+          {pathname !== "/dashboard" && (
+            <DownloadThreadWithUser
+              button={
+                <button className="bg-transparent flex gap-2 items-center text-white  px-1 py-1 hover:bg-g2/60 rounded-md">
+                  <CircleArrowDown className="w-4 h-4" />
+                  Export Thread
+                </button>
+              }
+              dialogHeader="Download Chat Thread"
+            />
+          )}
         </header>
         <div className="flex gap-2 flex-1 w-full ">
           <div className="flex text-white bg-black flex-1 mt-12 flex-col gap-2 p-2 pt-0">

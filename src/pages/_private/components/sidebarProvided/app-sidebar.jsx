@@ -310,7 +310,6 @@ export function AppSidebar({ ...props }) {
           </div>
         </div>
       </SidebarFooter>
-      <SidebarRail />
       <SettingsModal
         open={openSettingsModal}
         onClose={() => setOpenSettingsModal(false)}
