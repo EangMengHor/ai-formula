@@ -35,6 +35,7 @@ import { useFileUpload } from "@/hooks/use-file-upload";
 import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
 import OsintNewInstanceSidebar from "@/components/custom/osint/OsintNewInstanceSidebar";
 import SidebarFileBlock from "@/components/custom/generatedFile/SidebarFileblock";
+import { useChatCtx } from "@/context/ChatContext";
 // import VoiceInterface from "@/components/custom/VoiceInterface";
 
 function Chat() {
@@ -82,7 +83,7 @@ function Chat() {
   // --- State ---
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [fallBackPrompt, setFallBackPrompt] = useState("");
-  const [conversation, setConversation] = useState([]);
+  const { conversation, setConversation } = useChatCtx();
   const [isNextChatLoading, setIsNextChatLoading] = useState(false);
   const [prompt, setPrompt] = useState("");
 

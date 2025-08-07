@@ -118,7 +118,6 @@ export const stripHtml = (html = "") =>
 
 
 export function response(success, message, data = null) {
-
     return {
         success,
         message,

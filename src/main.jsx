@@ -13,6 +13,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { DomainProvider } from "./context/WhichDomainContext";
 import { WorkflowProvider } from "./context/WorkflowContext";
 import { CollectionProvider } from "./context/CollectionContext";
+import { ChatProvider } from "./context/ChatContext";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
@@ -25,7 +26,9 @@ createRoot(document.getElementById("root")).render(
                 <ReactFlowProvider>
                   <WorkflowProvider>
                     <CollectionProvider>
-                      <App />
+                      <ChatProvider>
+                        <App />
+                      </ChatProvider>
                     </CollectionProvider>
                   </WorkflowProvider>
                 </ReactFlowProvider>

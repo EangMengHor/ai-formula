@@ -55,7 +55,7 @@ export const Pre = ({ children }) => {
           isWrapped ? "whitespace-pre-wrap break-words" : "whitespace-pre"
         }`}
       >
-        {children?.props?.children.replaceAll("*", "").replaceAll("#", "") ||
+        {children?.props?.children?.replaceAll("*", "")?.replaceAll("#", "") ||
           ""}
       </div>
     </div>
