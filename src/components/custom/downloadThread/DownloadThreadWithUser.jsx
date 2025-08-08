@@ -53,43 +53,59 @@ export default function DownloadThreadWithUser({
 
     // Process conversation into pairs for selection UI
     const pairs = [];
-    for (let i = 0; i < conversation.length - 1; i += 2) {
-      const humanMsg = conversation[i];
-      const aiMsg = conversation[i + 1];
+    console.log(conversation, "iashdkajsh-309124");
 
-      if (humanMsg?.role === "human" && aiMsg?.role === "ai") {
-        // Count agents and citations
-        const agentCount =
-          aiMsg?.message?.find((msg) => msg.type === "simulation")?.items
-            ?.length || 0;
-        const citationCount = aiMsg?.citations?.length || 0;
+    // Find human messages and pair them with the next AI response
+    for (let i = 0; i < conversation.length; i++) {
+      const currentMsg = conversation[i];
 
-        // Get response preview
-        const textContent =
-          aiMsg.message
-            ?.filter((msg) => msg.type === "text")
-            ?.map((msg) => msg.content)
-            ?.join(" ") || "No response";
+      if (currentMsg?.role === "human") {
+        // Look for the next AI message
+        let aiMsg = null;
+        for (let j = i + 1; j < conversation.length; j++) {
+          if (conversation[j]?.role === "ai") {
+            aiMsg = conversation[j];
+            break;
+          }
+        }
 
-        const preview =
-          textContent.length > 100
-            ? textContent.substring(0, 100) + "..."
-            : textContent;
+        if (aiMsg) {
+          // Count agents and citations
+          const agentCount =
+            aiMsg?.message?.find((msg) => msg.type === "simulation")?.items
+              ?.length || 0;
+          const citationCount = aiMsg?.citations?.length || 0;
 
-        pairs.push({
-          id: i,
-          prompt: humanMsg.message || "No prompt",
-          response: textContent,
-          preview: preview,
-          agentCount,
-          citationCount,
-          humanItem: humanMsg,
-          aiItem: aiMsg,
-        });
+          // Get response preview
+          const textContent =
+            aiMsg.message
+              ?.filter((msg) => msg.type === "text")
+              ?.map((msg) => msg.content)
+              ?.join(" ") || "No response";
+
+          const preview =
+            textContent.length > 100
+              ? textContent.substring(0, 100) + "..."
+              : textContent;
+
+          pairs.push({
+            id: i, // Use the human message index as ID
+            prompt: currentMsg.message || "No prompt",
+            response: textContent,
+            preview: preview,
+            agentCount,
+            citationCount,
+            humanItem: currentMsg,
+            aiItem: aiMsg,
+          });
+        }
       }
     }
 
     setConversationPairs(pairs);
+    console.log(
+      `Found ${pairs.length} conversation pairs from ${conversation.length} total messages`,
+    );
     setSelectedConversations(pairs.map((p) => p.id)); // Select all by default
 
     // Generate content for selected conversations only if showing sequence selection
@@ -108,13 +124,10 @@ export default function DownloadThreadWithUser({
     if (content) return;
 
     let chatContent = "# Chat Thread\n\n";
-
-    pairs.forEach((pair) => {
+    pairs.forEach((pair, index) => {
       const { humanItem, aiItem } = pair;
-
       // Add user prompt
-      chatContent += `# ${humanItem.message}\n\n`;
-
+      chatContent += `## Conversation ${index + 1}\n\n### User:\n${humanItem.message}\n\n`;
       // Process AI response
       const isSimulation = aiItem?.message?.some(
         (msg) => msg.type === "simulation",
@@ -129,21 +142,16 @@ export default function DownloadThreadWithUser({
         if (Array.isArray(allAgent) && allAgent.length > 0) {
           allAgent.forEach((agent) => {
             simulationData += `
-
 ---
-
 ### Agent Name: **${agent?.title || "N/A"}**
-
 - **Goal:** ${agent?.goal || "N/A"}
 ${agent?.team?.length ? `- **Collaborated With:** ${agent.team.join(", ")}` : ""}
 - **Response:**
-
 ${agent?.content || "N/A"}
-
 `;
           });
 
-          simulationData = `# 🧪 Agentic Simulation\n\n${simulationData}\n\n---\n\n## Final Output:\n\n`;
+          simulationData = `### 🧪 Agentic Simulation\n\n${simulationData}\n\n---\n\n### Final Output:\n\n`;
         }
       }
 
@@ -159,11 +167,11 @@ ${agent?.content || "N/A"}
       if (Array.isArray(citationsArray) && citationsArray.length > 0) {
         citationsBlock += `\n\n### Citations:\n`;
         citationsArray.forEach((citation, i) => {
-          citationsBlock += `${citation?.url}\n`;
+          citationsBlock += `${i + 1}. ${citation?.url}\n`;
         });
       }
 
-      chatContent += `---\n\n${simulationData}${textContent}${citationsBlock}\n\n`;
+      chatContent += `### Assistant:\n\n${simulationData}${textContent}${citationsBlock}\n\n---\n\n`;
     });
 
     setFullContent(chatContent);
@@ -173,15 +181,17 @@ ${agent?.content || "N/A"}
     if (content) return;
 
     let chatContent =
-      pdfFileName !== "Chat Thread" ? `# ${pdfFileName}\n\n` : "\n";
+      pdfFileName !== "Chat Thread"
+        ? `# ${pdfFileName}\n\n`
+        : "# Selected Conversations\n\n";
 
-    pairs.forEach((pair) => {
+    pairs.forEach((pair, index) => {
       if (!selectedIds.includes(pair.id)) return;
 
       const { humanItem, aiItem } = pair;
 
       // Add user prompt
-      chatContent += ` ### Prompt : ${humanItem.message.replace(/\n/g, " ")}\n`;
+      chatContent += `## Conversation ${index + 1}\n\n### User:\n${humanItem.message}\n\n`;
 
       // Process AI response
       const isSimulation = aiItem?.message?.some(
@@ -211,7 +221,7 @@ ${agent?.content || "N/A"}
 `;
           });
 
-          simulationData = `# 🧪 Agentic Simulation\n\n${simulationData}\n\n---\n\n## Final Output:\n\n`;
+          simulationData = `### 🧪 Agentic Simulation\n\n${simulationData}\n\n---\n\n### Final Output:\n\n`;
         }
       }
 
@@ -227,11 +237,11 @@ ${agent?.content || "N/A"}
       if (Array.isArray(citationsArray) && citationsArray.length > 0) {
         citationsBlock += `\n\n### Citations:\n`;
         citationsArray.forEach((citation, i) => {
-          citationsBlock += `${citation?.url}\n`;
+          citationsBlock += `${i + 1}. ${citation?.url}\n`;
         });
       }
 
-      chatContent += `---\n\n${simulationData} \n\n Response : \n\n ${textContent}${citationsBlock}\n\n`;
+      chatContent += `### Assistant:\n\n${simulationData}${textContent}${citationsBlock}\n\n---\n\n`;
     });
 
     setFullContent(chatContent);
