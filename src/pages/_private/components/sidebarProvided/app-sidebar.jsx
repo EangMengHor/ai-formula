@@ -7,6 +7,7 @@ import {
   Layers,
   Orbit,
   Plus,
+  SunMoon,
   UserCircle2,
   Workflow,
   X,
@@ -272,7 +273,7 @@ export function AppSidebar({ ...props }) {
             </div>
             <div
               onClick={() => {
-                navigate("/your-automations");
+                navigate("/trigger");
               }}
               className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
               size="lg"
@@ -280,9 +281,9 @@ export function AppSidebar({ ...props }) {
             >
               <div className="flex gap-2 items-center">
                 <div className="w-6 h-6 flex gap-1 items-center p-1">
-                  <CalendarHeart className="w-5 rounded-md  " />
+                  <SunMoon className="w-5 rounded-md  " />
                 </div>
-                <p className="font-bold">Your Automations</p>
+                <p className="font-bold">Trigger</p>
               </div>
             </div>
             <SearchChats />
