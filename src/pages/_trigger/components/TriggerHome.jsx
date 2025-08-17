@@ -40,7 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useEffect, useState } from "react";
-import CreateNewConditionalTrigger from "./createNewConditionalTrigger";
+import CreateNewConditionalTrigger from "./CreateNewConditionalTrigger";
 import CreateNewUnconditionalTrigger from "./CreateNewUnconditionalTrigger";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/hooks/use-toast";
