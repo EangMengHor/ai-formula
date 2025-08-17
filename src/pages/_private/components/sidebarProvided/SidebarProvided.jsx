@@ -32,6 +32,8 @@ import { useChatCtx } from "@/context/ChatContext";
 import DownloadThreadWithUser from "@/components/custom/downloadThread/DownloadThreadWithUser";
 import { Button } from "@/components/ui/button";
 import { CircleArrowDown } from "lucide-react";
+import TriggerHome from "@/pages/_trigger/components/TriggerHome";
+import TriggersDetail from "@/pages/_trigger/components/TriggersDetail";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -59,7 +61,7 @@ export default function Page() {
             <SidebarTrigger className="-ml-1 text-white" />
             <Separator orientation="vertical" className="mr-2 h-4" />
           </div>
-          {pathname !== "/dashboard" && (
+          {pathname.startsWith("/chat") && (
             <DownloadThreadWithUser
               button={
                 <button className="bg-transparent flex gap-2 items-center text-white  px-1 py-1 hover:bg-g2/60 rounded-md">
@@ -77,12 +79,11 @@ export default function Page() {
             {pathname.startsWith("/chat/") && <Chat />}
             {pathname.startsWith("/workshop") && <Workshop />}
             {pathname.startsWith("/your-automations") && <AutomationPage />}
-            {pathname.startsWith("/automationJobs/") && (
-              <AutomationJobDetails />
-            )}
+            {pathname.startsWith("/triggersDetail") && <TriggersDetail />}
             {pathname.startsWith("/template-library") && (
               <PromptTemplateLibrary />
             )}
+            {pathname === "/trigger" && <TriggerHome />}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}

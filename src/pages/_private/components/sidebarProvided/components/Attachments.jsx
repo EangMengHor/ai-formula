@@ -1,9 +1,11 @@
 import { FileInput, Grid3x3, Orbit, WorkflowIcon, Play } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { promptTemplate } from "@/lib/config";
 import { useUser } from "@/context/UserContext";
 import PromptTemplateDialog from "./PromptTemplateDialog";
+import { getDashboardTrigger } from "@/services/trigger/getDashboardTrigger";
+import { Link } from "react-router-dom";
 const iconsStyle = "w-4 h-4 text-white";
 
 const buttonGroups = [
@@ -45,101 +47,67 @@ const contentVariants = {
     },
   }),
 };
+// ata": [
+//         {
+//             "id": 41,
+//             "triggerId": 42,
+//             "images": [
+//                 "https://media.gettyimages.com/id/1556253588/video/business-data-analytics-dashboard-animated-overlays.jpg?s=640x640&k=20&c=Kcv_preiLiysrx8CmlbRSFLl52BU3en-2HNwsR2yFDw=",
+//                 "https://www.shutterstock.com/shutterstock/videos/3495967415/thumb/12.jpg?ip=x480",
+//                 "https://zoomchartswebstorage.blob.core.windows.net/template-gallery/20240530-160943-movie-industry-insights-power-bi-report-od-contest.png",
+//                 "https://media.istockphoto.com/id/1488294044/photo/businessman-works-on-laptop-showing-business-analytics-dashboard-with-charts-metrics-and-kpi.jpg?s=612x612&w=0&k=20&c=AcxzQAe1LY4lGp0C6EQ6reI7ZkFC2ftS09yw_3BVkpk=",
+//                 "https://static.vecteezy.com/system/resources/previews/026/512/401/non_2x/data-analyst-working-on-business-analytics-dashboard-with-charts-metrics-and-kpi-to-analyze-performance-and-create-insight-reports-and-strategic-decisions-for-operations-management-on-virtual-screen-photo.jpg"
+//             ],
+//             "title": "Daily Data Analysis at 00:00, 01:00, 08:30, 11:00, 13:00",
+//             "citations": [],
+//             "triggerLogId": 296
+//         },
+function Rec({ data }) {
+  return (
+    <Link
+      to={`/triggersDetail/${data.id}`}
+      className="flex items-center bg-gray-900 hover:bg-g1 border rounded-lg overflow-hidden cursor-pointer shadow-sm transition"
+    >
+      <img
+        src={data.images[Math.floor(Math.random() * data.images.length)]}
+        alt={data.name}
+        className="w-20 h-20 object-cover"
+      />
+      <div className="flex flex-col justify-center px-3 py-2">
+        <span className="font-semibold text-sm md:text-base line-clamp-2">
+          {data.title}
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 export default function Attachments({ onSubmit }) {
-  const [selectedButton, setSelectedButton] = useState(1);
   const [direction, setDirection] = useState(0);
-  const { setPromptTemplatePrompt } = useUser();
+  const [recommendations, setRecommendations] = useState([]);
 
-  const handleTabChange = (newIndex) => {
-    setDirection(newIndex > selectedButton ? 1 : -1);
-    setSelectedButton(newIndex);
-  };
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const rec = await getDashboardTrigger(localStorage.getItem("id"));
+        setRecommendations(rec);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+    fetchData();
+  }, []);
 
   return (
-    <div className="mt-8">
-      <div className="w-full flex flex-col items-center justify-center">
-      
-
-        <div className="w-full mt-4 p-0  rounded-xl min-h-[520px] relative overflow-hidden shadow-lg">
-          <AnimatePresence custom={direction} mode="wait">
-            {selectedButton === 1 && (
-              <motion.div
-                key="content-1"
-                custom={direction}
-                variants={contentVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="absolute w-full h-full flex flex-col gap-0 overflow-auto overflow-x-hidden"
-                style={{ maxHeight: "calc(100vh - 220px)" }}
-              >
-                <div className="flex-1 w-full p">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
-                    {promptTemplate.slice(0, 8).map((t, idx) => (
-                      <PromptTemplateDialog
-                        key={t.name + idx}
-                        template={t}
-                        onPromptSubmit={(val) => {
-                          setPromptTemplatePrompt(val);
-                          onSubmit(val);
-                        }}
-                      />
-                    ))}
-                  </div>
-                  {promptTemplate.length === 0 && (
-                    <div className="text-white opacity-60 mt-4">
-                      No prompt templates available.
-                    </div>
-                  )}
-                  {/* Template Library Button */}
-                  <div className="flex justify-center mt-4">
-                    <a
-                      href="/template-library"
-                      className="w-full h-[200px] px-6 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold shadow transition text-base flex flex-col items-center justify-center"
-                      style={{ minWidth: 180 }}
-                    >
-                      <Grid3x3 />
-                      <div className="mt-5">
-                        <span className="ml-2">Template Library</span>
-                        <p className="text-xs opacity-70 mt-1">
-                          Explore more templates
-                        </p>
-                      </div>
-                    </a>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-            {selectedButton === 2 && (
-              <motion.div
-                key="content-2"
-                custom={direction}
-                variants={contentVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="absolute w-full h-full flex items-center justify-center"
-              >
-                <p className="text-white">Attach your knowledge block here.</p>
-              </motion.div>
-            )}
-            {selectedButton === 3 && (
-              <motion.div
-                key="content-3"
-                custom={direction}
-                variants={contentVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="absolute w-full h-full flex items-center justify-center"
-              >
-                <p className="text-white">Attach your workflow here.</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+    <div className="mt-8 space-y-6">
+      {/* Recommendations */}
+      {recommendations?.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {recommendations.map((item, index) => (
+            <Rec key={index} data={item} />
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -46,6 +46,9 @@ import AutomationJobDetails from "./pages/_automations/AutomationJobsDetails";
 import PromptTemplateLibrary from "./pages/_private/components/sidebarProvided/components/PromptTemplateLibrary";
 import EachVectorStore from "./pages/_addToPersonalKnowledge/EachVectorStore";
 import Test from "./components/custom/Test";
+import TriggerLayout from "./pages/_trigger/TriggerLayout";
+import TriggerHome from "./pages/_trigger/components/TriggerHome";
+import TriggersDetail from "./pages/_trigger/components/TriggersDetail";
 
 export default function App() {
   const location = useLocation();
@@ -79,7 +82,7 @@ export default function App() {
           <Route path={signup} element={<Signup />} />
         </Route>
         <Route element={<PrivateRoute />}>
-          {/* voice to voice */}
+          {/* trigger */}
 
           {/* user manual */}
           <Route path="/manual" element={<UserManualLayout />} />
@@ -100,6 +103,13 @@ export default function App() {
               path="/template-library"
               element={<PromptTemplateLibrary />}
             />
+            <Route element={<TriggerLayout />}>
+              <Route path={"/trigger"} element={<TriggerHome />} />
+              <Route
+                path={`/triggersDetail/:id`}
+                element={<TriggersDetail />}
+              />
+            </Route>
           </Route>
           <Route
             path="/createPersonalProfileForm"

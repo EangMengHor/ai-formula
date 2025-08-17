@@ -126,3 +126,16 @@ export const deleteKnowledgeBlockUrl = `${import.meta.env.VITE_SOCKET_URL}/api/p
 
 // financial feed
 export const financialFeedUrl = `${import.meta.env.VITE_SOCKET_URL}/finance/poll`;
+
+// trigger
+export const createNewWorkflowUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/createNewWorkflow`;
+
+export const saveConditionalWorkflowUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/storeConditionalTrigger`;
+
+export const saveUnconditionalWorkflowUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/storeUnconditionalTrigger`;
+
+export const getAllUserTriggerUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/getUserTriggers`;
+export const getJobDetailsUrlX = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/getTriggerJobDataById/:triggerId`;
+export const getAllJobsUrls = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/getAllJobData`;
+export const deleteTriggerUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/deleteTrigger`;
+export const triggerDashboardRecommendationUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/getRecommendedTriggers`;

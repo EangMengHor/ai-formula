@@ -41,10 +41,9 @@ export const SidebarProvider = ({ children }) => {
         setIsSidebarChatHistoryLoading(false);
       }
     };
+    const allowedRoutes = ["dashboard", "chat", "workshop", "trigger"];
     if (
-      (pathname.includes("dashboard") ||
-        pathname.includes("chat") ||
-        pathname.includes("workshop")) &&
+      allowedRoutes.some((route) => pathname.includes(route)) &&
       Object.keys(chatHistory).length === 0
     ) {
       fetchChatHistory();
