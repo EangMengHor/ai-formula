@@ -935,9 +935,8 @@ function Chat() {
       if (event.type === "searchUrls") {
         searchCitationsRef.current = [
           ...(searchCitationsRef.current || []),
-          ...(event.urls || []),
+          ...(event.citations || []),
         ];
-
         console.log("got search urls", searchCitationsRef.current);
         return conv;
       }
