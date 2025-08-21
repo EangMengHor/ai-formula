@@ -4,6 +4,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import remarkGfm from "remark-gfm";
+import { Pre } from "@/components/custom/CodeBlock";
 
 export default function MarkdownRenderer({ content }) {
   return (
@@ -49,6 +50,7 @@ export default function MarkdownRenderer({ content }) {
               {children}
             </td>
           ),
+          pre: ({ children }) => <Pre children={children} />,
         }}
       >
         {content}
