@@ -9,6 +9,8 @@ import React, {
 import { useToast } from "../hooks/use-toast";
 import { getUserSavedWorkflow } from "@/services/user-saved-workflow-apis/getUserSavedWorkflow";
 import { useUser } from "./UserContext";
+import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 const WorkflowContext = createContext();
 
@@ -18,15 +20,33 @@ export const WorkflowProvider = ({ children }) => {
   // State for the selected workflow ID
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
   const { user } = useUser();
-  const { toast } = useToast();
+
+  function restoreSavedWorkflow(sessionId) {
+    if (!sessionId) return;
+    const storedWorkflowStore = localStorage.getItem(
+      `selectedWorkflow:${sessionId}`,
+    );
+    if (storedWorkflowStore) {
+      setSelectedWorkflowId(parseInt(storedWorkflowStore, 10)); // no JSON.parse, it's just a string
+    }
+  }
+
+  function storeInLocalStorage(sessionId, mode = "add", workflowId) {
+    if (!sessionId) return;
+    if (mode === "add") {
+      // directly save as string
+      localStorage.setItem(`selectedWorkflow:${sessionId}`, workflowId);
+    } else {
+      // "remove" just clears the key
+      localStorage.removeItem(`selectedWorkflow:${sessionId}`);
+    }
+  }
 
   // Fetch user workflows when user ID changes
   useEffect(() => {
     let isMounted = true;
-
     async function fetchUserWorkflows() {
       if (!user?.id) return;
-
       try {
         const data = await getUserSavedWorkflow(user.id);
         if (isMounted) {
@@ -43,10 +63,7 @@ export const WorkflowProvider = ({ children }) => {
         }
       }
     }
-
     fetchUserWorkflows();
-
-    // Cleanup function to prevent state updates after unmount
     return () => {
       isMounted = false;
     };
@@ -54,12 +71,14 @@ export const WorkflowProvider = ({ children }) => {
 
   // Handler for selecting a workflow - memoize to prevent recreation on every render
   const selectWorkflow = useCallback(
-    (workflowId) => {
+    (workflowId, sessionId) => {
+      console.log(workflowId, "selecting workflow", sessionId);
       if (workflowId === null) {
         toast({
           title: "Workflow removed",
           description: "No workflow selected for this conversation",
         });
+        storeInLocalStorage(sessionId, "remove", null);
         setSelectedWorkflowId(null);
         return;
       }
@@ -72,8 +91,8 @@ export const WorkflowProvider = ({ children }) => {
             workflow.personaList.length > 1 ? "personas" : "persona"
           } has been selected for this conversation`,
         });
+        storeInLocalStorage(sessionId, "add", workflowId);
       }
-
       setSelectedWorkflowId(workflowId);
     },
     [workflowList, toast],
@@ -85,11 +104,12 @@ export const WorkflowProvider = ({ children }) => {
       workflowList.find((w) => w.id === selectedWorkflowId) || {
         name: "No Workflow Selected",
         personaList: [],
-        workflow,
+        workflow: [],
       },
     [workflowList, selectedWorkflowId],
   );
 
+  console.log(getSelectedWorkflow(), "selected workflow details");
   // Memoize the context value to prevent unnecessary re-renders of consumers
   const contextValue = useMemo(
     () => ({
@@ -99,8 +119,17 @@ export const WorkflowProvider = ({ children }) => {
       setSelectedWorkflowId,
       selectWorkflow,
       getSelectedWorkflow,
+      restoreSavedWorkflow,
     }),
-    [workflowList, selectedWorkflowId, selectWorkflow, getSelectedWorkflow],
+    [
+      workflowList,
+      setWorkflowList,
+      selectedWorkflowId,
+      setSelectedWorkflowId,
+      selectWorkflow,
+      getSelectedWorkflow,
+      restoreSavedWorkflow,
+    ],
   );
 
   return (

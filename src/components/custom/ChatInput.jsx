@@ -68,6 +68,7 @@ import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 import VoiceInputBlock from "./VoiceTVoice/VoiceInputBlock";
 import ChatModes from "@/ChatModes";
 const maxRows = 30;
+
 const AttachmentCard = ({
   title = "",
   type = "",
@@ -106,6 +107,7 @@ const AttachmentCard = ({
     </div>
   );
 };
+
 function ChatInput({
   conversationProp = [],
   input,
@@ -135,11 +137,13 @@ function ChatInput({
     setIsDeepThinkMode, // Use context setter
     selectedModel,
     setSelectedModel,
+    selectIntentModel,
+    removeSelectedIntent,
+    restoredSavedModel,
   } = useUser();
   // component states
   const [rows, setRows] = useState(5);
   // TODO: use isToolBoxOpen and create option to select superior persona
-  const [isToolBoxOpen, setIsToolBoxOpen] = useState(false);
   const [isTransribed, setIsTransribed] = useState(false);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -153,15 +157,14 @@ function ChatInput({
   const [isKnowledgeBlockSelectorOpen, setIsKnowledgeBlockSelectorOpen] =
     useState(false);
   const [isIntentSelectionOpen, setIsIntentSelectionOpen] = useState(false);
-  // Get only the necessary workflow states from context
   const {
     selectedWorkflowId,
     setWorkflowList,
     getSelectedWorkflow,
     setSelectedWorkflowId,
+    selectWorkflow,
+    restoreSavedWorkflow,
   } = useWorkflow();
-
-  // Move remaining workflow states here to prevent unnecessary rerenders
   const [workflowPrompt, setWorkflowPrompt] = useState("");
   const [isWorkflowCreatorLoading, setIsWorkflowCreatorLoading] =
     useState(false);
@@ -176,6 +179,15 @@ function ChatInput({
       setRows(2);
     }
   }, [pathname]);
+  useEffect(() => {
+    restoreSavedWorkflow(id);
+    restoredSavedModel(id);
+    return () => {
+      setSelectedWorkflowId(null);
+      setSelectedModel([]);
+    };
+  }, [id]);
+
   const handlePaste = useCallback(
     (e) => {
       const items = e.clipboardData && e.clipboardData.items;
@@ -500,9 +512,7 @@ function ChatInput({
                         type="Intent Model"
                         showIsRemove={true}
                         onRemove={() => {
-                          setSelectedModel((prev) =>
-                            prev.filter((m) => m !== model),
-                          );
+                          removeSelectedIntent(model, id);
                         }}
                         icon={<Boxes className="w-5 h-5" />}
                       />
@@ -532,10 +542,15 @@ function ChatInput({
                     title={
                       getSelectedWorkflow()?.name || "No Workflow Selected"
                     }
+                    key={selectedWorkflowId + "selectedWorkflowId" + id}
                     type="Workflow"
                     icon={<SquareDashed className="w-5 h-5" />}
                     showIsRemove={true}
-                    onRemove={() => setSelectedWorkflowId(null)}
+                    onRemove={() => {
+                      console.log(id, "selecting workflow");
+
+                      selectWorkflow(null, id);
+                    }}
                   />
                 )}
 

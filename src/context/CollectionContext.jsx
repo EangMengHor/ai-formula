@@ -9,8 +9,6 @@ import React, {
 import { useToast } from "../hooks/use-toast";
 import { getUserPersonalKnowledgeCollection } from "@/services/user-setting-apis/getUserPersonalKnowledgeCollection";
 import { useUser } from "./UserContext";
-import { useParams } from "react-router-dom";
-
 const CollectionContext = createContext();
 
 export const CollectionProvider = ({ children }) => {
@@ -20,7 +18,6 @@ export const CollectionProvider = ({ children }) => {
   const { toast } = useToast();
   useEffect(() => {
     let isMounted = true;
-
     async function fetchUserCollections() {
       if (!user?.id) return;
       try {
@@ -39,9 +36,7 @@ export const CollectionProvider = ({ children }) => {
         }
       }
     }
-
     fetchUserCollections();
-
     return () => {
       isMounted = false;
     };
@@ -88,6 +83,7 @@ export const CollectionProvider = ({ children }) => {
 
   const toggleCollectionSelection = useCallback(
     (collectionId, sessionId = "") => {
+      console.log(collectionId, "toggling", sessionId);
       setSelectedCollectionIds((prevSelected) => {
         const isSelected = prevSelected.includes(collectionId);
         if (isSelected) {
@@ -110,7 +106,7 @@ export const CollectionProvider = ({ children }) => {
     },
     [toast],
   );
-  
+
   const getSelectedCollections = useMemo(
     () => () =>
       collectionList.filter((c) => selectedCollectionIds.includes(c.id)),
