@@ -170,13 +170,14 @@ const Conversation = forwardRef(
                       </span>
                     );
                   }
-                  // default <sup> if something’s wrong
+                  // defaulpchatt <sup> if something’s wrong
                   return <sup {...props}>{props.children}</sup>;
                 } catch (error) {
                   console.error("Error rendering sup:", error);
                   return <p></p>;
                 }
               },
+              
               table: ({ children }) => (
                 <table style={styles.table}>{children}</table>
               ),

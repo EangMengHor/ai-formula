@@ -38,6 +38,41 @@ export const UserProvider = ({ children }) => {
   const [isUserBanned, setIsUserBanned] = useState(false);
   const [promptTemplatePrompt, setPromptTemplatePrompt] = useState(""); // Add this line
   const [selectedModel, setSelectedModel] = useState([]);
+  //   logic to restore the selected model
+  // restore selected model
+  function restoredSavedModel(sessionId) {
+    const storedModel = localStorage.getItem(`selectedModel:${sessionId}`);
+    if (storedModel) {
+      setSelectedModel(JSON.parse(storedModel));
+    }
+  }
+
+  function updateSavedModel(sessionId, model, type = "add") {
+    if (!sessionId || !model) return;
+
+    const existing = localStorage.getItem(`selectedModel:${sessionId}`);
+    let models = [];
+    if (existing) {
+      models = JSON.parse(existing);
+    }
+    if (type === "add") {
+      if (!models.includes(model)) {
+        models.push(model);
+      }
+    } else {
+      models = models.filter((m) => m !== model);
+    }
+    localStorage.setItem(`selectedModel:${sessionId}`, JSON.stringify(models));
+  }
+
+  function selectIntentModel(model, sessionId) {
+    setSelectedModel((prev) => [...prev, model]);
+    updateSavedModel(sessionId, model);
+  }
+  function removeSelectedIntent(model, sessionId) {
+    setSelectedModel((prev) => prev.filter((m) => m !== model));
+    updateSavedModel(sessionId, model, "remove");
+  }
   useEffect(() => {
     setIsDocumentOn(false);
   }, [pathname]);
@@ -164,6 +199,9 @@ export const UserProvider = ({ children }) => {
         selectedModel,
         getMode,
         setSelectedModel,
+        selectIntentModel,
+        removeSelectedIntent,
+        restoredSavedModel
       }}
     >
       {children}

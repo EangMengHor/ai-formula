@@ -20,6 +20,7 @@ import {
   Target,
   Telescope,
 } from "lucide-react";
+import { useParams } from "react-router-dom";
 import { Global } from "recharts";
 
 export const models = [
@@ -93,13 +94,18 @@ export const models = [
 ];
 
 export default function ModelSelectionDialog({ open, onClose }) {
-  const { selectedModel, setSelectedModel } = useUser();
-
+  const {
+    selectedModel,
+    setSelectedModel,
+    selectIntentModel,
+    removeSelectedIntent,
+  } = useUser();
+  const { id } = useParams();
   const handleSelect = (value) => {
     if (selectedModel.includes(value)) {
-      setSelectedModel((prev) => prev.filter((m) => m !== value));
+      removeSelectedIntent(value, id);
     } else {
-      setSelectedModel((prev) => [...prev, value]);
+      selectIntentModel(value, id);
     }
   };
 

@@ -13,7 +13,6 @@ import {
   X,
 } from "lucide-react";
 
-import { useWorkflow } from "../../../../context/WorkflowContext";
 
 import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main";
 import {

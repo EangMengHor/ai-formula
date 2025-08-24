@@ -281,7 +281,7 @@ export function NavMain({ items, isClickedWorkflows }) {
         {isClickedWorkflows &&
           (selectedWorkflowId !== null || selectedWorkflowId > 0) && (
             <div
-              onClick={() => selectWorkflow(null)}
+              onClick={() => selectWorkflow(null, id)}
               className="flex items-center gap-2 p-2 mx-2 border-red-500 border text-sm text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer transition-colors duration-200"
             >
               <X className="w-4 h-4" />
@@ -314,7 +314,7 @@ export function NavMain({ items, isClickedWorkflows }) {
               <motion.div
                 layout
                 key={workflow.id}
-                onClick={() => selectWorkflow(workflow.id)}
+                onClick={() => selectWorkflow(workflow.id, id)}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 initial={false}
