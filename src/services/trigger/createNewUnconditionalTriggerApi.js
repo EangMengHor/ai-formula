@@ -13,6 +13,7 @@ export async function createNewUnconditionalTrigger({
     timezone,
     isAgentInvokation,
     email,
+    isDocGen
 }) {
     try {
 
@@ -28,12 +29,12 @@ export async function createNewUnconditionalTrigger({
             timezone,
             isAgentInvokation,
             email,
+            isDocGen
         });
 
 
         return data?.data?.data;
     } catch (error) {
-
         console.error("Error creating new unconditional trigger:", error);
         throw error;
     }
