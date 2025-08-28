@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { createNewUnconditionalTrigger } from "@/services/trigger/createNewUnconditionalTriggerApi";
 import {
   Calendar,
@@ -14,6 +15,7 @@ import {
   Brain,
   ChevronRight,
   X,
+  FileText,
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +33,7 @@ export default function CreateNewUnconditionalTrigger({ onClose }) {
       weekDays: [],
       monthDays: [],
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      isAgentInvokation: false,
+      processingMode: "quick", // "quick", "agentic", or "document"
       email: "",
       prompt: "",
       outputFormat: "Complete Report",
@@ -499,27 +501,27 @@ export default function CreateNewUnconditionalTrigger({ onClose }) {
           </div>
         )}
 
-        {/* Step 2: Agent Invocation */}
+        {/* Step 2: Processing Mode */}
         {currentStep === 2 && (
           <div className="w-full">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-5 h-5 text-purple-400" />
               <h3 className="text-lg font-semibold text-white">
-                Agent Reasoning
+                Processing Mode
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               {/* Quick Reasoning */}
               <div
                 onClick={() =>
                   setNewUnconditionalTriggerData((prev) => ({
                     ...prev,
-                    isAgentInvokation: false,
+                    processingMode: "quick",
                   }))
                 }
                 className={`p-6 rounded-xl cursor-pointer transition-all ${
-                  !newUnconditionalTriggerData.isAgentInvokation
+                  newUnconditionalTriggerData.processingMode === "quick"
                     ? "bg-green-500/20 border-2 border-green-500"
                     : "bg-slate-800/50 border border-slate-600 hover:bg-slate-700/50"
                 }`}
@@ -540,11 +542,11 @@ export default function CreateNewUnconditionalTrigger({ onClose }) {
                 onClick={() =>
                   setNewUnconditionalTriggerData((prev) => ({
                     ...prev,
-                    isAgentInvokation: true,
+                    processingMode: "agentic",
                   }))
                 }
                 className={`p-6 rounded-xl cursor-pointer transition-all ${
-                  newUnconditionalTriggerData.isAgentInvokation
+                  newUnconditionalTriggerData.processingMode === "agentic"
                     ? "bg-purple-500/20 border-2 border-purple-500"
                     : "bg-slate-800/50 border border-slate-600 hover:bg-slate-700/50"
                 }`}
@@ -559,7 +561,89 @@ export default function CreateNewUnconditionalTrigger({ onClose }) {
                   </p>
                 </div>
               </div>
+
+              {/* Generate Document */}
+              <div
+                onClick={() =>
+                  setNewUnconditionalTriggerData((prev) => ({
+                    ...prev,
+                    processingMode: "document",
+                  }))
+                }
+                className={`p-6 rounded-xl cursor-pointer transition-all ${
+                  newUnconditionalTriggerData.processingMode === "document"
+                    ? "bg-blue-500/20 border-2 border-blue-500"
+                    : "bg-slate-800/50 border border-slate-600 hover:bg-slate-700/50"
+                }`}
+              >
+                <div className="text-center">
+                  <FileText className="w-8 h-8 mx-auto mb-3 text-blue-400" />
+                  <h4 className="text-white font-medium mb-2">
+                    Generate Document
+                  </h4>
+                  <p className="text-slate-400 text-sm">
+                    Create comprehensive documentation
+                  </p>
+                </div>
+              </div>
             </div>
+
+            {/* Selected Mode Description */}
+            {newUnconditionalTriggerData.processingMode && (
+              <div className="bg-slate-800/50 rounded-xl p-6 mb-6">
+                <div className="flex items-center gap-3 mb-3">
+                  {newUnconditionalTriggerData.processingMode === "quick" && (
+                    <Zap className="w-5 h-5 text-green-400" />
+                  )}
+                  {newUnconditionalTriggerData.processingMode === "agentic" && (
+                    <Brain className="w-5 h-5 text-purple-400" />
+                  )}
+                  {newUnconditionalTriggerData.processingMode ===
+                    "document" && (
+                    <FileText className="w-5 h-5 text-blue-400" />
+                  )}
+                  <h4 className="text-white font-medium">
+                    {newUnconditionalTriggerData.processingMode === "quick" &&
+                      "Quick Reasoning Selected"}
+                    {newUnconditionalTriggerData.processingMode === "agentic" &&
+                      "Agentic Reasoning Selected"}
+                    {newUnconditionalTriggerData.processingMode ===
+                      "document" && "Document Generation Selected"}
+                  </h4>
+                </div>
+                <p className="text-slate-400 text-sm">
+                  {newUnconditionalTriggerData.processingMode === "quick" &&
+                    "Your trigger will use quick reasoning for fast execution with basic processing capabilities."}
+                  {newUnconditionalTriggerData.processingMode === "agentic" &&
+                    "Your trigger will use advanced AI agents for complex analysis and sophisticated reasoning."}
+                  {newUnconditionalTriggerData.processingMode === "document" &&
+                    "Your trigger will generate comprehensive documentation with detailed analysis and formatted output."}
+                </p>
+
+                {/* Document Generation Warning */}
+                {newUnconditionalTriggerData.processingMode === "document" && (
+                  <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0">
+                        ⚠️
+                      </div>
+                      <div>
+                        <h5 className="text-amber-300 font-medium text-sm mb-1">
+                          Document Length Recommendation
+                        </h5>
+                        <p className="text-amber-200/80 text-xs leading-relaxed">
+                          <strong>Suggested limit: 20 pages maximum.</strong>{" "}
+                          Requesting documents longer than this may cause your
+                          trigger execution to be delayed and potentially
+                          overlap with the next scheduled run, affecting overall
+                          performance.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-3 pt-6 border-t border-slate-700 mt-6">
               <Button
@@ -753,14 +837,17 @@ export default function CreateNewUnconditionalTrigger({ onClose }) {
                 </div>
               </div>
 
-              {/* Agent Settings */}
+              {/* Processing Mode */}
               <div>
                 <h4 className="text-white font-medium mb-2">Processing Mode</h4>
                 <div className="bg-slate-700/50 rounded-lg p-3">
                   <p className="text-white text-sm">
-                    {newUnconditionalTriggerData.isAgentInvokation
-                      ? "Agentic Reasoning"
-                      : "Quick Reasoning"}
+                    {newUnconditionalTriggerData.processingMode === "quick" &&
+                      "Quick Reasoning"}
+                    {newUnconditionalTriggerData.processingMode === "agentic" &&
+                      "Agentic Reasoning"}
+                    {newUnconditionalTriggerData.processingMode ===
+                      "document" && "Generate Document"}
                   </p>
                 </div>
               </div>
@@ -829,8 +916,12 @@ export default function CreateNewUnconditionalTrigger({ onClose }) {
                         monthDays: newUnconditionalTriggerData.monthDays,
                         timezone: newUnconditionalTriggerData.timezone,
                         isAgentInvokation:
-                          newUnconditionalTriggerData.isAgentInvokation,
+                          newUnconditionalTriggerData.processingMode ===
+                          "agentic",
                         email: newUnconditionalTriggerData.email,
+                        isDocGen:
+                          newUnconditionalTriggerData.processingMode ===
+                          "document",
                       });
 
                       if (result) {
@@ -990,7 +1081,7 @@ export default function CreateNewUnconditionalTrigger({ onClose }) {
                       monthDays: [],
                       timezone:
                         Intl.DateTimeFormat().resolvedOptions().timeZone,
-                      isAgentInvokation: false,
+                      processingMode: "quick",
                       email: "",
                       prompt: "",
                       outputFormat: "Complete Report",
