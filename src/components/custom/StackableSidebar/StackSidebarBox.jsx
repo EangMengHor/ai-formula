@@ -57,19 +57,20 @@ export default function StackSidebarBox({ header, component, onClose, index }) {
   };
 
   return (
-    <motion.div
-      className="bg-slate-800 border border-slate-500 min-w-full mr-10 rounded-md h-auto mb-5"
-      style={{
-        marginLeft: `${index * 40}px`,
-        marginTop: `${index * 10 + 50}px`,
-      }}
-      variants={variants}
-      initial="closed" // Set initial state to closed
-      animate={isClosing ? "closing" : hasOpened ? "open" : "closed"} // Prevent re-animation
-      onAnimationComplete={() => {
-        if (isClosing) setIsClosing(false);
-      }}
-    >
+<motion.div
+  className="bg-slate-800 p-2 border border-slate-500 min-w-full w-full mr-10 rounded-md h-auto mb-5"
+  style={{
+    marginLeft: `${index * 40}px`,
+    marginTop: window.innerWidth >= 768 ? `${index * 10 + 50}px` : "0px",
+  }}
+  variants={variants}
+  initial="closed"
+  animate={isClosing ? "closing" : hasOpened ? "open" : "closed"}
+  onAnimationComplete={() => {
+    if (isClosing) setIsClosing(false);
+  }}
+>
+
       <div className="px-4 py-2 border-b border-slate-600">
         <div
           onClick={handleClose}
