@@ -57,10 +57,6 @@ import UserMessage from "@/components/custom/UserMessage";
 import FileBlock from "@/components/custom/generatedFile/FileBlock";
 import RealtimeFinanceFeed from "@/components/custom/finance/RealtimeFinanceFeed";
 import { Pre } from "@/components/custom/CodeBlock";
-const buttonWrapperClass =
-  "p-1 w-6 h-6 bg-transparent hover:bg-slate-800 rounded-md flex items-center justify-center";
-
-const iconClass = "h-6 w-6";
 
 const Conversation = forwardRef(
   (

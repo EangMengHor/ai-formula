@@ -1,16 +1,11 @@
 import { useStackSidebar } from "../../../context/StackSidebarContext";
-import { motion } from "framer-motion";
 import StackSidebarBox from "./StackSidebarBox";
 import { useIsMobile } from "../../../hooks/use-mobile";
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 
@@ -33,14 +28,12 @@ export default function StackSidebarContainer() {
             onOpenChange={() => closeSidebar(index)}
           >
             <DrawerContent>
-              <div className="px-4">
                 <StackSidebarBox
                   header={item.header}
                   component={item.component}
                   onClose={() => closeSidebar(index)}
                   index={index}
                 />
-              </div>
               <DrawerFooter className="pt-2">
                 <DrawerClose asChild>
                   <Button variant="outline">Close</Button>
