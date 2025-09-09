@@ -38,6 +38,7 @@ export default function SidebarFileBlock({ genId, name, pages }) {
   const [tabValue, setTabValue] = useState("task");
   const [isError, setIsError] = useState(false);
   const pollingInterval = useRef(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   // Switch to PDF tab when file is ready
   useEffect(() => {
@@ -131,24 +132,33 @@ export default function SidebarFileBlock({ genId, name, pages }) {
       pollingInterval.current = null;
     }
   }, [workflowData?.fileBucketPath]);
+
   const handleDownload = async () => {
     if (!workflowData?.fileBucketPath) {
       toast.error("File is not ready for download yet.");
       return;
     }
-    const response = await fetch(workflowData?.fileBucketPath);
-    const blob = await response.blob();
+    setIsDownloadingPdf(true);
+    try {
+      const response = await fetch(workflowData?.fileBucketPath);
+      const blob = await response.blob();
 
-    // Extract filename from URL path
-    const urlParts = workflowData?.fileBucketPath.split("/");
-    const filename = urlParts[urlParts.length - 1];
+      // Extract filename from URL path
+      const urlParts = workflowData?.fileBucketPath.split("/");
+      const filename = urlParts[urlParts.length - 1];
 
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename; // 👈 keep the original filename
-    a.click();
-    window.URL.revokeObjectURL(url);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename; // 👈 keep the original filename
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      toast.error("Failed to download the file. Please try again.");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   // Error state
@@ -247,10 +257,17 @@ export default function SidebarFileBlock({ genId, name, pages }) {
                 </a>
               </div>
               <div className="bg-slate-600 hover:bg-slate-400 px-2 py-1 rounded-lg">
-                <button onClick={handleDownload} className="flex gap-2 ">
-                  <ArrowBigDownDash />
-                  <p>Download PDF</p>
-                </button>
+                {isDownloadingPdf ? (
+                  <div className="flex gap-2 items-center">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <p>Downloading PDF...</p>
+                  </div>
+                ) : (
+                  <button onClick={handleDownload} className="flex gap-2 ">
+                    <ArrowBigDownDash />
+                    <p>Download PDF</p>
+                  </button>
+                )}
               </div>
             </div>
           </div>
