@@ -28,15 +28,17 @@ export default function StackSidebarContainer() {
             onOpenChange={() => closeSidebar(index)}
           >
             <DrawerContent>
-                <StackSidebarBox
-                  header={item.header}
-                  component={item.component}
-                  onClose={() => closeSidebar(index)}
-                  index={index}
-                />
+              <StackSidebarBox
+                header={item.header}
+                component={item.component}
+                onClose={() => closeSidebar(index)}
+                index={index}
+              />
               <DrawerFooter className="pt-2">
                 <DrawerClose asChild>
-                  <Button variant="outline">Close</Button>
+                  <Button variant="outline" className="text-white">
+                    Close
+                  </Button>
                 </DrawerClose>
               </DrawerFooter>
             </DrawerContent>
