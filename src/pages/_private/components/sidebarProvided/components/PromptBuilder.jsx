@@ -41,12 +41,16 @@ import {
   Shield,
   Database,
   Wrench,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import StandardWorkflow from "@/components/custom/Workflow/StandardWorkflow";
 import SuperiorPromptIntelligence from "@/lib/superiorPromptIntelligence";
 import DynamicEnhancementEngine from "@/lib/dynamicEnhancementEngine";
 import HyperPerfectEnhancer from "@/lib/hyperPerfectEnhancer";
+import { useToast } from "@/hooks/use-toast";
+import { storePrompt } from "@/services/promptBuilder/storePrompt";
+import { Pre } from "@/components/custom/CodeBlock";
 
 const formSchema = z.object({
   raw_prompt: z.string().min(1, "Raw prompt is required"),
@@ -153,6 +157,11 @@ export default function PromptBuilder() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingError, setProcessingError] = useState(null);
   const [resultFormat, setResultFormat] = useState("text");
+  const [isSaving, setIsSaving] = useState(false);
+  const [currentView, setCurrentView] = useState("builder"); // "builder" or "results"
+
+  // Toast hook
+  const { toast } = useToast();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -192,6 +201,19 @@ export default function PromptBuilder() {
   });
 
   const onSubmit = async (data) => {
+    console.log(
+      "onSubmit called, currentStep:",
+      currentStep,
+      "steps.length - 1:",
+      steps.length - 1,
+    );
+
+    // Double check we're on the final step
+    if (currentStep !== steps.length - 1) {
+      console.log("Preventing submission - not on final step");
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingError(null);
 
@@ -261,7 +283,38 @@ export default function PromptBuilder() {
     return isValid;
   };
 
+  const handleFinalSubmit = async () => {
+    console.log("handleFinalSubmit called directly");
+    const formData = form.getValues();
+    await onSubmit(formData);
+    // Switch to results view after submission
+    setCurrentView("results");
+  };
+
+  const handleBackToBuilder = () => {
+    setCurrentView("builder");
+  };
+
+  const handleCreateNewPrompt = () => {
+    // Reset all form data and states
+    form.reset();
+    setCurrentStep(0);
+    setCompletedSteps(new Set());
+    setStyleGuidelines([]);
+    setRestrictedTopics([]);
+    setSourcesBundle([]);
+    setAllowedTools([]);
+    setAsOfDate(new Date());
+    setEnhancedResult(null);
+    setIsProcessing(false);
+    setProcessingError(null);
+    setResultFormat("text");
+    setIsSaving(false);
+    setCurrentView("builder");
+  };
+
   const handleNext = async () => {
+    console.log("handleNext called, currentStep:", currentStep);
     const isValid = await validateCurrentStep();
     if (!isValid) return;
 
@@ -337,6 +390,54 @@ export default function PromptBuilder() {
     const updated = [...allowedTools];
     updated[index] = value;
     setAllowedTools(updated);
+  };
+
+  const handleSavePrompt = async () => {
+    if (!enhancedResult) return;
+
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem("id");
+
+      if (!userId) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to save prompts.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Prepare data for saving
+      const promptData = {
+        json: JSON.stringify({
+          ...enhancedResult,
+          savedAt: new Date().toISOString(),
+        }),
+        prompt:
+          enhancedResult.superiorEnhancement?.enhancedPrompt ||
+          enhancedResult.engineered_prompt ||
+          "Enhanced prompt data",
+        userId: userId,
+      };
+
+      await storePrompt(promptData);
+
+      toast({
+        title: "Prompt Saved Successfully",
+        description: "Your enhanced prompt has been saved to your collection.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error saving prompt:", error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save the prompt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const progress = ((currentStep + 1) / steps.length) * 100;
@@ -719,6 +820,7 @@ export default function PromptBuilder() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      type="button"
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal bg-white/10 border-white/20 text-white hover:bg-white/20 mt-2",
@@ -906,163 +1008,207 @@ export default function PromptBuilder() {
   }));
 
   return (
-    <div className="min-h-screen w-full  p-6">
+    <div className="min-h-screen w-full p-6">
       <div className="max-w-4xl mx-auto">
-        <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-          <CardHeader className="text-center">
-            <CardTitle className="text-white text-3xl font-bold">
-              Prompt Builder
-            </CardTitle>
-            <CardDescription className="text-white/70 text-lg">
-              Create a comprehensive prompt with structured constraints and
-              safety measures
-            </CardDescription>
-          </CardHeader>
+        {currentView === "builder" ? (
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <CardHeader className="text-center">
+              <CardTitle className="text-white text-3xl font-bold">
+                Prompt Builder
+              </CardTitle>
+              <CardDescription className="text-white/70 text-lg">
+                Create a comprehensive prompt with structured constraints and
+                safety measures
+              </CardDescription>
+            </CardHeader>
 
-          <CardContent className="space-y-8 w-full">
-            {/* Progress Indicator */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-white/70 text-sm">Progress</span>
-                <span className="text-white text-sm font-medium">
-                  {currentStep + 1} of {steps.length}
-                </span>
-              </div>
-              <Progress value={progress} className="h-2 bg-white/20" />
-            </div>
-
-            {/* Step Workflow with Embedded Forms */}
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-8 w-full"
-            >
-              <div className="bg-white/5 rounded-lg p-6 w-full">
-                <StandardWorkflow data={workflowData} />
+            <CardContent className="space-y-8 w-full">
+              {/* Progress Indicator */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-white/70 text-sm">Progress</span>
+                  <span className="text-white text-sm font-medium">
+                    {currentStep + 1} of {steps.length}
+                  </span>
+                </div>
+                <Progress value={progress} className="h-2 bg-white/20" />
               </div>
 
-              {/* Navigation Buttons */}
-              <div className="flex justify-between items-center pt-6 border-t border-white/20">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 0}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Previous
-                </Button>
+              {/* Step Workflow with Embedded Forms */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  // Only submit if we're on the last step
+                  if (currentStep === steps.length - 1) {
+                    form.handleSubmit(onSubmit)(e);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                  }
+                }}
+                className="space-y-8 w-full"
+              >
+                <div className="bg-white/5 rounded-lg p-6 w-full">
+                  <StandardWorkflow data={workflowData} />
+                </div>
 
-                {currentStep === steps.length - 1 ? (
-                  <Button
-                    type="submit"
-                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 font-semibold"
-                  >
-                    Create Prompt
-                  </Button>
-                ) : (
+                {/* Navigation Buttons */}
+                <div className="flex justify-between items-center pt-6 border-t border-white/20">
                   <Button
                     type="button"
-                    onClick={handleNext}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2"
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 0}
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 disabled:opacity-50"
                   >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Previous
                   </Button>
-                )}
-              </div>
-            </form>
+
+                  {currentStep === steps.length - 1 ? (
+                    <Button
+                      type="button"
+                      onClick={handleFinalSubmit}
+                      disabled={isProcessing}
+                      className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 font-semibold disabled:opacity-50"
+                    >
+                      {isProcessing ? "Creating..." : "Create Prompt"}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : (
+          /* Results View */
+          <div className="space-y-6">
+            {/* Header with navigation */}
+            <div className="flex justify-between items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBackToBuilder}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 flex items-center space-x-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>Go to Prompt Builder</span>
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleCreateNewPrompt}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 font-semibold"
+              >
+                Create New Prompt
+              </Button>
+            </div>
 
             {/* Enhanced Results Display */}
-            {(enhancedResult || isProcessing || processingError) && (
-              <div className="mt-8 space-y-6">
-                <div className="border-t border-white/20 pt-6">
-                  <h3 className="text-xl font-semibold text-white mb-4">
-                    Enhanced Prompt Results
-                  </h3>
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white text-2xl font-bold">
+                  Enhanced Prompt Results
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Your prompt has been processed and enhanced
+                </CardDescription>
+              </CardHeader>
 
-                  {/* Processing Status */}
-                  {isProcessing && (
-                    <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400"></div>
-                        <span className="text-blue-300">
-                          Processing with AI enhancement engines...
-                        </span>
-                      </div>
+              <CardContent className="space-y-6">
+                {/* Processing Status */}
+                {isProcessing && (
+                  <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400"></div>
+                      <span className="text-blue-300">
+                        Processing with AI enhancement engines...
+                      </span>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Error Display */}
-                  {processingError && (
-                    <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 mb-4">
-                      <h4 className="text-red-300 font-semibold mb-2">
-                        Processing Error
-                      </h4>
-                      <p className="text-red-200">{processingError.message}</p>
-                      {processingError.fallbackError && (
-                        <p className="text-red-200 text-sm mt-2">
-                          Fallback also failed: {processingError.fallbackError}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                {/* Error Display */}
+                {processingError && (
+                  <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+                    <h4 className="text-red-300 font-semibold mb-2">
+                      Processing Error
+                    </h4>
+                    <p className="text-red-200">{processingError.message}</p>
+                    {processingError.fallbackError && (
+                      <p className="text-red-200 text-sm mt-2">
+                        Fallback also failed: {processingError.fallbackError}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-                  {/* Results Display */}
-                  {enhancedResult && !processingError && (
-                    <div className="space-y-6">
-                      {/* Intelligence Analysis */}
-                      {enhancedResult.intelligenceAnalysis && (
-                        <div className="bg-white/5 rounded-lg p-4">
-                          <h4 className="text-white font-semibold mb-3">
-                            Intelligence Analysis
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-white/70">
-                                Primary Intent:
-                              </span>
-                              <span className="text-white ml-2">
-                                {
-                                  enhancedResult.intelligenceAnalysis
-                                    .intentAnalysis?.primaryIntent
-                                }
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-white/70">Complexity:</span>
-                              <span className="text-white ml-2">
-                                {
-                                  enhancedResult.intelligenceAnalysis
-                                    .complexityAssessment?.level
-                                }
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-white/70">
-                                Cognitive Load:
-                              </span>
-                              <span className="text-white ml-2">
-                                {
-                                  enhancedResult.intelligenceAnalysis
-                                    .cognitiveLoad?.level
-                                }
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-white/70">
-                                Intelligence Score:
-                              </span>
-                              <span className="text-white ml-2">
-                                {enhancedResult.intelligenceScore || "N/A"}
-                              </span>
-                            </div>
+                {/* Results Display */}
+                {enhancedResult && !processingError && (
+                  <div className="space-y-6">
+                    {/* Intelligence Analysis */}
+                    {enhancedResult.intelligenceAnalysis && (
+                      <div className="bg-white/5 rounded-lg p-4">
+                        <h4 className="text-white font-semibold mb-3">
+                          Intelligence Analysis
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-white/70">
+                              Primary Intent:
+                            </span>
+                            <span className="text-white ml-2">
+                              {
+                                enhancedResult.intelligenceAnalysis
+                                  .intentAnalysis?.primaryIntent
+                              }
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/70">Complexity:</span>
+                            <span className="text-white ml-2">
+                              {
+                                enhancedResult.intelligenceAnalysis
+                                  .complexityAssessment?.level
+                              }
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/70">
+                              Cognitive Load:
+                            </span>
+                            <span className="text-white ml-2">
+                              {
+                                enhancedResult.intelligenceAnalysis
+                                  .cognitiveLoad?.level
+                              }
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-white/70">
+                              Intelligence Score:
+                            </span>
+                            <span className="text-white ml-2">
+                              {enhancedResult.intelligenceScore || "N/A"}
+                            </span>
                           </div>
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Enhanced Prompt Display */}
-                      <div className="space-y-4">
+                    {/* Enhanced Prompt Display */}
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-4 items-center">
                         <div className="flex space-x-4">
                           <button
                             onClick={() => setResultFormat("text")}
@@ -1086,148 +1232,147 @@ export default function PromptBuilder() {
                           </button>
                         </div>
 
-                        <div className="bg-white/5 rounded-lg p-4">
-                          {resultFormat === "text" ? (
-                            <div className="space-y-4">
-                              {/* Superior Enhanced Prompt */}
-                              {enhancedResult.superiorEnhancement
-                                ?.enhancedPrompt && (
-                                <div>
-                                  <h4 className="text-white font-semibold mb-2">
-                                    Superior Enhanced Prompt
-                                  </h4>
-                                  <div className="bg-black/30 rounded p-3 border border-white/10">
-                                    <pre className="text-green-300 whitespace-pre-wrap text-sm font-mono">
-                                      {
-                                        enhancedResult.superiorEnhancement
-                                          .enhancedPrompt
-                                      }
-                                    </pre>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Traditional Enhanced Prompt */}
-                              {enhancedResult.engineered_prompt && (
-                                <div>
-                                  <h4 className="text-white font-semibold mb-2">
-                                    Traditional Enhanced Prompt
-                                  </h4>
-                                  <div className="bg-black/30 rounded p-3 border border-white/10">
-                                    <pre className="text-blue-300 whitespace-pre-wrap text-sm font-mono">
-                                      {enhancedResult.engineered_prompt}
-                                    </pre>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              {/* Superior Enhancement JSON */}
-                              {enhancedResult.superiorEnhancement && (
-                                <div>
-                                  <h4 className="text-white font-semibold mb-2">
-                                    Superior Enhancement Data
-                                  </h4>
-                                  <div className="bg-black/30 rounded p-3 border border-white/10">
-                                    <pre className="text-yellow-300 whitespace-pre-wrap text-sm font-mono overflow-x-auto">
-                                      {JSON.stringify(
-                                        enhancedResult.superiorEnhancement,
-                                        null,
-                                        2,
-                                      )}
-                                    </pre>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Traditional Enhancement JSON */}
-                              {enhancedResult.engineered_prompt_json && (
-                                <div>
-                                  <h4 className="text-white font-semibold mb-2">
-                                    Traditional Enhancement JSON
-                                  </h4>
-                                  <div className="bg-black/30 rounded p-3 border border-white/10">
-                                    <pre className="text-purple-300 whitespace-pre-wrap text-sm font-mono overflow-x-auto">
-                                      {JSON.stringify(
-                                        enhancedResult.engineered_prompt_json,
-                                        null,
-                                        2,
-                                      )}
-                                    </pre>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        {/* Save Button */}
+                        <Button
+                          onClick={handleSavePrompt}
+                          disabled={isSaving || !enhancedResult}
+                          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 font-semibold flex items-center space-x-2"
+                        >
+                          <Save className="h-4 w-4" />
+                          <span>{isSaving ? "Saving..." : "Save Prompt"}</span>
+                        </Button>
                       </div>
 
-                      {/* Enhancement Metrics */}
-                      {(enhancedResult.enhancementMetrics ||
-                        enhancedResult.superiorEnhancement
-                          ?.enhancementMetrics) && (
-                        <div className="bg-white/5 rounded-lg p-4">
-                          <h4 className="text-white font-semibold mb-3">
-                            Enhancement Metrics
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div className="bg-green-500/20 rounded p-3">
-                              <div className="text-green-300 font-semibold">
-                                Improvement
+                      <div className="b">
+                        {resultFormat === "text" ? (
+                          <div className="space-y-4">
+                            {/* Superior Enhanced Prompt */}
+                            {enhancedResult.superiorEnhancement
+                              ?.enhancedPrompt && (
+                              <div>
+                                <h4 className="text-white font-semibold mb-2">
+                                  Superior Enhanced Prompt
+                                </h4>
+                                <Pre>
+                                  {
+                                    enhancedResult.superiorEnhancement
+                                      .enhancedPrompt
+                                  }
+                                </Pre>
                               </div>
-                              <div className="text-white text-lg">
-                                {enhancedResult.superiorEnhancement
-                                  ?.enhancementMetrics?.improvement ||
-                                  enhancedResult.enhancementMetrics
-                                    ?.improvement ||
-                                  "N/A"}
-                                %
+                            )}
+
+                            {/* Traditional Enhanced Prompt */}
+                            {enhancedResult.engineered_prompt && (
+                              <div>
+                                <h4 className="text-white font-semibold mb-2">
+                                  Traditional Enhanced Prompt
+                                </h4>
+                                <Pre>{enhancedResult.engineered_prompt}</Pre>
                               </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {/* Superior Enhancement JSON */}
+                            {enhancedResult.superiorEnhancement && (
+                              <div>
+                                <h4 className="text-white font-semibold mb-2">
+                                  Superior Enhancement Data
+                                </h4>
+                                <Pre>
+                                  {JSON.stringify(
+                                    enhancedResult.superiorEnhancement,
+                                    null,
+                                    2,
+                                  )}
+                                </Pre>
+                              </div>
+                            )}
+
+                            {/* Traditional Enhancement JSON */}
+                            {enhancedResult.engineered_prompt_json && (
+                              <div>
+                                <h4 className="text-white font-semibold mb-2">
+                                  Traditional Enhancement JSON
+                                </h4>
+                                <Pre>
+                                  {JSON.stringify(
+                                    enhancedResult.engineered_prompt_json,
+                                    null,
+                                    2,
+                                  )}
+                                </Pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Enhancement Metrics */}
+                    {(enhancedResult.enhancementMetrics ||
+                      enhancedResult.superiorEnhancement
+                        ?.enhancementMetrics) && (
+                      <div className="bg-white/5 rounded-lg p-4">
+                        <h4 className="text-white font-semibold mb-3">
+                          Enhancement Metrics
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div className="bg-green-500/20 rounded p-3">
+                            <div className="text-green-300 font-semibold">
+                              Improvement
                             </div>
-                            <div className="bg-blue-500/20 rounded p-3">
-                              <div className="text-blue-300 font-semibold">
-                                Confidence
-                              </div>
-                              <div className="text-white text-lg">
-                                {enhancedResult.superiorEnhancement
-                                  ?.enhancementMetrics?.confidence ||
-                                  enhancedResult.enhancementMetrics
-                                    ?.confidence ||
-                                  "N/A"}
-                              </div>
+                            <div className="text-white text-lg">
+                              {enhancedResult.superiorEnhancement
+                                ?.enhancementMetrics?.improvement ||
+                                enhancedResult.enhancementMetrics
+                                  ?.improvement ||
+                                "N/A"}
+                              %
                             </div>
-                            <div className="bg-purple-500/20 rounded p-3">
-                              <div className="text-purple-300 font-semibold">
-                                Intelligence Score
-                              </div>
-                              <div className="text-white text-lg">
-                                {enhancedResult.intelligenceScore || "N/A"}
-                              </div>
+                          </div>
+                          <div className="bg-blue-500/20 rounded p-3">
+                            <div className="text-blue-300 font-semibold">
+                              Confidence
+                            </div>
+                            <div className="text-white text-lg">
+                              {enhancedResult.superiorEnhancement
+                                ?.enhancementMetrics?.confidence ||
+                                enhancedResult.enhancementMetrics?.confidence ||
+                                "N/A"}
+                            </div>
+                          </div>
+                          <div className="bg-purple-500/20 rounded p-3">
+                            <div className="text-purple-300 font-semibold">
+                              Intelligence Score
+                            </div>
+                            <div className="text-white text-lg">
+                              {enhancedResult.intelligenceScore || "N/A"}
                             </div>
                           </div>
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Fallback Notice */}
-                      {enhancedResult.fallback && (
-                        <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4">
-                          <h4 className="text-yellow-300 font-semibold mb-2">
-                            Fallback Mode
-                          </h4>
-                          <p className="text-yellow-200 text-sm">
-                            Advanced enhancement failed, showing traditional
-                            enhancement results. Error: {enhancedResult.error}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    {/* Fallback Notice */}
+                    {enhancedResult.fallback && (
+                      <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4">
+                        <h4 className="text-yellow-300 font-semibold mb-2">
+                          Fallback Mode
+                        </h4>
+                        <p className="text-yellow-200 text-sm">
+                          Advanced enhancement failed, showing traditional
+                          enhancement results. Error: {enhancedResult.error}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -139,3 +139,8 @@ export const getJobDetailsUrlX = `${import.meta.env.VITE_SOCKET_URL}/api/trigger
 export const getAllJobsUrls = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/getAllJobData`;
 export const deleteTriggerUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/deleteTrigger`;
 export const triggerDashboardRecommendationUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/getRecommendedTriggers`;
+
+// prompt buildert
+export const storePromptUrl = `${import.meta.env.VITE_SOCKET_URL}/api/promptBuilder/savePrompt`;
+export const getUserPromptsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/promptBuilder/getPrompts/:id`;
+export const deleteUserPromptUrl = `${import.meta.env.VITE_SOCKET_URL}/api/promptBuilder/deletePrompt/:promptId/:userId`;

@@ -55,8 +55,11 @@ export const Pre = ({ children }) => {
           isWrapped ? "whitespace-pre-wrap break-words" : "whitespace-pre"
         }`}
       >
-        {children?.props?.children?.replaceAll("*", "")?.replaceAll("#", "") ||
-          ""}
+        {typeof children == "string"
+          ? children
+          : children?.props?.children
+              ?.replaceAll("*", "")
+              ?.replaceAll("#", "") || ""}
       </div>
     </div>
   );

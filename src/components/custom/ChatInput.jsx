@@ -8,7 +8,6 @@ import {
   Camera,
   CircleFadingPlus,
   CirclePause,
-  FileText,
   Grid2x2,
   Loader2,
   LoaderCircle,
@@ -23,6 +22,14 @@ import {
   Database,
   Component,
   Boxes,
+  Hammer,
+  Trash2,
+  Eye,
+  Copy,
+  Calendar,
+  Import,
+  FileText,
+  Code,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -67,7 +74,120 @@ import { useCollection } from "../../context/CollectionContext";
 import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 import VoiceInputBlock from "./VoiceTVoice/VoiceInputBlock";
 import ChatModes from "@/ChatModes";
+import { getPrompts } from "@/services/promptBuilder/getPrompt";
+import { deletePrompt } from "@/services/promptBuilder/deletePrompt";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
+import { Pre } from "./CodeBlock";
 const maxRows = 30;
+
+// PromptCard component
+const PromptCard = ({
+  prompt,
+  onImportText,
+  onImportJSON,
+  onShowFull,
+  onDelete,
+  isDeleting,
+}) => {
+  const parsePromptData = (jsonString) => {
+    try {
+      return JSON.parse(jsonString);
+    } catch {
+      return null;
+    }
+  };
+
+  const promptData = parsePromptData(prompt.json);
+  const previewText =
+    promptData?.superiorEnhancement?.enhancedPrompt ||
+    promptData?.engineered_prompt ||
+    prompt.prompt ||
+    "No preview available";
+
+  return (
+    <Card className="bg-slate-800 border-slate-600 hover:bg-slate-750 transition-colors">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-white text-lg font-semibold mb-2 flex justify-between">
+              Enhanced Prompt
+              <Button
+                onClick={() => onDelete(prompt.id)}
+                variant="destructive"
+                disabled={isDeleting}
+                className="bg-red-900 hover:bg-red-700 font-medium disabled:opacity-50 w-fit"
+              >
+                {isDeleting ? (
+                  <LoaderCircle className="w-4 h-4 animate-spin " />
+                ) : (
+                  <Trash2 className="w-4 h-4 " />
+                )}
+              </Button>
+            </CardTitle>
+            <p className="text-slate-300 text-sm line-clamp-3 mb-3">
+              {previewText.substring(0, 150)}...
+            </p>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-400 text-xs">
+                {formatDistanceToNow(new Date(prompt.created_at), {
+                  addSuffix: true,
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-3">
+          {/* Primary Actions */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => onImportText(prompt)}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white flex-1 font-medium"
+            >
+              <Import className="w-4 h-4 mr-2" />
+              Import Text
+            </Button>
+            <Button
+              onClick={() => onImportJSON(prompt)}
+              size="sm"
+              variant="outline"
+              className="border-slate-500 text-slate-200 hover:bg-slate-900 bg-slate-700 hover:text-white flex-1 font-medium"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Import JSON
+            </Button>
+          </div>
+
+          {/* Secondary Actions */}
+          <div className="flex gap-2">
+            <Button
+              onClick={() => onShowFull(prompt)}
+              size="sm"
+              variant="outline"
+              className="border-slate-500 text-slate-200 hover:bg-slate-900 bg-slate-700 hover:text-white flex-1 font-medium"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Show Full
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const AttachmentCard = ({
   title = "",
@@ -172,6 +292,16 @@ function ChatInput({
     useState({});
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
 
+  // Prompt import states
+  const [isPromptImportOpen, setIsPromptImportOpen] = useState(false);
+  const [userPrompts, setUserPrompts] = useState([]);
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState(null);
+  const [isPromptViewOpen, setIsPromptViewOpen] = useState(false);
+  const [promptViewMode, setPromptViewMode] = useState("text"); // "text" or "json"
+  const [isMobile, setIsMobile] = useState(false);
+  const [deletingPromptId, setDeletingPromptId] = useState(null);
+
   const { user } = useUser();
 
   useEffect(() => {
@@ -179,6 +309,92 @@ function ChatInput({
       setRows(2);
     }
   }, [pathname]);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Fetch user prompts
+  const fetchUserPrompts = useCallback(async () => {
+    if (!user?.id) return;
+
+    setIsLoadingPrompts(true);
+    try {
+      const prompts = await getPrompts(user.id);
+      setUserPrompts(prompts);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch prompts",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrompts(false);
+    }
+  }, [user?.id, toast]);
+
+  // Handle prompt import dialog open
+  const handlePromptImportOpen = useCallback(
+    (open) => {
+      setIsPromptImportOpen(open);
+      if (open) {
+        fetchUserPrompts();
+      }
+    },
+    [fetchUserPrompts],
+  );
+
+  // Handle prompt deletion
+  const handleDeletePrompt = useCallback(
+    async (promptId) => {
+      if (!user?.id) return;
+
+      setDeletingPromptId(promptId);
+      try {
+        await deletePrompt({ id: promptId, userId: user.id });
+        setUserPrompts((prev) => prev.filter((p) => p.id !== promptId));
+        toast({
+          title: "Success",
+          description: "Prompt deleted successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete prompt",
+          variant: "destructive",
+        });
+      } finally {
+        setDeletingPromptId(null);
+      }
+    },
+    [user?.id, toast],
+  );
+
+  // Handle prompt import (text or JSON)
+  const handleImportPrompt = useCallback((prompt, mode) => {
+    setSelectedPrompt(prompt);
+    // Set mode to "both" for full view to show both JSON and text
+    setPromptViewMode(mode === "full" ? "both" : mode);
+    setIsPromptViewOpen(true);
+  }, []);
+
+  // Copy prompt to input
+  const copyPromptToInput = useCallback(
+    (promptText) => {
+      setInput(promptText);
+      setIsPromptViewOpen(false);
+      setIsPromptImportOpen(false);
+      toast({
+        title: "Success",
+        description: "Prompt imported successfully",
+      });
+    },
+    [setInput, toast],
+  );
   useEffect(() => {
     restoreSavedWorkflow(id);
     restoredSavedModel(id);
@@ -628,133 +844,558 @@ function ChatInput({
                     </div>
                   )}
                 </div>
-                {/* voice */}
-                <Dialog>
-                  <DialogTrigger className="p-0 m-0">
-                    <TooltipProvider>
-                      <Tooltip delayDuration={0}>
-                        <TooltipTrigger
-                          className={`${isPublicDomain ? "hidden" : "flex"}`}
-                        >
-                          <div className="cursor-pointer gap-2 mb-0 items-center p-2 rounded-xl hover:bg-gray-800 ">
-                            <AudioLines className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                {/* prompt builder */}
+                {isMobile ? (
+                  <Drawer
+                    open={isPromptImportOpen}
+                    onOpenChange={handlePromptImportOpen}
+                  >
+                    <DrawerTrigger className="p-0 m-0">
+                      <TooltipProvider>
+                        <Tooltip delayDuration={0}>
+                          <TooltipTrigger
+                            className={`${isPublicDomain ? "hidden" : "flex"}`}
+                          >
+                            <div className="cursor-pointer gap-2 mb-0 items-center p-2 rounded-xl hover:bg-gray-800 ">
+                              <Hammer className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Import Prompt</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </DrawerTrigger>
+
+                    <DrawerContent className="bg-slate-900 border-slate-700 max-h-[90vh]">
+                      <DrawerHeader>
+                        <DrawerTitle className="font-semibold text-white text-xl">
+                          Import Prompt
+                        </DrawerTitle>
+                        <DrawerDescription className="text-slate-400">
+                          Select a saved prompt to import into your conversation
+                        </DrawerDescription>
+                      </DrawerHeader>
+
+                      <div className="p-4 overflow-y-auto">
+                        {isLoadingPrompts ? (
+                          <div className="flex items-center justify-center py-8">
+                            <LoaderCircle className="w-8 h-8 animate-spin text-blue-500" />
+                            <span className="ml-2 text-slate-300">
+                              Loading prompts...
+                            </span>
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Use ARX Voice Technology</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </DialogTrigger>
-
-                  <DialogContent className="max-w-5xl bg-slate-700">
-                    <DialogHeader>
-                      <DialogTitle className="font-semibold text-white text-2xl">
-                        Select Suitable Voice Agent
-                      </DialogTitle>
-                      <DialogDescription>
-                        Choose a voice agent to enhance your conversation
-                        experience
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col h-full gap-2 py-2 rounded-md cursor-pointer transition-all">
-                      <div
-                        onClick={() => {
-                          let url = domainState
-                            ? import.meta.env.VITE_OPENAI_REALTIME_URL
-                            : import.meta.env.VITE_OPENAI_REALTIME_URL2;
-
-                          url =
-                            files.length > 0
-                              ? `${url}?documentCount=${fileCount}&memorizedCount=${memorizedFiles.length}&fileNames=${files
-                                  .slice(0, 20)
-                                  .map((file) => file.name)
-                                  .join("||||")}&namespace=${id || ""}`
-                              : id && id != undefined
-                                ? `${url}?namespace=${id}`
-                                : url;
-
-                          window.open(url, "_blank");
-                        }}
-                        className="flex justify-between bg-slate-600 hover:bg-slate-800 p-2 rounded-md transition-all items-center w-full mt-2"
-                      >
-                        {/* left */}
-                        <div className="flex gap-2">
-                          {/* image */}
-                          <div className="flex items-center px-1 py-1 rounded-md bg-green-400 w-fit">
-                            <img
-                              src="/small-log.png"
-                              alt="Stream Realtime API"
-                              className="w-6 h-6 m-1 rounded-md"
-                            />
-                          </div>
-                          {/* content */}
-                          <div className="flex flex-col leading-5">
-                            <p className="font-semibold text-white">
-                              {isPublicDomain
-                                ? "Beta Voice Agent"
-                                : "ARX Next Voice Agent (Highly Recommended)"}
+                        ) : userPrompts.length === 0 ? (
+                          <div className="text-center py-8 text-slate-400">
+                            <Hammer className="w-12 h-12 mx-auto mb-4 text-slate-500" />
+                            <p>No saved prompts found</p>
+                            <p className="text-sm mb-4">
+                              Create prompts using the Prompt Builder
                             </p>
-                            <p className="text-slate-300">
-                              {isPublicDomain
-                                ? "Beta Can Access Voice • Most Superior And Fast • Automation Features"
-                                : "ARX Next Can Access Voice • Most Superior And Fast • Automation Features"}
-                            </p>
+                            <Button
+                              onClick={() => {
+                                setIsPromptImportOpen(false);
+                                window.location.href = "/prompt-builder";
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              <Hammer className="w-4 h-4 mr-2" />
+                              Go to Prompt Builder
+                            </Button>
                           </div>
-                        </div>
-                        {/* right */}
-                        <div>
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <AudioWaveform className="text-white" />
+                        ) : (
+                          <div className="space-y-4">
+                            {userPrompts.map((prompt) => (
+                              <PromptCard
+                                key={prompt.id}
+                                prompt={prompt}
+                                onImportText={() =>
+                                  handleImportPrompt(prompt, "text")
+                                }
+                                onImportJSON={() =>
+                                  handleImportPrompt(prompt, "json")
+                                }
+                                onShowFull={() =>
+                                  handleImportPrompt(prompt, "full")
+                                }
+                                onDelete={handleDeletePrompt}
+                                isDeleting={deletingPromptId === prompt.id}
+                              />
+                            ))}
                           </div>
-                        </div>
+                        )}
                       </div>
-                      <div
-                        onClick={() => {
-                          const url = domainState
-                            ? import.meta.env.VITE_GEMINI_REALTIME_URL
-                            : import.meta.env.VITE_GEMINI_REALTIME_URL2;
-                          window.open(url, "_blank");
-                        }}
-                        className={`flex justify-between bg-slate-600 hover:bg-slate-800  rounded-md transition-all items-center w-full ${domainState ? "flex" : "hidden"}`}
-                      >
-                        {/* left */}
-                        <div className="flex gap-2">
-                          {/* image */}
-                          <div className="flex items-center px-1 py-1 rounded-md bg-red-400 w-fit">
-                            <img
-                              src="/small-log.png"
-                              alt="Stream Realtime API"
-                              className="w-6 h-6 m-1 rounded-md"
-                            />
-                          </div>
-                          {/* content */}
-                          <div className="flex flex-col leading-5">
-                            <p className="font-semibold text-white">
-                              ARX Purle Voice Agent (Coming Soon)
-                            </p>
-                            <p className="text-slate-300">
-                              ARX Pulse Can Access Voice ,Screen And Camara
-                              Sharing • Full Version Coming Soon
-                            </p>
-                          </div>
+                    </DrawerContent>
+
+                    {/* Mobile Prompt View Drawer */}
+                    <Drawer
+                      open={isPromptViewOpen}
+                      onOpenChange={setIsPromptViewOpen}
+                    >
+                      <DrawerContent className="bg-slate-900 border-slate-700 max-h-[90vh]">
+                        <DrawerHeader>
+                          <DrawerTitle className="text-white">
+                            {promptViewMode === "text"
+                              ? "Import Text Prompt"
+                              : promptViewMode === "json"
+                                ? "Import JSON Prompt"
+                                : promptViewMode === "both"
+                                  ? "Complete Prompt Details"
+                                  : "Full Prompt Details"}
+                          </DrawerTitle>
+                        </DrawerHeader>
+                        <div className="p-4 overflow-y-auto">
+                          {selectedPrompt && (
+                            <div className="space-y-4">
+                              {promptViewMode === "text" && (
+                                <div>
+                                  <h3 className="text-white font-semibold mb-2">
+                                    Enhanced Prompt Text
+                                  </h3>
+                                  <Button
+                                    onClick={() => {
+                                      try {
+                                        const data = JSON.parse(
+                                          selectedPrompt.json,
+                                        );
+                                        const promptText =
+                                          data?.superiorEnhancement
+                                            ?.enhancedPrompt ||
+                                          data?.engineered_prompt ||
+                                          selectedPrompt.prompt;
+                                        copyPromptToInput(promptText);
+                                      } catch {
+                                        copyPromptToInput(
+                                          selectedPrompt.prompt,
+                                        );
+                                      }
+                                    }}
+                                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    Import This Prompt
+                                  </Button>
+                                  <div className="bg-slate-800 p-4 rounded-lg">
+                                    <pre className="text-slate-200 whitespace-pre-wrap text-sm">
+                                      {(() => {
+                                        try {
+                                          const data = JSON.parse(
+                                            selectedPrompt.json,
+                                          );
+                                          return (
+                                            data?.superiorEnhancement
+                                              ?.enhancedPrompt ||
+                                            data?.engineered_prompt ||
+                                            selectedPrompt.prompt
+                                          );
+                                        } catch {
+                                          return selectedPrompt.prompt;
+                                        }
+                                      })()}
+                                    </pre>
+                                  </div>
+                                </div>
+                              )}
+
+                              {promptViewMode === "json" && (
+                                <div>
+                                  <h3 className="text-white font-semibold mb-2">
+                                    JSON Data
+                                  </h3>
+                                  <Button
+                                    onClick={() =>
+                                      copyPromptToInput(selectedPrompt.json)
+                                    }
+                                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    Import JSON Data
+                                  </Button>
+                                  <div className="bg-slate-800  p-4 rounded-lg w-full overflow-x-auto">
+                                    <Pre
+                                      children={JSON.stringify(
+                                        JSON.parse(selectedPrompt.json),
+                                        null,
+                                        2,
+                                      )}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {(promptViewMode === "full" ||
+                                promptViewMode === "both") && (
+                                <div>
+                                  <h3 className="text-white font-semibold mb-4">
+                                    Complete Prompt Details
+                                  </h3>
+                                  <div className="space-y-6">
+                                    <div>
+                                      <h4 className="text-slate-300 font-medium mb-2">
+                                        Created:
+                                      </h4>
+                                      <p className="text-slate-400">
+                                        {formatDistanceToNow(
+                                          new Date(selectedPrompt.created_at),
+                                          { addSuffix: true },
+                                        )}
+                                      </p>
+                                    </div>
+
+                                    <div>
+                                      <h4 className="text-slate-300 font-medium mb-2">
+                                        Enhanced Prompt Text:
+                                      </h4>
+                                      <div className="bg-slate-800 p-4 rounded-lg">
+                                        <Pre
+                                          children={(() => {
+                                            try {
+                                              const data = JSON.parse(
+                                                selectedPrompt.json,
+                                              );
+                                              return (
+                                                data?.superiorEnhancement
+                                                  ?.enhancedPrompt ||
+                                                data?.engineered_prompt ||
+                                                selectedPrompt.prompt
+                                              );
+                                            } catch {
+                                              return selectedPrompt.prompt;
+                                            }
+                                          })()}
+                                        />
+                                      </div>
+                                      <Button
+                                        onClick={() => {
+                                          try {
+                                            const data = JSON.parse(
+                                              selectedPrompt.json,
+                                            );
+                                            const promptText =
+                                              data?.superiorEnhancement
+                                                ?.enhancedPrompt ||
+                                              data?.engineered_prompt ||
+                                              selectedPrompt.prompt;
+                                            copyPromptToInput(promptText);
+                                          } catch {
+                                            copyPromptToInput(
+                                              selectedPrompt.prompt,
+                                            );
+                                          }
+                                        }}
+                                        className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Import Text Version
+                                      </Button>
+                                    </div>
+
+                                    <div>
+                                      <h4 className="text-slate-300 font-medium mb-2">
+                                        JSON Data:
+                                      </h4>
+                                      <div className=" rounded-lg overflow-x-auto">
+                                        <Pre
+                                          children={JSON.stringify(
+                                            JSON.parse(selectedPrompt.json),
+                                            null,
+                                            2,
+                                          )}
+                                        />
+                                      </div>
+                                      <Button
+                                        onClick={() =>
+                                          copyPromptToInput(selectedPrompt.json)
+                                        }
+                                        className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white"
+                                      >
+                                        <Code className="w-4 h-4 mr-2" />
+                                        Import JSON Version
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {/* right */}
-                        <div className="">
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <AudioWaveform className="text-white" />
+                      </DrawerContent>
+                    </Drawer>
+                  </Drawer>
+                ) : (
+                  <Dialog
+                    open={isPromptImportOpen}
+                    onOpenChange={handlePromptImportOpen}
+                  >
+                    <DialogTrigger className="p-0 m-0">
+                      <TooltipProvider>
+                        <Tooltip delayDuration={0}>
+                          <TooltipTrigger
+                            className={`${isPublicDomain ? "hidden" : "flex"}`}
+                          >
+                            <div className="cursor-pointer gap-2 mb-0 items-center p-2 rounded-xl hover:bg-gray-800 ">
+                              <Hammer className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Import Prompt</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </DialogTrigger>
+
+                    <DialogContent className="max-w-6xl bg-slate-800 border-slate-600 max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="font-semibold text-white text-2xl">
+                          Import Prompt
+                        </DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                          Select a saved prompt to import into your conversation
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="mt-6">
+                        {isLoadingPrompts ? (
+                          <div className="flex items-center justify-center py-12">
+                            <LoaderCircle className="w-8 h-8 animate-spin text-blue-500" />
+                            <span className="ml-2 text-slate-300">
+                              Loading prompts...
+                            </span>
                           </div>
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <Camera className="text-white" />
+                        ) : userPrompts.length === 0 ? (
+                          <div className="text-center py-12 text-slate-400">
+                            <Hammer className="w-16 h-16 mx-auto mb-4 text-slate-500" />
+                            <p className="text-lg">No saved prompts found</p>
+                            <p className="text-sm mb-6">
+                              Create prompts using the Prompt Builder
+                            </p>
+                            <Button
+                              onClick={() => {
+                                setIsPromptImportOpen(false);
+                                window.location.href = "/prompt-builder";
+                              }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              <Hammer className="w-4 h-4 mr-2" />
+                              Go to Prompt Builder
+                            </Button>
                           </div>
-                          <div className="bg-slate-800 rounded-md p-2">
-                            <MonitorUp className="text-white" />
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {userPrompts.map((prompt) => (
+                              <PromptCard
+                                key={prompt.id}
+                                prompt={prompt}
+                                onImportText={() =>
+                                  handleImportPrompt(prompt, "text")
+                                }
+                                onImportJSON={() =>
+                                  handleImportPrompt(prompt, "json")
+                                }
+                                onShowFull={() =>
+                                  handleImportPrompt(prompt, "full")
+                                }
+                                onDelete={handleDeletePrompt}
+                                isDeleting={deletingPromptId === prompt.id}
+                              />
+                            ))}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    </DialogContent>
+
+                    {/* Desktop Prompt View Dialog */}
+                    <Dialog
+                      open={isPromptViewOpen}
+                      onOpenChange={setIsPromptViewOpen}
+                    >
+                      <DialogContent className="max-w-4xl bg-slate-800 border-slate-600 max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-white text-xl">
+                            {promptViewMode === "text"
+                              ? "Import Text Prompt"
+                              : promptViewMode === "json"
+                                ? "Import JSON Prompt"
+                                : promptViewMode === "both"
+                                  ? "Complete Prompt Details"
+                                  : "Full Prompt Details"}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="mt-6">
+                          {selectedPrompt && (
+                            <div className="space-y-6">
+                              {promptViewMode === "text" && (
+                                <div>
+                                  <h3 className="text-white font-semibold mb-3">
+                                    Enhanced Prompt Text
+                                  </h3>
+                                  <div className="rounded-lg border border-slate-600">
+                                    <Pre
+                                      children={(() => {
+                                        try {
+                                          const data = JSON.parse(
+                                            selectedPrompt.json,
+                                          );
+                                          return (
+                                            data?.superiorEnhancement
+                                              ?.enhancedPrompt ||
+                                            data?.engineered_prompt ||
+                                            selectedPrompt.prompt
+                                          );
+                                        } catch {
+                                          return selectedPrompt.prompt;
+                                        }
+                                      })()}
+                                    />
+                                  </div>
+                                  <Button
+                                    onClick={() => {
+                                      try {
+                                        const data = JSON.parse(
+                                          selectedPrompt.json,
+                                        );
+                                        const promptText =
+                                          data?.superiorEnhancement
+                                            ?.enhancedPrompt ||
+                                          data?.engineered_prompt ||
+                                          selectedPrompt.prompt;
+                                        copyPromptToInput(promptText);
+                                      } catch {
+                                        copyPromptToInput(
+                                          selectedPrompt.prompt,
+                                        );
+                                      }
+                                    }}
+                                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    Import This Prompt
+                                  </Button>
+                                </div>
+                              )}
+
+                              {promptViewMode === "json" && (
+                                <div>
+                                  <h3 className="text-white font-semibold mb-3">
+                                    JSON Data
+                                  </h3>
+                                  <div className="rounded-lg border border-slate-600 overflow-x-auto">
+                                    <Pre
+                                      children={JSON.stringify(
+                                        JSON.parse(selectedPrompt.json),
+                                        null,
+                                        2,
+                                      )}
+                                    />
+                                  </div>
+                                  <Button
+                                    onClick={() =>
+                                      copyPromptToInput(selectedPrompt.json)
+                                    }
+                                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    Copy JSON Data
+                                  </Button>
+                                </div>
+                              )}
+
+                              {(promptViewMode === "full" ||
+                                promptViewMode === "both") && (
+                                <div>
+                                  <h3 className="text-white font-semibold mb-4">
+                                    Complete Prompt Details
+                                  </h3>
+                                  <div className="space-y-6">
+                                    <div className="bg-slate-900 p-4 rounded-lg border border-slate-600">
+                                      <h4 className="text-slate-300 font-medium mb-2">
+                                        Created:
+                                      </h4>
+                                      <p className="text-slate-400">
+                                        {formatDistanceToNow(
+                                          new Date(selectedPrompt.created_at),
+                                          { addSuffix: true },
+                                        )}
+                                      </p>
+                                    </div>
+
+                                    <div>
+                                      <h4 className="text-slate-300 font-medium mb-2">
+                                        Enhanced Prompt Text:
+                                      </h4>
+                                      <div className=" rounded-lg border border-slate-600">
+                                        <Pre
+                                          children={(() => {
+                                            try {
+                                              const data = JSON.parse(
+                                                selectedPrompt.json,
+                                              );
+                                              return (
+                                                data?.superiorEnhancement
+                                                  ?.enhancedPrompt ||
+                                                data?.engineered_prompt ||
+                                                selectedPrompt.prompt
+                                              );
+                                            } catch {
+                                              return selectedPrompt.prompt;
+                                            }
+                                          })()}
+                                        />
+                                      </div>
+                                      <Button
+                                        onClick={() => {
+                                          try {
+                                            const data = JSON.parse(
+                                              selectedPrompt.json,
+                                            );
+                                            const promptText =
+                                              data?.superiorEnhancement
+                                                ?.enhancedPrompt ||
+                                              data?.engineered_prompt ||
+                                              selectedPrompt.prompt;
+                                            copyPromptToInput(promptText);
+                                          } catch {
+                                            copyPromptToInput(
+                                              selectedPrompt.prompt,
+                                            );
+                                          }
+                                        }}
+                                        className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white"
+                                      >
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        Import Text Version
+                                      </Button>
+                                    </div>
+
+                                    <div>
+                                      <h4 className="text-slate-300 font-medium mb-2">
+                                        JSON Data:
+                                      </h4>
+                                      <div className="bg-slate-900 p-4 rounded-lg border border-slate-600 overflow-x-auto">
+                                        <Pre
+                                          children={JSON.stringify(
+                                            JSON.parse(selectedPrompt.json),
+                                            null,
+                                            2,
+                                          )}
+                                        />
+                                      </div>
+                                      <Button
+                                        onClick={() =>
+                                          copyPromptToInput(selectedPrompt.json)
+                                        }
+                                        className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white"
+                                      >
+                                        <Code className="w-4 h-4 mr-2" />
+                                        Import JSON Version
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </Dialog>
+                )}
               </div>
 
               <div className="flex gap-1 items-center">
