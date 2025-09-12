@@ -1,0 +1,27 @@
+import { storePromptUrl } from "@/namespace/server";
+import axios from "axios";
+
+export async function storePrompt({
+    json = "",
+    prompt = "",
+    userId
+}) {
+    try {
+        const response = await axios.post(storePromptUrl, {
+            userId,
+            jsonData: json,
+            prompt
+        });
+
+        if (!response.data?.statuscode || response.data?.statuscode !== 200) {
+            throw new Error("Failed to store prompt");
+        }
+
+        return response.data;
+
+    } catch (error) {
+
+        console.error("Error storing prompt:", error);
+        throw new Error("Failed to store prompt");
+    }
+}

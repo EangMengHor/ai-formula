@@ -173,7 +173,7 @@ const Conversation = forwardRef(
                   return <p></p>;
                 }
               },
-              
+
               table: ({ children }) => (
                 <table style={styles.table}>{children}</table>
               ),

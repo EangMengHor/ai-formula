@@ -77,7 +77,10 @@ export default function StandardWorkflow({
           </div>
 
           {/* Content */}
-          <motion.div className={`${item.isLoading && "animate-pulse"} pb-6`} variants={contentVariants}>
+          <motion.div
+            className={`${item.isLoading && "animate-pulse"} pb-6 w-full`}
+            variants={contentVariants}
+          >
             <div className={` text-sm font-semibold`}>{item.title}</div>
             <div className={`text-ellipsis-sm text-muted-foreground`}>
               {item.description}

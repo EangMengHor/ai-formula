@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   CalendarHeart,
+  ClipboardType,
   Compass,
   Ellipsis,
   GalleryVerticalEnd,
@@ -12,7 +13,6 @@ import {
   Workflow,
   X,
 } from "lucide-react";
-
 
 import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main";
 import {
@@ -285,7 +285,26 @@ export function AppSidebar({ ...props }) {
                 <p className="font-bold">Trigger</p>
               </div>
             </div>
+
+            {/* Search */}
             <SearchChats />
+
+            {/* prompt builder */}
+            <div
+              onClick={() => {
+                navigate("/prompt-builder");
+              }}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <ClipboardType className="w-5 rounded-md " />
+                </div>
+                <p className="font-bold">Prompt Builder</p>
+              </div>
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

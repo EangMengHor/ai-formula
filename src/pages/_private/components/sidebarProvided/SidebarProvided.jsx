@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { CircleArrowDown } from "lucide-react";
 import TriggerHome from "@/pages/_trigger/components/TriggerHome";
 import TriggersDetail from "@/pages/_trigger/components/TriggersDetail";
+import PromptBuilder from "./components/PromptBuilder";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -83,6 +84,7 @@ export default function Page() {
             {pathname.startsWith("/template-library") && (
               <PromptTemplateLibrary />
             )}
+            {pathname === "/prompt-builder" && <PromptBuilder />}
             {pathname === "/trigger" && <TriggerHome />}
           </div>
           <motion.div
