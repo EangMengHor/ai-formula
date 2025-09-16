@@ -91,6 +91,14 @@ export default function App() {
           <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
+            {/* email outreach */}
+            <Route
+              path="/create-new-email-outreach"
+              element={<ComingSoonPage />}
+            />
+            <Route path="/email-outreach" element={<ComingSoonPage />} />
+            <Route path="/email-outreach/:id" element={<ComingSoonPage />} />
+
             <Route path="/prompt-builder" element={<PromptBuilder />} />
             <Route path="/workshop" element={<Workshop />} />
             <Route index path="/dashboard" element={<Dashboard />} />
@@ -163,6 +171,7 @@ export default function App() {
               element={<JobDetails />}
             />
           </Route>
+
           {/* Oasis : Open Agent Social Interaction Simulation */}
           <Route element={<OasisLayout />}>
             <Route
