@@ -53,7 +53,10 @@ import { storePrompt } from "@/services/promptBuilder/storePrompt";
 import { Pre } from "@/components/custom/CodeBlock";
 
 const formSchema = z.object({
-  raw_prompt: z.string().min(1, "Raw prompt is required").max(30000, "Raw prompt cannot exceed 30,000 characters"),
+  raw_prompt: z
+    .string()
+    .min(1, "Raw prompt is required")
+    .max(30000, "Raw prompt cannot exceed 30,000 characters"),
   primary_goal: z.string().min(1, "Primary goal is required"),
   audience: z.string().min(1, "Audience is required"),
   domain: z.string().min(1, "Domain is required"),
@@ -370,7 +373,8 @@ export default function PromptBuilder() {
     if (charCount > 30000) {
       toast({
         title: "Character Limit Exceeded",
-        description: "Raw prompt cannot exceed 30,000 characters. Please shorten your prompt.",
+        description:
+          "Raw prompt cannot exceed 30,000 characters. Please shorten your prompt.",
         variant: "destructive",
       });
       // Truncate the value to 30,000 characters
@@ -498,9 +502,11 @@ export default function PromptBuilder() {
                   onChange={handleRawPromptChange}
                   placeholder="Enter your original prompt here..."
                   className={`bg-white/10 text-white placeholder:text-white/50 mt-2 min-h-[120px] resize-none ${
-                    rawPromptCharCount > 27000 ? 'border-red-400/50' :
-                    rawPromptCharCount > 25000 ? 'border-yellow-400/50' :
-                    'border-white/20'
+                    rawPromptCharCount > 27000
+                      ? "border-red-400/50"
+                      : rawPromptCharCount > 25000
+                        ? "border-yellow-400/50"
+                        : "border-white/20"
                   }`}
                 />
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-2 gap-2">
@@ -509,11 +515,15 @@ export default function PromptBuilder() {
                       {form.formState.errors.raw_prompt.message}
                     </p>
                   )}
-                  <div className={`text-sm ml-auto sm:ml-0 ${
-                    rawPromptCharCount > 27000 ? 'text-red-400' :
-                    rawPromptCharCount > 25000 ? 'text-yellow-400' :
-                    'text-white/70'
-                  }`}>
+                  <div
+                    className={`text-sm ml-auto sm:ml-0 ${
+                      rawPromptCharCount > 27000
+                        ? "text-red-400"
+                        : rawPromptCharCount > 25000
+                          ? "text-yellow-400"
+                          : "text-white/70"
+                    }`}
+                  >
                     {rawPromptCharCount}/30,000 characters
                   </div>
                 </div>
