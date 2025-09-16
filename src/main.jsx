@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
 import { UserProvider } from "./context/UserContext";
 import { Toaster } from "./components/ui/toaster";
+import { Toaster as SonnerToaster } from "./components/ui/sonner";
 import { SidebarProvider } from "./context/SidebarContext";
 import { FilesUploadMetadataProvider } from "./context/FilesUploadMetadata";
 import { AudioProvider } from "./context/AudioContext";
@@ -38,6 +39,7 @@ createRoot(document.getElementById("root")).render(
         </SidebarProvider>
       </UserProvider>
       <Toaster />
+      <SonnerToaster />
     </DomainProvider>
   </BrowserRouter>,
 );

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -53,7 +53,10 @@ import { storePrompt } from "@/services/promptBuilder/storePrompt";
 import { Pre } from "@/components/custom/CodeBlock";
 
 const formSchema = z.object({
-  raw_prompt: z.string().min(1, "Raw prompt is required"),
+  raw_prompt: z
+    .string()
+    .min(1, "Raw prompt is required")
+    .max(30000, "Raw prompt cannot exceed 30,000 characters"),
   primary_goal: z.string().min(1, "Primary goal is required"),
   audience: z.string().min(1, "Audience is required"),
   domain: z.string().min(1, "Domain is required"),
@@ -139,6 +142,7 @@ export default function PromptBuilder() {
   const [allowedTools, setAllowedTools] = useState([]);
   const [asOfDate, setAsOfDate] = useState(new Date());
   const [completedSteps, setCompletedSteps] = useState(new Set());
+  const [rawPromptCharCount, setRawPromptCharCount] = useState(0);
 
   // Initialize enhancement engines
   const superiorIntelligence = useMemo(
@@ -199,6 +203,16 @@ export default function PromptBuilder() {
       include_json_schema: true,
     },
   });
+
+  // Track character count for raw prompt
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (value.raw_prompt !== undefined) {
+        setRawPromptCharCount(value.raw_prompt.length);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const onSubmit = async (data) => {
     console.log(
@@ -311,6 +325,7 @@ export default function PromptBuilder() {
     setResultFormat("text");
     setIsSaving(false);
     setCurrentView("builder");
+    setRawPromptCharCount(0);
   };
 
   const handleNext = async () => {
@@ -348,6 +363,32 @@ export default function PromptBuilder() {
     const updated = [...styleGuidelines];
     updated[index] = value;
     setStyleGuidelines(updated);
+  };
+
+  const handleRawPromptChange = (e) => {
+    const value = e.target.value;
+    const charCount = value.length;
+
+    // Prevent exceeding 30,000 characters
+    if (charCount > 30000) {
+      toast({
+        title: "Character Limit Exceeded",
+        description:
+          "Raw prompt cannot exceed 30,000 characters. Please shorten your prompt.",
+        variant: "destructive",
+      });
+      // Truncate the value to 30,000 characters
+      const truncatedValue = value.substring(0, 30000);
+      form.setValue("raw_prompt", truncatedValue);
+      setRawPromptCharCount(30000);
+      return;
+    }
+
+    // Update character count
+    setRawPromptCharCount(charCount);
+
+    // Update form value
+    form.setValue("raw_prompt", value);
   };
 
   const addRestrictedTopic = () => {
@@ -457,15 +498,35 @@ export default function PromptBuilder() {
                 </Label>
                 <Textarea
                   id="raw_prompt"
-                  {...form.register("raw_prompt")}
+                  value={form.watch("raw_prompt")}
+                  onChange={handleRawPromptChange}
                   placeholder="Enter your original prompt here..."
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 mt-2 min-h-[120px] resize-none"
+                  className={`bg-white/10 text-white placeholder:text-white/50 mt-2 min-h-[120px] resize-none ${
+                    rawPromptCharCount > 27000
+                      ? "border-red-400/50"
+                      : rawPromptCharCount > 25000
+                        ? "border-yellow-400/50"
+                        : "border-white/20"
+                  }`}
                 />
-                {form.formState.errors.raw_prompt && (
-                  <p className="text-red-400 text-sm mt-1">
-                    {form.formState.errors.raw_prompt.message}
-                  </p>
-                )}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-2 gap-2">
+                  {form.formState.errors.raw_prompt && (
+                    <p className="text-red-400 text-sm">
+                      {form.formState.errors.raw_prompt.message}
+                    </p>
+                  )}
+                  <div
+                    className={`text-sm ml-auto sm:ml-0 ${
+                      rawPromptCharCount > 27000
+                        ? "text-red-400"
+                        : rawPromptCharCount > 25000
+                          ? "text-yellow-400"
+                          : "text-white/70"
+                    }`}
+                  >
+                    {rawPromptCharCount}/30,000 characters
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -6,6 +6,7 @@ import {
   Ellipsis,
   GalleryVerticalEnd,
   Layers,
+  Mails,
   Orbit,
   Plus,
   SunMoon,
@@ -303,6 +304,22 @@ export function AppSidebar({ ...props }) {
                   <ClipboardType className="w-5 rounded-md " />
                 </div>
                 <p className="font-bold">Prompt Builder</p>
+              </div>
+            </div>
+            {/* prompt builder */}
+            <div
+              onClick={() => {
+                navigate("/email-outreach");
+              }}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <Mails className="w-5 rounded-md " />
+                </div>
+                <p className="font-bold">Email Outreach</p>
               </div>
             </div>
           </SidebarMenuItem>

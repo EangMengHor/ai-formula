@@ -50,6 +50,9 @@ import TriggerLayout from "./pages/_trigger/TriggerLayout";
 import TriggerHome from "./pages/_trigger/components/TriggerHome";
 import TriggersDetail from "./pages/_trigger/components/TriggersDetail";
 import PromptBuilder from "./pages/_private/components/sidebarProvided/components/PromptBuilder";
+import EmailOutReachHome from "./pages/_emailOutreach/emailOutReachHome";
+import CreateNewEmailOutReach from "./pages/_emailOutreach/CreateNewEmailOutReach";
+import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
 
 export default function App() {
   const location = useLocation();
@@ -91,6 +94,17 @@ export default function App() {
           <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
+            {/* email outreach */}
+            <Route
+              path="/create-new-email-outreach"
+              element={<CreateNewEmailOutReach />}
+            />
+            <Route path="/email-outreach" element={<EmailOutReachHome />} />
+            <Route
+              path="/email-outreach-details/:id"
+              element={<EmailOutReachDetails />}
+            />
+
             <Route path="/prompt-builder" element={<PromptBuilder />} />
             <Route path="/workshop" element={<Workshop />} />
             <Route index path="/dashboard" element={<Dashboard />} />
@@ -163,6 +177,7 @@ export default function App() {
               element={<JobDetails />}
             />
           </Route>
+
           {/* Oasis : Open Agent Social Interaction Simulation */}
           <Route element={<OasisLayout />}>
             <Route
