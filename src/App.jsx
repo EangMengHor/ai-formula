@@ -50,7 +50,7 @@ import TriggerLayout from "./pages/_trigger/TriggerLayout";
 import TriggerHome from "./pages/_trigger/components/TriggerHome";
 import TriggersDetail from "./pages/_trigger/components/TriggersDetail";
 import PromptBuilder from "./pages/_private/components/sidebarProvided/components/PromptBuilder";
-import EmailOutReachHome from "./pages/_emailOutreach/emailOutReachHome";
+import EmailOutReachHome from "./pages/_emailOutreach/EmailOutReachHome";
 import CreateNewEmailOutReach from "./pages/_emailOutreach/CreateNewEmailOutReach";
 import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
 
