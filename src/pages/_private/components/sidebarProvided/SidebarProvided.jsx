@@ -35,6 +35,9 @@ import { CircleArrowDown } from "lucide-react";
 import TriggerHome from "@/pages/_trigger/components/TriggerHome";
 import TriggersDetail from "@/pages/_trigger/components/TriggersDetail";
 import PromptBuilder from "./components/PromptBuilder";
+import EmailOutReachHome from "@/pages/_emailOutreach/EmailOutReachHome";
+import CreateNewEmailOutReach from "@/pages/_emailOutreach/CreateNewEmailOutReach";
+import EmailOutReachDetails from "@/pages/_emailOutreach/EmailOutReachDetails";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -86,6 +89,12 @@ export default function Page() {
             )}
             {pathname === "/prompt-builder" && <PromptBuilder />}
             {pathname === "/trigger" && <TriggerHome />}
+            {/* email out reach */}
+            {pathname == "/email-outreach" && <EmailOutReachHome />}
+            {pathname.startsWith("/email-outreach-details") && <EmailOutReachDetails />}
+            {pathname == "/create-new-email-outreach" && (
+              <CreateNewEmailOutReach />
+            )}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}

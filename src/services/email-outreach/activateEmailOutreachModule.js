@@ -19,8 +19,8 @@ export async function activateEmailOutreachModule({
             pitchDeskPrompt
         });
 
-        if (response.data?.jobId) {
-            return response.data?.jobId;
+        if (response.data?.data?.jobId) {
+            return response.data?.data?.jobId;
         }
         return null;
     } catch (error) {

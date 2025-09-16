@@ -1,4 +1,5 @@
 import { getEmailOutreachJobDetailsUrl } from "@/namespace/server";
+import axios from "axios";
 
 export async function getEmailOutreachJobDetails(jobId) {
     try {

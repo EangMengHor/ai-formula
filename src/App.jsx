@@ -50,6 +50,9 @@ import TriggerLayout from "./pages/_trigger/TriggerLayout";
 import TriggerHome from "./pages/_trigger/components/TriggerHome";
 import TriggersDetail from "./pages/_trigger/components/TriggersDetail";
 import PromptBuilder from "./pages/_private/components/sidebarProvided/components/PromptBuilder";
+import EmailOutReachHome from "./pages/_emailOutreach/emailOutReachHome";
+import CreateNewEmailOutReach from "./pages/_emailOutreach/CreateNewEmailOutReach";
+import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
 
 export default function App() {
   const location = useLocation();
@@ -94,10 +97,13 @@ export default function App() {
             {/* email outreach */}
             <Route
               path="/create-new-email-outreach"
-              element={<ComingSoonPage />}
+              element={<CreateNewEmailOutReach />}
             />
-            <Route path="/email-outreach" element={<ComingSoonPage />} />
-            <Route path="/email-outreach/:id" element={<ComingSoonPage />} />
+            <Route path="/email-outreach" element={<EmailOutReachHome />} />
+            <Route
+              path="/email-outreach-details/:id"
+              element={<EmailOutReachDetails />}
+            />
 
             <Route path="/prompt-builder" element={<PromptBuilder />} />
             <Route path="/workshop" element={<Workshop />} />
