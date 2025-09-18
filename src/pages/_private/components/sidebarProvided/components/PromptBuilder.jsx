@@ -51,12 +51,14 @@ import HyperPerfectEnhancer from "@/lib/hyperPerfectEnhancer";
 import { useToast } from "@/hooks/use-toast";
 import { storePrompt } from "@/services/promptBuilder/storePrompt";
 import { Pre } from "@/components/custom/CodeBlock";
+import AudioRecorder from "@/components/custom/audio-input/AudioRecorder";
 
 const formSchema = z.object({
+  name: z.string().min(1, "Name is required").default("untitled prompt"),
   raw_prompt: z
     .string()
     .min(1, "Raw prompt is required")
-    .max(30000, "Raw prompt cannot exceed 30,000 characters"),
+    .max(2000, "Raw prompt cannot exceed 2,000 characters"),
   primary_goal: z.string().min(1, "Primary goal is required"),
   audience: z.string().min(1, "Audience is required"),
   domain: z.string().min(1, "Domain is required"),
@@ -96,6 +98,7 @@ const steps = [
     description: "Core prompt definition and context establishment",
     icon: FileText,
     fields: [
+      "name",
       "raw_prompt",
       "primary_goal",
       "audience",
@@ -143,6 +146,7 @@ export default function PromptBuilder() {
   const [asOfDate, setAsOfDate] = useState(new Date());
   const [completedSteps, setCompletedSteps] = useState(new Set());
   const [rawPromptCharCount, setRawPromptCharCount] = useState(0);
+  const [voiceTrigger, setVoiceTrigger] = useState(false);
 
   // Initialize enhancement engines
   const superiorIntelligence = useMemo(
@@ -171,6 +175,7 @@ export default function PromptBuilder() {
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
+      name: "untitled prompt",
       raw_prompt: "",
       primary_goal: "",
       audience: "",
@@ -369,15 +374,15 @@ export default function PromptBuilder() {
     const value = e.target.value;
     const charCount = value.length;
 
-    // Prevent exceeding 30,000 characters
-    if (charCount > 30000) {
+    // Prevent exceeding 2000 characters
+    if (charCount > 2000) {
       toast({
         title: "Character Limit Exceeded",
         description:
-          "Raw prompt cannot exceed 30,000 characters. Please shorten your prompt.",
+          "Raw prompt cannot exceed 2000 characters. Please shorten your prompt.",
         variant: "destructive",
       });
-      // Truncate the value to 30,000 characters
+      // Truncate the value to 2000 characters
       const truncatedValue = value.substring(0, 30000);
       form.setValue("raw_prompt", truncatedValue);
       setRawPromptCharCount(30000);
@@ -389,6 +394,29 @@ export default function PromptBuilder() {
 
     // Update form value
     form.setValue("raw_prompt", value);
+  };
+
+  const handleVoiceTranscription = (transcribedText) => {
+    const currentPrompt = form.watch("raw_prompt");
+    const newPrompt = currentPrompt
+      ? `${currentPrompt} ${transcribedText}`
+      : transcribedText;
+    const charCount = newPrompt.length;
+
+    // Check if adding transcription would exceed character limit
+    if (charCount > 30000) {
+      toast({
+        title: "Character Limit Exceeded",
+        description:
+          "Adding this transcription would exceed the 2000 character limit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update the form with the new combined text
+    form.setValue("raw_prompt", newPrompt);
+    setRawPromptCharCount(charCount);
   };
 
   const addRestrictedTopic = () => {
@@ -460,6 +488,7 @@ export default function PromptBuilder() {
           enhancedResult.engineered_prompt ||
           "Enhanced prompt data",
         userId: userId,
+        name: form.getValues("name"),
       };
 
       await storePrompt(promptData);
@@ -491,6 +520,26 @@ export default function PromptBuilder() {
             <div className="grid gap-6">
               <div>
                 <Label
+                  htmlFor="name"
+                  className="text-white text-sm font-medium"
+                >
+                  Prompt Name *
+                </Label>
+                <Input
+                  id="name"
+                  {...form.register("name")}
+                  placeholder="Enter a name for your prompt"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 mt-2"
+                />
+                {form.formState.errors.name && (
+                  <p className="text-red-400 text-sm mt-1">
+                    {form.formState.errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label
                   htmlFor="raw_prompt"
                   className="text-white text-sm font-medium"
                 >
@@ -515,16 +564,24 @@ export default function PromptBuilder() {
                       {form.formState.errors.raw_prompt.message}
                     </p>
                   )}
-                  <div
-                    className={`text-sm ml-auto sm:ml-0 ${
-                      rawPromptCharCount > 27000
-                        ? "text-red-400"
-                        : rawPromptCharCount > 25000
-                          ? "text-yellow-400"
-                          : "text-white/70"
-                    }`}
-                  >
-                    {rawPromptCharCount}/30,000 characters
+                  <div className="flex items-center gap-4 ml-auto sm:ml-0">
+                    <AudioRecorder
+                      value={form.watch("raw_prompt")}
+                      setValue={handleVoiceTranscription}
+                      trigger={voiceTrigger}
+                      setTrigger={setVoiceTrigger}
+                    />
+                    <div
+                      className={`text-sm ${
+                        rawPromptCharCount > 27000
+                          ? "text-red-400"
+                          : rawPromptCharCount > 25000
+                            ? "text-yellow-400"
+                            : "text-white/70"
+                      }`}
+                    >
+                      {rawPromptCharCount}/2000 characters
+                    </div>
                   </div>
                 </div>
               </div>
