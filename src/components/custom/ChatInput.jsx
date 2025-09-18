@@ -120,7 +120,7 @@ const PromptCard = ({
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <CardTitle className="text-white text-lg font-semibold mb-2 flex justify-between">
-              Enhanced Prompt
+              {prompt.name || "Untitled Prompt"}
               <Button
                 onClick={() => onDelete(prompt.id)}
                 variant="destructive"

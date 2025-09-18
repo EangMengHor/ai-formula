@@ -4,13 +4,15 @@ import axios from "axios";
 export async function storePrompt({
     json = "",
     prompt = "",
-    userId
+    userId,
+    name = "untitled prompt"
 }) {
     try {
         const response = await axios.post(storePromptUrl, {
             userId,
             jsonData: json,
-            prompt
+            prompt,
+            name
         });
 
         if (!response.data?.statuscode || response.data?.statuscode !== 200) {
