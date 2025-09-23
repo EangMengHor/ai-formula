@@ -53,6 +53,8 @@ import PromptBuilder from "./pages/_private/components/sidebarProvided/component
 import EmailOutReachHome from "./pages/_emailOutreach/EmailOutReachHome";
 import CreateNewEmailOutReach from "./pages/_emailOutreach/CreateNewEmailOutReach";
 import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
+import EmailOutReachAnalytics from "./pages/_emailOutreach/EmailOutReachAnalytics";
+import EmailOutReachEachEngagement from "./pages/_emailOutreach/EmailOutReachEachEngagement";
 
 export default function App() {
   const location = useLocation();
@@ -103,6 +105,14 @@ export default function App() {
             <Route
               path="/email-outreach-details/:id"
               element={<EmailOutReachDetails />}
+            />
+            <Route
+              path="/email-outreach-engagement/:id"
+              element={<EmailOutReachEachEngagement />}
+            />
+            <Route
+              path="/email-outreach-analytics"
+              element={<EmailOutReachAnalytics />}
             />
 
             <Route path="/prompt-builder" element={<PromptBuilder />} />

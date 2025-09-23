@@ -38,6 +38,8 @@ import PromptBuilder from "./components/PromptBuilder";
 import EmailOutReachHome from "@/pages/_emailOutreach/EmailOutReachHome";
 import CreateNewEmailOutReach from "@/pages/_emailOutreach/CreateNewEmailOutReach";
 import EmailOutReachDetails from "@/pages/_emailOutreach/EmailOutReachDetails";
+import EmailOutReachEachEngagement from "@/pages/_emailOutreach/EmailOutReachEachEngagement";
+import EmailOutReachAnalytics from "@/pages/_emailOutreach/EmailOutReachAnalytics";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -91,9 +93,17 @@ export default function Page() {
             {pathname === "/trigger" && <TriggerHome />}
             {/* email out reach */}
             {pathname == "/email-outreach" && <EmailOutReachHome />}
-            {pathname.startsWith("/email-outreach-details") && <EmailOutReachDetails />}
+            {pathname.startsWith("/email-outreach-details") && (
+              <EmailOutReachDetails />
+            )}
             {pathname == "/create-new-email-outreach" && (
               <CreateNewEmailOutReach />
+            )}
+            {pathname.startsWith("/email-outreach-engagement") && (
+              <EmailOutReachEachEngagement />
+            )}
+            {pathname == "/email-outreach-analytics" && (
+              <EmailOutReachAnalytics />
             )}
           </div>
           <motion.div
