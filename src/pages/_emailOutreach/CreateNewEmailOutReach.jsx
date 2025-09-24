@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -46,7 +46,9 @@ const formSchema = z.object({
       (val) => val.trim().split(/\s+/).length <= 5,
       "Query must be max 5 words",
     ),
-  numberOfArticle: z.string().min(1, "Please select number of items"),
+  numberOfArticle: z.enum(["10", "30", "50", "70", "100"], {
+    required_error: "Please select number of items",
+  }),
   senderName: z
     .string()
     .min(1, "Sender name is required")
@@ -73,7 +75,7 @@ export default function CreateNewEmailOutReach() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       query: "",
-      numberOfArticle: "",
+      numberOfArticle: "10",
       senderName: "",
       freshness: "",
       pitchDeskPrompt: "",
@@ -85,14 +87,6 @@ export default function CreateNewEmailOutReach() {
   const senderNameValue = form.watch("senderName");
   const pitchDeskPromptValue = form.watch("pitchDeskPrompt");
   const modeValue = form.watch("mode");
-
-  useEffect(() => {
-    if (modeValue === "podcast" && !["10", "20", "30", "40", "50"].includes(form.getValues("numberOfArticle"))) {
-      form.setValue("numberOfArticle", "10");
-    } else if (modeValue === "firecrawl" && !["50", "100", "200", "300", "400", "500"].includes(form.getValues("numberOfArticle"))) {
-      form.setValue("numberOfArticle", "50");
-    }
-  }, [modeValue, form]);
 
   const onSubmit = async (values) => {
     if (!user?.id) {
@@ -117,7 +111,9 @@ export default function CreateNewEmailOutReach() {
       });
 
       if (jobId) {
-        toast.success(`${modeValue === "podcast" ? "Podcaster" : "Email"} outreach module activated successfully!`);
+        toast.success(
+          `${modeValue === "podcast" ? "Podcaster" : "Email"} outreach module activated successfully!`,
+        );
         navigate(`/email-outreach-details/${jobId}`);
       } else {
         throw new Error("Failed to activate email outreach module");
@@ -144,10 +140,12 @@ export default function CreateNewEmailOutReach() {
               <Mail className="w-6 h-6 text-white" />
             </div>
             <CardTitle className="text-2xl font-bold text-white">
-              Create New {modeValue === "podcast" ? "Podcaster" : "Email"} Outreach
+              Create New {modeValue === "podcast" ? "Podcaster" : "Email"}{" "}
+              Outreach
             </CardTitle>
             <CardDescription className="text-slate-300">
-              Fill in the details to activate your {modeValue === "podcast" ? "podcaster" : "email"} outreach module
+              Fill in the details to activate your{" "}
+              {modeValue === "podcast" ? "podcaster" : "email"} outreach module
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -192,7 +190,7 @@ export default function CreateNewEmailOutReach() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-slate-200">
-                        Number of {modeValue === "podcast" ? "Podcasts" : "Articles"}
+                        Number of Items
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
@@ -200,21 +198,19 @@ export default function CreateNewEmailOutReach() {
                       >
                         <FormControl>
                           <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500">
-                            <SelectValue placeholder={`Select number of ${modeValue === "podcast" ? "podcasts" : "articles"}`} />
+                            <SelectValue placeholder="Select number of items" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-slate-700 border-slate-600">
-                          {(modeValue === "podcast" ? ["10", "20", "30", "40", "50"] : ["50", "100", "200", "300", "400", "500"]).map(
-                            (num) => (
-                              <SelectItem
-                                key={num}
-                                value={num}
-                                className="text-white hover:bg-slate-600"
-                              >
-                                {num}
-                              </SelectItem>
-                            ),
-                          )}
+                          {["10", "30", "50", "70", "100"].map((num) => (
+                            <SelectItem
+                              key={num}
+                              value={num}
+                              className="text-white hover:bg-slate-600"
+                            >
+                              {num}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage className="text-red-400" />
@@ -354,7 +350,10 @@ export default function CreateNewEmailOutReach() {
                   ) : (
                     <>
                       <Send className="w-4 h-4 mr-2" />
-                      Create {modeValue === "podcast" ? "Podcaster" : "Email"} Outreach
+                      Create {modeValue === "podcast"
+                        ? "Podcaster"
+                        : "Email"}{" "}
+                      Outreach
                     </>
                   )}
                 </Button>
