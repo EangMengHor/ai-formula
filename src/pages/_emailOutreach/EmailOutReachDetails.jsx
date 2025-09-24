@@ -21,6 +21,7 @@ import {
   BarChart3,
   Target,
   TrendingUp,
+  Play,
 } from "lucide-react";
 
 import { getEmailOutreachJobDetails } from "@/services/email-outreach/getEmailOutreachJobDetails";
@@ -210,8 +211,38 @@ export default function EmailOutReachDetails() {
     );
   }
 
-  const { jobDetails, articles, stats } = data;
+  const { jobDetails, articles, podcasts, stats } = data;
+  const isPodcastMode = jobDetails.mode === "podcast";
+  const items = isPodcastMode ? podcasts : articles;
   const statusInfo = getStatusInfo(jobDetails);
+
+  const entities = isPodcastMode
+    ? items.map((p) => ({
+        id: p.id,
+        name: p.title,
+        email: p.email,
+        position: p.publisher,
+        isOutreached: p.isOutreached,
+        confidenceScore: 100,
+        author_linkedIn: p.linkedHandle,
+        author_twitter: p.twitterHandle,
+        articleTitle: p.title,
+        articleLink: p.website,
+        replyContent: p.replyContent,
+        pitchDeskEmail: p.pitchDeskEmail,
+        podcastImage: p.podcastImage,
+        genres: p.genres,
+        country: p.country,
+        language: p.language,
+      }))
+    : items.flatMap(
+        (a) =>
+          a.authors?.map((auth) => ({
+            ...auth,
+            articleTitle: a.expandedQuery?.[0] || "Untitled Article",
+            articleLink: a.articleLink,
+          })) || [],
+      );
 
   const ArticleDetailDialog = ({ article, isOpen, onClose }) => {
     if (!article) return null;
@@ -219,82 +250,185 @@ export default function EmailOutReachDetails() {
     const Content = () => (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <img
-            src={getFavicon(article.articleLink)}
-            alt="favicon"
-            className="w-6 h-6 rounded"
-            onError={(e) => (e.target.style.display = "none")}
-          />
-          <span className="text-sm text-gray-400">
-            {getDomain(article.articleLink)}
-          </span>
+          {article.authors ? (
+            <>
+              <img
+                src={getFavicon(article.articleLink)}
+                alt="favicon"
+                className="w-6 h-6 rounded"
+                onError={(e) => (e.target.style.display = "none")}
+              />
+              <span className="text-sm text-gray-400">
+                {getDomain(article.articleLink)}
+              </span>
+            </>
+          ) : (
+            <>
+              <img
+                src={article.podcastImage}
+                alt="podcast"
+                className="w-6 h-6 rounded"
+                onError={(e) => (e.target.style.display = "none")}
+              />
+              <span className="text-sm text-gray-400">{article.publisher}</span>
+            </>
+          )}
         </div>
 
-        <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Authors</h3>
-          <div className="space-y-3">
-            {article.authors?.map((author) => (
-              <Card key={author.id} className="bg-g1 border-slate-700">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-blue-600/20 rounded-lg">
-                      <User className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-white">
-                        {author.authorName}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Mail className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-400">
-                          {author.authorEmail}
-                        </span>
+        {article.authors ? (
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-4">Authors</h3>
+            <div className="space-y-3">
+              {article.authors.map((author) => (
+                <Card key={author.id} className="bg-g1 border-slate-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-600/20 rounded-lg">
+                        <User className="w-5 h-5 text-blue-400" />
                       </div>
-                      {author.authorPosition && (
+                      <div className="flex-1">
+                        <h4 className="font-medium text-white">
+                          {author.authorName}
+                        </h4>
                         <div className="flex items-center gap-2 mt-1">
-                          <Target className="w-4 h-4 text-gray-400" />
+                          <Mail className="w-4 h-4 text-gray-400" />
                           <span className="text-sm text-gray-400">
-                            {author.authorPosition}
+                            {author.authorEmail}
                           </span>
                         </div>
-                      )}
-                      {author.authorPhoneNumber && (
-                        <div className="flex items-center gap-2 mt-1">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-400">
-                            {author.authorPhoneNumber}
-                          </span>
+                        {author.authorPosition && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <Target className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-400">
+                              {author.authorPosition}
+                            </span>
+                          </div>
+                        )}
+                        {author.authorPhoneNumber && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <Phone className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-400">
+                              {author.authorPhoneNumber}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4 mt-3">
+                          <Badge
+                            variant={
+                              author.isOutreached ? "default" : "secondary"
+                            }
+                            className={
+                              author.isOutreached
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-600 text-gray-300"
+                            }
+                          >
+                            {author.isOutreached
+                              ? "Outreached"
+                              : "Not Outreached"}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-slate-600 text-gray-300"
+                          >
+                            Confidence: {author.confidenceScore}%
+                          </Badge>
                         </div>
-                      )}
-                      <div className="flex items-center gap-4 mt-3">
-                        <Badge
-                          variant={
-                            author.isOutreached ? "default" : "secondary"
-                          }
-                          className={
-                            author.isOutreached
-                              ? "bg-green-600 text-white"
-                              : "bg-gray-600 text-gray-300"
-                          }
-                        >
-                          {author.isOutreached
-                            ? "Outreached"
-                            : "Not Outreached"}
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className="border-slate-600 text-gray-300"
-                        >
-                          Confidence: {author.confidenceScore}%
-                        </Badge>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Podcast Details
+            </h3>
+            <div className="space-y-3 text-white">
+              <p>
+                <strong>Title:</strong> {article.title}
+              </p>
+              <p>
+                <strong>Publisher:</strong> {article.publisher}
+              </p>
+              <p>
+                <strong>Email:</strong> {article.email}
+              </p>
+              <p>
+                <strong>Country:</strong> {article.country}
+              </p>
+              <p>
+                <strong>Language:</strong> {article.language}
+              </p>
+              <p>
+                <strong>iTunes ID:</strong> {article.iTuneId}
+              </p>
+              <p>
+                <strong>RSS:</strong>{" "}
+                <a
+                  href={article.rss}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400"
+                >
+                  {article.rss}
+                </a>
+              </p>
+              <p>
+                <strong>Website:</strong>{" "}
+                <a
+                  href={article.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400"
+                >
+                  {article.website}
+                </a>
+              </p>
+              {article.genres && (
+                <div>
+                  <strong>Genres:</strong>
+                  <div className="flex gap-2 mt-1 ">
+                    {article.genres.map((genre) => (
+                      <Badge
+                        key={genre}
+                        variant="outline"
+                        className="border-slate-600 text-gray-300"
+                      >
+                        {genre}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {article.twitterHandle && (
+                <p>
+                  <strong>Twitter:</strong>{" "}
+                  <a
+                    href={`https://twitter.com/${article.twitterHandle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400"
+                  >
+                    @{article.twitterHandle}
+                  </a>
+                </p>
+              )}
+              {article.facebookHandle && (
+                <p>
+                  <strong>Facebook:</strong> {article.facebookHandle}
+                </p>
+              )}
+              {article.instagramHandle && (
+                <p>
+                  <strong>Instagram:</strong> @{article.instagramHandle}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
 
@@ -303,9 +437,9 @@ export default function EmailOutReachDetails() {
         <Drawer open={isOpen} onOpenChange={onClose}>
           <DrawerContent className="bg-slate-900 border-slate-700">
             <DrawerHeader>
-              <DrawerTitle className="text-white">Article Details</DrawerTitle>
+              <DrawerTitle className="text-white">Details</DrawerTitle>
               <DrawerDescription>
-                Complete information about this article and its authors
+                Complete information about this item
               </DrawerDescription>
             </DrawerHeader>
             <div className="p-4">
@@ -320,9 +454,9 @@ export default function EmailOutReachDetails() {
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Article Details</DialogTitle>
+            <DialogTitle className="text-white">Details</DialogTitle>
             <DialogDescription>
-              Complete information about this article and its authors
+              Complete information about this item
             </DialogDescription>
           </DialogHeader>
           <Content />
@@ -337,32 +471,59 @@ export default function EmailOutReachDetails() {
     const Content = () => (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <img
-            src={getFavicon(article.articleLink)}
-            alt="favicon"
-            className="w-6 h-6 rounded"
-            onError={(e) => (e.target.style.display = "none")}
-          />
-          <span className="text-sm text-gray-400">
-            {getDomain(article.articleLink)}
-          </span>
+          {article.authors ? (
+            <>
+              <img
+                src={getFavicon(article.articleLink)}
+                alt="favicon"
+                className="w-6 h-6 rounded"
+                onError={(e) => (e.target.style.display = "none")}
+              />
+              <span className="text-sm text-gray-400">
+                {getDomain(article.articleLink)}
+              </span>
+            </>
+          ) : (
+            <>
+              <img
+                src={article.podcastImage}
+                alt="podcast"
+                className="w-6 h-6 rounded"
+                onError={(e) => (e.target.style.display = "none")}
+              />
+              <span className="text-sm text-gray-400">{article.publisher}</span>
+            </>
+          )}
         </div>
 
         <div>
           <h3 className="text-lg font-semibold text-white mb-2">
-            Article Content
+            {article.authors ? "Article Content" : "Podcast Description"}
           </h3>
           <div className="bg-g1 rounded-lg p-4 border border-slate-700">
-            <div className="text-gray-300 whitespace-pre-wrap leading-relaxed break-words">
-              {article.contentSnippet || "No content available"}
-            </div>
+            {article.authors ? (
+              <div className="text-gray-300 whitespace-pre-wrap leading-relaxed break-words">
+                {article.contentSnippet || "No content available"}
+              </div>
+            ) : (
+              <div
+                className="text-gray-300 leading-relaxed break-words"
+                dangerouslySetInnerHTML={{
+                  __html: article.content || "No description available",
+                }}
+              />
+            )}
           </div>
         </div>
 
         <div className="text-sm text-gray-400">
           <p>
             Published:{" "}
-            {new Date(article.articleCreationDate).toLocaleDateString()}
+            {new Date(
+              article.authors
+                ? article.articleCreationDate
+                : article.publishDate,
+            ).toLocaleDateString()}
           </p>
         </div>
       </div>
@@ -373,8 +534,8 @@ export default function EmailOutReachDetails() {
         <Drawer open={isOpen} onOpenChange={onClose}>
           <DrawerContent className="bg-slate-900 border-slate-700">
             <DrawerHeader>
-              <DrawerTitle className="text-white">Article Content</DrawerTitle>
-              <DrawerDescription>Full content of the article</DrawerDescription>
+              <DrawerTitle className="text-white">Content</DrawerTitle>
+              <DrawerDescription>Full content of the item</DrawerDescription>
             </DrawerHeader>
             <div className="p-4">
               <Content />
@@ -388,8 +549,8 @@ export default function EmailOutReachDetails() {
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="bg-slate-900 border-slate-700 max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Article Content</DialogTitle>
-            <DialogDescription>Full content of the article</DialogDescription>
+            <DialogTitle className="text-white">Content</DialogTitle>
+            <DialogDescription>Full content of the item</DialogDescription>
           </DialogHeader>
           <Content />
         </DialogContent>
@@ -398,20 +559,35 @@ export default function EmailOutReachDetails() {
   };
 
   const PitchDeskDialog = ({ article, isOpen, onClose }) => {
-    if (!article || !article.articleSummary) return null;
-
+    if (!article || (!article.articleSummary && !article.pitchDeskEmail))
+      return null;
+    console.log(article);
     const Content = () => (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <img
-            src={getFavicon(article.articleLink)}
-            alt="favicon"
-            className="w-6 h-6 rounded"
-            onError={(e) => (e.target.style.display = "none")}
-          />
-          <span className="text-sm text-gray-400">
-            {getDomain(article.articleLink)}
-          </span>
+          {article.authors ? (
+            <>
+              <img
+                src={getFavicon(article.articleLink)}
+                alt="favicon"
+                className="w-6 h-6 rounded"
+                onError={(e) => (e.target.style.display = "none")}
+              />
+              <span className="text-sm text-gray-400">
+                {getDomain(article.articleLink)}
+              </span>
+            </>
+          ) : (
+            <>
+              <img
+                src={article.podcastImage}
+                alt="podcast"
+                className="w-6 h-6 rounded"
+                onError={(e) => (e.target.style.display = "none")}
+              />
+              <span className="text-sm text-gray-400">{article.publisher}</span>
+            </>
+          )}
         </div>
 
         <div>
@@ -420,7 +596,7 @@ export default function EmailOutReachDetails() {
           </h3>
           <div className="bg-g1 rounded-lg p-4 border border-slate-700">
             <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-              {article.articleSummary}
+              {article.articleSummary || article.pitchDeskEmail}
             </div>
           </div>
         </div>
@@ -462,6 +638,125 @@ export default function EmailOutReachDetails() {
     );
   };
 
+  const ReplyDeskDialog = ({ article, isOpen, onClose }) => {
+    if (!article) return null;
+
+    const Content = () => (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <img
+            src={article.podcastImage}
+            alt="podcast"
+            className="w-6 h-6 rounded"
+            onError={(e) => (e.target.style.display = "none")}
+          />
+          <span className="text-sm text-gray-400">{article.publisher}</span>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            Reply Message
+          </h3>
+          <div className="bg-g1 rounded-lg p-4 border border-slate-700">
+            <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+              {article.replyContent}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (isMobile) {
+      return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+          <DrawerContent className="bg-slate-900 border-slate-700">
+            <DrawerHeader>
+              <DrawerTitle className="text-white">Reply Message</DrawerTitle>
+              <DrawerDescription>
+                Reply received for this outreach
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="p-4">
+              <Content />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      );
+    }
+
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Reply Message</DialogTitle>
+            <DialogDescription>
+              Reply received for this outreach
+            </DialogDescription>
+          </DialogHeader>
+          <Content />
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  const AudioDialog = ({ article, isOpen, onClose }) => {
+    if (!article) return null;
+
+    const Content = () => (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <img
+            src={article.podcastImage}
+            alt="podcast"
+            className="w-6 h-6 rounded"
+            onError={(e) => (e.target.style.display = "none")}
+          />
+          <span className="text-sm text-gray-400">{article.publisher}</span>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            {article.title}
+          </h3>
+          <audio controls className="w-full">
+            <source src={article.audioUrl} type="audio/mpeg" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      </div>
+    );
+
+    if (isMobile) {
+      return (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+          <DrawerContent className="bg-slate-900 border-slate-700">
+            <DrawerHeader>
+              <DrawerTitle className="text-white">Audio Player</DrawerTitle>
+              <DrawerDescription>
+                Listen to the podcast episode
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="p-4">
+              <Content />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      );
+    }
+
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Audio Player</DialogTitle>
+            <DialogDescription>Listen to the podcast episode</DialogDescription>
+          </DialogHeader>
+          <Content />
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="min-h-screen text-white">
       <div className={`max-w-7xl mx-auto ${isMobile ? "px-3" : "p-4 md:p-6"}`}>
@@ -489,6 +784,9 @@ export default function EmailOutReachDetails() {
                   className={`${isMobile ? "text-xl" : "text-2xl"} text-white mb-2`}
                 >
                   {jobDetails.expandedQuery?.[0] || "Untitled Campaign"}
+                  <Badge variant="outline" className="ml-2">
+                    {jobDetails.mode}
+                  </Badge>
                 </CardTitle>
                 <CardDescription className="text-gray-400 mb-3 line-clamp-2">
                   {jobDetails.userPrompt || "No description available"}
@@ -555,7 +853,7 @@ export default function EmailOutReachDetails() {
                   {stats.totalArticles}
                 </div>
                 <div className="text-xs md:text-sm text-gray-400">
-                  Articles Scraped
+                  {isPodcastMode ? "Podcasts Found" : "Articles Scraped"}
                 </div>
               </div>
               <div className="text-center">
@@ -563,7 +861,7 @@ export default function EmailOutReachDetails() {
                   {stats.uniqueAuthors}
                 </div>
                 <div className="text-xs md:text-sm text-gray-400">
-                  Authors Found
+                  {isPodcastMode ? "Contacts Found" : "Authors Found"}
                 </div>
               </div>
               <div className="text-center">
@@ -571,7 +869,7 @@ export default function EmailOutReachDetails() {
                   {stats.authorsWithOutreach}
                 </div>
                 <div className="text-xs md:text-sm text-gray-400">
-                  Authors Outreached
+                  Outreached
                 </div>
               </div>
               <div className="text-center">
@@ -579,7 +877,8 @@ export default function EmailOutReachDetails() {
                   {(stats.averageAuthorsPerArticle * 100).toFixed(1)}%
                 </div>
                 <div className="text-xs md:text-sm text-gray-400">
-                  Avg Authors/Article
+                  Avg {isPodcastMode ? "Contacts" : "Authors"}/
+                  {isPodcastMode ? "Podcast" : "Article"}
                 </div>
               </div>
             </div>
@@ -603,20 +902,21 @@ export default function EmailOutReachDetails() {
               className="flex items-center gap-2 data-[state=active]:bg-g2"
             >
               <FileText className="w-4 h-4" />
-              Articles ({articles?.length || 0})
+              {isPodcastMode ? "Podcasts" : "Articles"} ({items?.length || 0})
             </TabsTrigger>
             <TabsTrigger
               value="authors"
               className="flex items-center gap-2 data-[state=active]:bg-g2"
             >
               <Users className="w-4 h-4" />
-              Authors ({stats?.uniqueAuthors || 0})
+              {isPodcastMode ? "Outreach" : "Authors"} (
+              {stats?.uniqueAuthors || 0})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="articles" className="mt-6">
             <div className="space-y-4">
-              {articles?.map((article) => (
+              {items?.map((article) => (
                 <Card key={article.id} className="bg-g1 border-slate-700">
                   <CardContent className={`p-4 md:p-6`}>
                     <div
@@ -625,50 +925,88 @@ export default function EmailOutReachDetails() {
                       <div className="flex-1 space-y-3 overflow-hidden">
                         {/* Header */}
                         <div className="flex items-center gap-3 mb-3">
-                          <img
-                            src={getFavicon(article.articleLink)}
-                            alt="favicon"
-                            className="w-6 h-6 rounded flex-shrink-0"
-                            onError={(e) => (e.target.style.display = "none")}
-                          />
+                          {isPodcastMode ? (
+                            <img
+                              src={article.podcastImage}
+                              alt="podcast"
+                              className="w-6 h-6 rounded"
+                              onError={(e) => (e.target.style.display = "none")}
+                            />
+                          ) : (
+                            <img
+                              src={getFavicon(article.articleLink)}
+                              alt="favicon"
+                              className="w-6 h-6 rounded flex-shrink-0"
+                              onError={(e) => (e.target.style.display = "none")}
+                            />
+                          )}
                           <span className="text-sm text-gray-400 truncate">
-                            {getDomain(article.articleLink)}
+                            {isPodcastMode
+                              ? article.publisher
+                              : getDomain(article.articleLink)}
                           </span>
                           <span className="text-sm text-gray-500 flex-shrink-0">
                             {getRelativeTime(article.created_at)}
                           </span>
                         </div>
 
-                        {/* URL */}
-                        <a
-                          href={article.articleLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300 text-sm mb-2 block break-all"
-                        >
-                          {article.articleLink}
-                        </a>
+                        {/* URL or Title */}
+                        {isPodcastMode ? (
+                          <h3 className="text-lg font-semibold text-white mb-2">
+                            {article.title}
+                          </h3>
+                        ) : (
+                          <a
+                            href={article.articleLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 text-sm mb-2 block break-all"
+                          >
+                            {article.articleLink}
+                          </a>
+                        )}
 
-                        {/* Authors Count */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-400">
-                            {article.authors?.length || 0} author
-                            {article.authors?.length !== 1 ? "s" : ""}
-                          </span>
-                        </div>
+                        {/* Authors Count or Podcast Info */}
+                        {isPodcastMode ? (
+                          <div className="flex items-center gap-2 mb-3">
+                            <Globe className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-400">
+                              {article.country}
+                            </span>
+                            <span className="text-sm text-gray-400">•</span>
+                            <span className="text-sm text-gray-400">
+                              {article.language}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 mb-3">
+                            <Users className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-400">
+                              {article.authors?.length || 0} author
+                              {article.authors?.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Content Preview */}
                         <div className="text-gray-300 text-sm line-clamp-2 mb-3">
-                          {article.contentSnippet ||
-                            "No content preview available"}
+                          {isPodcastMode
+                            ? article.content
+                              ? article.content
+                                  .replace(/<[^>]*>/g, "")
+                                  .substring(0, 200) + "..."
+                              : "No description"
+                            : article.contentSnippet ||
+                              "No content preview available"}
                         </div>
 
-                        {/* Article Date */}
+                        {/* Date */}
                         <div className="text-sm text-gray-500">
                           Published:{" "}
                           {new Date(
-                            article.articleCreationDate,
+                            isPodcastMode
+                              ? article.publishDate
+                              : article.articleCreationDate,
                           ).toLocaleDateString()}
                         </div>
                       </div>
@@ -677,7 +1015,9 @@ export default function EmailOutReachDetails() {
                       <div
                         className={`flex ${isMobile ? "flex-row gap-2 w-full" : "flex-col gap-2 min-w-[140px]"}`}
                       >
-                        {(article.authors?.length || 0) > 0 && (
+                        {(!isPodcastMode
+                          ? (article.authors?.length || 0) > 0
+                          : true) && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -690,7 +1030,7 @@ export default function EmailOutReachDetails() {
                             className={`${isMobile ? "flex-1" : "w-full"}`}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            Author Details
+                            {isPodcastMode ? "Details" : "Author Details"}
                           </Button>
                         )}
                         <Button
@@ -704,17 +1044,48 @@ export default function EmailOutReachDetails() {
                           <FileText className="w-4 h-4 mr-2" />
                           Content
                         </Button>
-                        {article.articleSummary && (
+                        {console.log(article.pitchDeskEmail)}
+                        {article.articleSummary ||
+                          (article.pitchDeskEmail && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setSelectedArticle({
+                                  ...article,
+                                  type: "pitch",
+                                })
+                              }
+                              className={`${isMobile ? "flex-1" : "w-full"}`}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Pitch
+                            </Button>
+                          ))}
+                        {isPodcastMode && article.replyContent && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() =>
-                              setSelectedArticle({ ...article, type: "pitch" })
+                              setSelectedArticle({ ...article, type: "reply" })
                             }
                             className={`${isMobile ? "flex-1" : "w-full"}`}
                           >
-                            <Send className="w-4 h-4 mr-2" />
-                            Pitch
+                            <MessageSquare className="w-4 h-4 mr-2" />
+                            Reply
+                          </Button>
+                        )}
+                        {isPodcastMode && article.audioUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setSelectedArticle({ ...article, type: "audio" })
+                            }
+                            className={`${isMobile ? "flex-1" : "w-full"}`}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Audio
                           </Button>
                         )}
                       </div>
@@ -735,14 +1106,16 @@ export default function EmailOutReachDetails() {
                       <div className="text-2xl font-bold text-white">
                         {stats.totalAuthors}
                       </div>
-                      <div className="text-sm text-gray-400">Total Authors</div>
+                      <div className="text-sm text-gray-400">
+                        {isPodcastMode ? "Total Podcasts" : "Total Authors"}
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-white">
                         {stats.uniqueAuthors}
                       </div>
                       <div className="text-sm text-gray-400">
-                        Unique Authors
+                        {isPodcastMode ? "Unique Podcasts" : "Unique Authors"}
                       </div>
                     </div>
                     <div className="text-center">
@@ -761,146 +1134,198 @@ export default function EmailOutReachDetails() {
                 </CardContent>
               </Card>
 
-              {/* All Authors List */}
+              {/* All Entities List */}
               <div className="space-y-4">
-                {articles
-                  ?.flatMap(
-                    (article) =>
-                      article.authors?.map((author) => ({
-                        ...author,
-                        articleTitle:
-                          article.expandedQuery?.[0] || "Untitled Article",
-                        articleLink: article.articleLink,
-                        articleId: article.id,
-                      })) || [],
-                  )
-                  .map((author, index) => (
-                    <Card
-                      key={`${author.articleId}-${author.id}-${index}`}
-                      className="bg-g1 border-slate-700"
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="p-3 bg-blue-600/20 rounded-lg">
-                            <User className="w-6 h-6 text-blue-400" />
+                {entities.map((author, index) => (
+                  <Card
+                    key={`${author.articleId}-${author.id}-${index}`}
+                    className="bg-g1 border-slate-700"
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 bg-blue-600/20 rounded-lg">
+                          <User className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          {/* Author Name and Status */}
+                          <div className="flex items-start justify-between">
+                            <h3 className="text-lg font-semibold text-white">
+                              {author.authorName}
+                            </h3>
+                            <Badge
+                              variant={
+                                author.isOutreached ? "default" : "secondary"
+                              }
+                              className={
+                                author.isOutreached
+                                  ? "bg-green-600 text-white"
+                                  : "bg-gray-600 text-gray-300"
+                              }
+                            >
+                              {author.isOutreached
+                                ? "Outreached"
+                                : "Not Outreached"}
+                            </Badge>
                           </div>
-                          <div className="flex-1 space-y-3">
-                            {/* Author Name and Status */}
-                            <div className="flex items-start justify-between">
-                              <h3 className="text-lg font-semibold text-white">
-                                {author.authorName}
-                              </h3>
-                              <Badge
-                                variant={
-                                  author.isOutreached ? "default" : "secondary"
-                                }
-                                className={
-                                  author.isOutreached
-                                    ? "bg-green-600 text-white"
-                                    : "bg-gray-600 text-gray-300"
-                                }
-                              >
-                                {author.isOutreached
-                                  ? "Outreached"
-                                  : "Not Outreached"}
-                              </Badge>
-                            </div>
 
-                            {/* Contact Information */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {author.authorEmail && (
-                                <div className="flex items-center gap-2">
-                                  <Mail className="w-4 h-4 text-gray-400" />
-                                  <span className="text-sm text-gray-300">
-                                    {author.authorEmail}
-                                  </span>
-                                </div>
-                              )}
-                              {author.authorPhoneNumber && (
-                                <div className="flex items-center gap-2">
-                                  <Phone className="w-4 h-4 text-gray-400" />
-                                  <span className="text-sm text-gray-300">
-                                    {author.authorPhoneNumber}
-                                  </span>
-                                </div>
-                              )}
-                              {author.authorPosition && (
-                                <div className="flex items-center gap-2">
-                                  <Target className="w-4 h-4 text-gray-400" />
-                                  <span className="text-sm text-gray-300">
-                                    {author.authorPosition}
-                                  </span>
-                                </div>
-                              )}
-                              {author.author_linkedIn && (
-                                <div className="flex items-center gap-2">
-                                  <ExternalLink className="w-4 h-4 text-gray-400" />
-                                  <a
-                                    href={author.author_linkedIn}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-blue-400 hover:text-blue-300"
-                                  >
-                                    LinkedIn
-                                  </a>
-                                </div>
-                              )}
-                              {author.author_twitter && (
-                                <div className="flex items-center gap-2">
-                                  <MessageSquare className="w-4 h-4 text-gray-400" />
-                                  <a
-                                    href={author.author_twitter}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-blue-400 hover:text-blue-300"
-                                  >
-                                    Twitter
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Article Information */}
-                            <div className="pt-3 border-t border-slate-700">
-                              <div className="flex items-center gap-2 mb-2">
-                                <FileText className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-gray-400">
-                                  From article:
+                          {/* Contact Information */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {author.authorEmail && (
+                              <div className="flex items-center gap-2">
+                                <Mail className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm text-gray-300">
+                                  {author.authorEmail}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-300 line-clamp-2">
-                                {author.articleTitle}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
+                            )}
+                            {author.authorPhoneNumber && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm text-gray-300">
+                                  {author.authorPhoneNumber}
+                                </span>
+                              </div>
+                            )}
+                            {author.authorPosition && (
+                              <div className="flex items-center gap-2">
+                                <Target className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm text-gray-300">
+                                  {author.authorPosition}
+                                </span>
+                              </div>
+                            )}
+                            {author.author_linkedIn && (
+                              <div className="flex items-center gap-2">
                                 <ExternalLink className="w-4 h-4 text-gray-400" />
                                 <a
-                                  href={author.articleLink}
+                                  href={author.author_linkedIn}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-sm text-blue-400 hover:text-blue-300 truncate"
+                                  className="text-sm text-blue-400 hover:text-blue-300"
                                 >
-                                  {getDomain(author.articleLink)}
+                                  LinkedIn
                                 </a>
                               </div>
-                            </div>
+                            )}
+                            {author.author_twitter && (
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4 text-gray-400" />
+                                <a
+                                  href={author.author_twitter}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-400 hover:text-blue-300"
+                                >
+                                  Twitter
+                                </a>
+                              </div>
+                            )}
+                          </div>
 
-                            {/* Confidence and Metadata */}
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-700">
-                              <Badge
-                                variant="outline"
-                                className="border-slate-600 text-gray-300"
-                              >
-                                Confidence: {author.confidenceScore}%
-                              </Badge>
-                              <span className="text-xs text-gray-500">
-                                ID: {author.id}
+                          {/* Additional Info for Podcast */}
+                          {author.genres && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {author.genres.map((genre) => (
+                                <Badge
+                                  key={genre}
+                                  variant="outline"
+                                  className="border-slate-600 text-gray-300"
+                                >
+                                  {genre}
+                                </Badge>
+                              ))}
+                              {author.country && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-slate-600 text-gray-300"
+                                >
+                                  {author.country}
+                                </Badge>
+                              )}
+                              {author.language && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-slate-600 text-gray-300"
+                                >
+                                  {author.language}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Article Information */}
+                          <div className="pt-3 border-t border-slate-700">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileText className="w-4 h-4 text-gray-400" />
+                              <span className="text-sm text-gray-400">
+                                From article:
                               </span>
                             </div>
+                            <p className="text-sm text-gray-300 line-clamp-2">
+                              {author.articleTitle}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <ExternalLink className="w-4 h-4 text-gray-400" />
+                              <a
+                                href={author.articleLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-400 hover:text-blue-300 truncate"
+                              >
+                                {getDomain(author.articleLink)}
+                              </a>
+                            </div>
+                          </div>
+
+                          {/* Confidence and Metadata */}
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-700">
+                            <Badge
+                              variant="outline"
+                              className="border-slate-600 text-gray-300"
+                            >
+                              Confidence: {author.confidenceScore}%
+                            </Badge>
+                            <span className="text-xs text-gray-500">
+                              ID: {author.id}
+                            </span>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 mt-3">
+                            {author.pitchDeskEmail && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setSelectedArticle({
+                                    ...author,
+                                    type: "pitch",
+                                  })
+                                }
+                              >
+                                View Pitch
+                              </Button>
+                            )}
+                            {author.replyContent && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  setSelectedArticle({
+                                    ...author,
+                                    type: "reply",
+                                  })
+                                }
+                              >
+                                View Reply
+                              </Button>
+                            )}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           </TabsContent>
@@ -925,6 +1350,22 @@ export default function EmailOutReachDetails() {
 
         {selectedArticle?.type === "pitch" && (
           <PitchDeskDialog
+            article={selectedArticle}
+            isOpen={true}
+            onClose={() => setSelectedArticle(null)}
+          />
+        )}
+
+        {selectedArticle?.type === "reply" && (
+          <ReplyDeskDialog
+            article={selectedArticle}
+            isOpen={true}
+            onClose={() => setSelectedArticle(null)}
+          />
+        )}
+
+        {selectedArticle?.type === "audio" && (
+          <AudioDialog
             article={selectedArticle}
             isOpen={true}
             onClose={() => setSelectedArticle(null)}
