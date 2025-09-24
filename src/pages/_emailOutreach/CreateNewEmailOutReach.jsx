@@ -46,8 +46,8 @@ const formSchema = z.object({
       (val) => val.trim().split(/\s+/).length <= 5,
       "Query must be max 5 words",
     ),
-  numberOfArticle: z.enum(["50", "100", "200", "300", "400", "500"], {
-    required_error: "Please select number of articles",
+  numberOfArticle: z.enum(["10", "30", "50", "70", "100"], {
+    required_error: "Please select number of items",
   }),
   senderName: z
     .string()
@@ -60,6 +60,9 @@ const formSchema = z.object({
     .string()
     .min(1, "Pitch desk prompt is required")
     .max(500, "Pitch desk prompt must be under 500 characters"),
+  mode: z.enum(["firecrawl", "podcast"], {
+    required_error: "Please select mode",
+  }),
 });
 
 export default function CreateNewEmailOutReach() {
@@ -72,12 +75,18 @@ export default function CreateNewEmailOutReach() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       query: "",
-      numberOfArticle: "",
+      numberOfArticle: "10",
       senderName: "",
       freshness: "",
       pitchDeskPrompt: "",
+      mode: "firecrawl",
     },
   });
+
+  const queryValue = form.watch("query");
+  const senderNameValue = form.watch("senderName");
+  const pitchDeskPromptValue = form.watch("pitchDeskPrompt");
+  const modeValue = form.watch("mode");
 
   const onSubmit = async (values) => {
     if (!user?.id) {
@@ -98,10 +107,13 @@ export default function CreateNewEmailOutReach() {
         userId: localStorage.getItem("id"),
         freshness: values.freshness,
         pitchDeskPrompt: values.pitchDeskPrompt,
+        mode: values.mode,
       });
 
       if (jobId) {
-        toast.success("Email outreach module activated successfully!");
+        toast.success(
+          `${modeValue === "podcast" ? "Podcaster" : "Email"} outreach module activated successfully!`,
+        );
         navigate(`/email-outreach-details/${jobId}`);
       } else {
         throw new Error("Failed to activate email outreach module");
@@ -119,10 +131,6 @@ export default function CreateNewEmailOutReach() {
     }
   };
 
-  const queryValue = form.watch("query");
-  const senderNameValue = form.watch("senderName");
-  const pitchDeskPromptValue = form.watch("pitchDeskPrompt");
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-g1 via-g2 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
@@ -132,10 +140,12 @@ export default function CreateNewEmailOutReach() {
               <Mail className="w-6 h-6 text-white" />
             </div>
             <CardTitle className="text-2xl font-bold text-white">
-              Create New Email Outreach
+              Create New {modeValue === "podcast" ? "Podcaster" : "Email"}{" "}
+              Outreach
             </CardTitle>
             <CardDescription className="text-slate-300">
-              Fill in the details to activate your email outreach module
+              Fill in the details to activate your{" "}
+              {modeValue === "podcast" ? "podcaster" : "email"} outreach module
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -180,7 +190,7 @@ export default function CreateNewEmailOutReach() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-slate-200">
-                        Number of Articles
+                        Number of Items
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
@@ -188,21 +198,19 @@ export default function CreateNewEmailOutReach() {
                       >
                         <FormControl>
                           <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500">
-                            <SelectValue placeholder="Select number of articles" />
+                            <SelectValue placeholder="Select number of items" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-slate-700 border-slate-600">
-                          {["50", "100", "200", "300", "400", "500"].map(
-                            (num) => (
-                              <SelectItem
-                                key={num}
-                                value={num}
-                                className="text-white hover:bg-slate-600"
-                              >
-                                {num}
-                              </SelectItem>
-                            ),
-                          )}
+                          {["10", "30", "50", "70", "100"].map((num) => (
+                            <SelectItem
+                              key={num}
+                              value={num}
+                              className="text-white hover:bg-slate-600"
+                            >
+                              {num}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage className="text-red-400" />
@@ -271,6 +279,41 @@ export default function CreateNewEmailOutReach() {
 
                 <FormField
                   control={form.control}
+                  name="mode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-slate-200">Mode</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white focus:border-blue-500 focus:ring-blue-500">
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-slate-700 border-slate-600">
+                          <SelectItem
+                            value="firecrawl"
+                            className="text-white hover:bg-slate-600"
+                          >
+                            Email Outreach
+                          </SelectItem>
+                          <SelectItem
+                            value="podcast"
+                            className="text-white hover:bg-slate-600"
+                          >
+                            Podcaster Outreach
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-red-400" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="pitchDeskPrompt"
                   render={({ field }) => (
                     <FormItem>
@@ -307,7 +350,10 @@ export default function CreateNewEmailOutReach() {
                   ) : (
                     <>
                       <Send className="w-4 h-4 mr-2" />
-                      Create Email Outreach
+                      Create {modeValue === "podcast"
+                        ? "Podcaster"
+                        : "Email"}{" "}
+                      Outreach
                     </>
                   )}
                 </Button>
