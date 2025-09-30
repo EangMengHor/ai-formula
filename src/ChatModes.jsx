@@ -9,21 +9,21 @@ import {
 import { useUser } from "./context/UserContext";
 
 export default function ChatModes({ modes } = { modes: [] }) {
-  const [selectedIndex, setSelectedIndex] = useState(1);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const isInitialRendered = useRef(null);
   const { getMode } = useUser();
   useEffect(() => {
     if (!isInitialRendered.current) {
       const mode = getMode();
-
       if (mode === "swarm") {
-        setSelectedIndex(2);
+        setSelectedIndex(3);
       } else if (mode === "deep") {
-        setSelectedIndex(1);
-      } else {
+        setSelectedIndex(2);
+      } else if (mode === "helios") {
         setSelectedIndex(0);
+      } else {
+        setSelectedIndex(1);
       }
-
       console.log("Selected mode: isSwarmMode in ChatInput 2", mode);
     }
   }, []);
@@ -39,14 +39,16 @@ export default function ChatModes({ modes } = { modes: [] }) {
 
                   mode.onClick && mode.onClick();
                 }}
-                className={`flex items-center justify-center  p-2 rounded-xl transition-all duration-200
+                className={`flex  items-center justify-center  p-2 rounded-xl transition-all duration-200
   ${
     selectedIndex === index
       ? " border drop-shadow-[0_0_4px_rgba(255,255,255,0.8)] border-slate-200  shadow-slate-500/30 shadow"
       : " border border-transparent text-gray-400"
   }`}
               >
-                {mode.icon}
+                <div className="hover:rotate-45 transition-all">
+                  {mode.icon}
+                </div>
               </button>
             </TooltipTrigger>
             <TooltipContent

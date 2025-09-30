@@ -57,6 +57,7 @@ import UserMessage from "@/components/custom/UserMessage";
 import FileBlock from "@/components/custom/generatedFile/FileBlock";
 import RealtimeFinanceFeed from "@/components/custom/finance/RealtimeFinanceFeed";
 import { Pre } from "@/components/custom/CodeBlock";
+import Helios from "@/components/custom/AiInteraction/Helios";
 
 const Conversation = forwardRef(
   (
@@ -119,7 +120,19 @@ const Conversation = forwardRef(
         .replace(
           /\[(\d+)\]/g,
           (_, n) => `<sup data-source="searchCitations-${n}">[${n}]</sup>`,
-        );
+        )
+        // 🚀 remove tags *and their inner content*
+        .replace(/<helios[\s\S]*?<\/helios>/gi, "")
+        .replace(/<metadata[\s\S]*?<\/metadata>/gi, "")
+        .replace(/<executionPlan[\s\S]*?<\/executionPlan>/gi, "")
+        .replace(/<audit[\s\S]*?<\/audit>/gi, "")
+        .replace(/<selfImprovement[\s\S]*?<\/selfImprovement>/gi, "")
+        .replace(/<analysisAgent[\s\S]*?<\/analysisAgent>/gi, "")
+        .replace(/<auditAgent[\s\S]*?<\/auditAgent>/gi, "")
+        .replace(/<finalAnswer[\s\S]*?<\/finalAnswer>/gi, "")
+        // catch-all cleanup
+        .replace(/<\/?[^>]+>/g, "")
+        .trim();
 
       return (
         <div key={`text-${blockIdx}`}>
@@ -531,6 +544,16 @@ const Conversation = forwardRef(
                               name={
                                 block.generalName || "Realtime Finance Feed"
                               }
+                            />
+                          </div>
+                        );
+                      } else if (block.type == "helios") {
+                        console.log(block, "helios");
+                        return (
+                          <div>
+                            <Helios
+                              heliosObject={block ?? false}
+                              isLoading={true}
                             />
                           </div>
                         );
