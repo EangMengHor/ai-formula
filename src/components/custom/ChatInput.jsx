@@ -30,6 +30,7 @@ import {
   Import,
   FileText,
   Code,
+  Aperture,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -256,6 +257,8 @@ function ChatInput({
     isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
     selectedModel,
+    isHeliosAgentMode,
+    setIsHeliosAgentMode,
     setSelectedModel,
     selectIntentModel,
     removeSelectedIntent,
@@ -631,10 +634,22 @@ function ChatInput({
   // Optimize SwarmMode toggle with useCallback
   const modes = [
     {
+      name: "Agentic Helios",
+      icon: <Aperture size={20} className="hover:rotate-90 transition-all" />,
+      description: "Multi-Agent Orchestration with Full Audit Trail",
+      onClick: () => {
+        console.log("clicked aslakdjalskdjalskdj");
+        setIsHeliosAgentMode(true); // Toggle context state
+        setIsSwarmMode(false); // Ensure Swarm mode is off
+        setIsDeepThinkMode(false); // Ensure Deep Think mode is off
+      },
+    },
+    {
       name: "Quick Response",
       icon: <Zap size={20} />,
       description: "Get instant replies for fast decisions.",
       onClick: () => {
+        setIsHeliosAgentMode(false); // Set context state
         setIsSwarmMode(false); // Set context state
         setIsDeepThinkMode(false); // Set context state
       },
@@ -644,6 +659,7 @@ function ChatInput({
       icon: <Brain size={20} />,
       description: "Trigger deeper analysis and thoughtful exploration.",
       onClick: () => {
+        setIsHeliosAgentMode(false); // Set context state
         setIsSwarmMode(false); // Set context state
         setIsDeepThinkMode(true); // Set context state
       },
@@ -653,8 +669,9 @@ function ChatInput({
       icon: <SendToBack size={20} />,
       description: "Use multi-agent logic for advanced automation.",
       onClick: () => {
+        setIsHeliosAgentMode(false); // Ensure Helios mode is off
         console.log(" isSwarmMode in ChatInput 1", isSwarmMode);
-        setIsSwarmMode(!isSwarmMode); // Toggle context state
+        setIsSwarmMode(true); // Toggle context state
       },
     },
   ];

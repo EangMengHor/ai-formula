@@ -29,6 +29,7 @@ export const UserProvider = ({ children }) => {
   const { toast } = useToast(); // Add toast for logout notification
   const tokenRefreshTimerRef = useRef(null); // Reference to store the timer
   const [isDeepThinkMode, setIsDeepThinkMode] = useState(false); // Default to Quick Response
+  const [isHeliosAgentMode, setIsHeliosAgentMode] = useState(true); // helios agent mode
   // swarm
   const [isSwarmMode, setIsSwarmMode] = useState(false);
   const [isAutoSwarmContextState, setIsAutoSwarmContextState] = useState(false);
@@ -130,6 +131,8 @@ export const UserProvider = ({ children }) => {
       return "swarm";
     } else if (isDeepThinkMode) {
       return "deep";
+    } else if (isHeliosAgentMode) {
+      return "helios";
     } else {
       return "quick";
     }
@@ -189,6 +192,8 @@ export const UserProvider = ({ children }) => {
         setCurrActiveIntraction,
         isDeepThinkMode,
         setIsDeepThinkMode,
+        isHeliosAgentMode,
+        setIsHeliosAgentMode,
         isUserBanned,
         setIsUserBanned,
         refreshAccessToken,
@@ -201,7 +206,7 @@ export const UserProvider = ({ children }) => {
         setSelectedModel,
         selectIntentModel,
         removeSelectedIntent,
-        restoredSavedModel
+        restoredSavedModel,
       }}
     >
       {children}

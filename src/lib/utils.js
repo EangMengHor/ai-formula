@@ -1189,3 +1189,194 @@ function parseAgentBlock(agentContent) {
     return result;
 }
 
+export function extractHelios(inp) {
+    const { m, start, end } = inp;
+
+    let inner = m[1].trim();
+
+    // Keep line breaks, collapse only between tags
+    inner = inner.replace(/\r\n/g, "\n").replace(/>\s+</g, "><");
+
+    // --- helpers ---
+    const extractTag = (tag, src = inner) => {
+        const re = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i");
+        const match = re.exec(src);
+        return match ? match[1].trim() : null;
+    };
+
+    const extractTags = (tag, src = inner) => {
+        const re = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "gi");
+        return [...src.matchAll(re)]
+            .map((x) => x[1].trim())
+            .filter(Boolean);
+    };
+
+    const parseAgents = (section) => {
+        const blocks = [
+            ...section.matchAll(/<\|agent\|>([\s\S]*?)<\|end\|>/gi),
+        ];
+        return blocks.map((b) => {
+            const body = b[1];
+            const titleMatch = /<\|title\|\s*([^<]*?)\s*<\|title\|>/i.exec(
+                body,
+            );
+            const title = titleMatch ? titleMatch[1].trim() : "";
+            const goalMatches = [
+                ...body.matchAll(/<\|goal\|\s*([^<]*?)\s*<\|goal\|>/gi),
+            ];
+            const goals = goalMatches.map((g) => g[1].trim());
+            // NEW: extract teams
+            const teamMatches = [
+                ...body.matchAll(/<\|team\|\s*([^<]*?)\s*<\|team\|>/gi),
+            ];
+            const teams = teamMatches.map((t) =>
+                t[1].trim().replace(/^"|"$/g, ""),
+            );
+            let content = body;
+            if (goalMatches.length) {
+                const last = goalMatches[goalMatches.length - 1];
+                content = body.slice(last.index + last[0].length).trim();
+            }
+            return { title, goals, teams, content };
+        });
+    };
+
+    // --- metadata ---
+    let metadata = null;
+    const meta = extractTag("metadata");
+    if (meta) {
+        const rawComplexity = extractTag("complexity", meta);
+        let mappedComplexity = rawComplexity;
+        if (!isNaN(parseFloat(rawComplexity))) {
+            const val = parseFloat(rawComplexity);
+            if (val < 0.33) mappedComplexity = "low";
+            else if (val < 0.66) mappedComplexity = "mid";
+            else mappedComplexity = "high";
+        }
+        metadata = {
+            complexity: mappedComplexity,
+            ragIntelligence: extractTag("ragIntelligence", meta),
+            domain: extractTag("domain", meta),
+            complianceFlags: extractTags("complianceFlag", meta),
+        };
+        inner = inner.replace(/<metadata>[\s\S]*?<\/metadata>/i, "");
+    }
+
+    // --- internetSearchMetadata ---
+    let internetSearchMetadata = null;
+    const ism = extractTag("internetSearchMetadata");
+    if (ism) {
+        const queries = [
+            ...ism.matchAll(/<searchQuery>([\s\S]*?)<\/searchQuery>/gi),
+        ].map((q) => ({
+            query: extractTag("query", q[1]),
+            answer: extractTag("answer", q[1]),
+        }));
+        internetSearchMetadata = {
+            isInternetSearchNeeded:
+                extractTag("isInternetSearchNeeded", ism) === "true",
+            queries,
+        };
+        inner = inner.replace(
+            /<internetSearchMetadata>[\s\S]*?<\/internetSearchMetadata>/i,
+            "",
+        );
+    }
+
+    // --- executionPlan ---
+    const execPlanTag = extractTag("executionPlan");
+    const executionPlan = execPlanTag
+        ? extractTags("step", execPlanTag)
+        : [];
+    if (execPlanTag) {
+        inner = inner.replace(
+            /<executionPlan>[\s\S]*?<\/executionPlan>/i,
+            "",
+        );
+    }
+
+    // --- auditPlan ---
+    const auditPlanTag = extractTag("auditPlan");
+    const auditPlan = auditPlanTag
+        ? extractTags("step", auditPlanTag)
+        : [];
+    if (auditPlanTag) {
+        inner = inner.replace(/<auditPlan>[\s\S]*?<\/auditPlan>/i, "");
+    }
+
+    // --- finalAnswer ---
+    const finalAnswer = extractTag("finalAnswer");
+    if (finalAnswer) {
+        inner = inner.replace(/<finalAnswer>[\s\S]*?<\/finalAnswer>/i, "");
+    }
+
+    // --- selfImprovement ---
+    const selfImprovement = extractTag("selfImprovement");
+    if (selfImprovement) {
+        inner = inner.replace(
+            /<selfImprovement>[\s\S]*?<\/selfImprovement>/i,
+            "",
+        );
+    }
+
+    // --- selfImprovementDataRetrieved ---
+    const selfImprovementDataRetrieved = extractTag(
+        "selfImprovementDataRetrieved",
+    );
+    if (selfImprovementDataRetrieved) {
+        inner = inner.replace(
+            /<selfImprovementDataRetrieved>[\s\S]*?<\/selfImprovementDataRetrieved>/i,
+            "",
+        );
+    }
+
+    // --- audit ---
+    let audit = null;
+    const auditTag = extractTag("audit");
+    if (auditTag) {
+        audit = {
+            quality: extractTag("quality", auditTag),
+            contradictions: extractTags("contradictions", auditTag), // will be [] if empty
+            citationStats: {
+                total: extractTag("total", auditTag),
+                topTier: extractTags("citation", auditTag),
+            },
+            warnings: extractTags("warning", auditTag),
+            // FIX: your data uses <i> and <term>, not improvement/longTermImprovement
+            improvements: extractTags("i", auditTag),
+            longTermImprovements: extractTags("term", auditTag),
+        };
+        inner = inner.replace(/<audit>[\s\S]*?<\/audit>/i, "");
+    }
+
+    // --- agents ---
+    const agents = { auditAgent: [], analysisAgent: [] };
+    const agentRegex = /<(analysisAgent|auditAgent)>([\s\S]*?)<\/\1>/gi;
+    const agentSections = [...inner.matchAll(agentRegex)];
+
+    agentSections.forEach((sec) => {
+        const tagName = sec[1];
+        let content = sec[2];
+        const parsed = parseAgents(content);
+        if (parsed.length) {
+            agents[tagName].push(...parsed);
+        }
+        inner = inner.replace(sec[0], "");
+    });
+
+    return {
+        type: "helios",
+        metadata,
+        internetSearchMetadata,
+        executionPlan,
+        auditPlan,
+        finalAnswer,
+        selfImprovement,
+        selfImprovementDataRetrieved,
+        audit,
+        agents,
+        isComplete: true,
+        start,
+        end,
+    };
+}

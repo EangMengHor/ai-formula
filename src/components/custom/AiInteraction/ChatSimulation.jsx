@@ -11,6 +11,7 @@ export default function ChatSimulation({
   personas,
   isLoading,
   effect = false,
+  wrapper = true,
 }) {
   const { sidebarStack, setSidebarStack } = useStackSidebar();
   const [showAll, setShowAll] = useState(false);
@@ -56,21 +57,23 @@ export default function ChatSimulation({
   }
 
   return (
-    <div className=" md:min-w-[560px] cursor-pointer mt-5 mb-2 bg-gradient-to-r from-g2/70 to-g1/70 w-full px-4 py-4 rounded-2xl max-w-4xl ">
-      <div className="flex w-full justify-between items-center">
-        <div className="flex gap-2 font-semibold items-center ">
-          <Building2 width={20} height={20} />
-          <p>Agentic Simulation</p>
-        </div>
-        {isLoading && (
-          <div className="bg-blue-900 rounded-md flex gap-2 font-semibold px-2 py-1">
-            <LoaderCircle className="animate-spin p-1" />
-            Agents Are Interacting
+    <div
+      className={` md:min-w-[560px] cursor-pointer mt-5 mb-2  w-full ${wrapper ? "p-4 bg-gradient-to-r from-g2/70 to-g1/70" : ""} rounded-2xl max-w-4xl `}
+    >
+      {wrapper && (
+        <div className="flex w-full justify-between items-center">
+          <div className="flex gap-2 font-semibold items-center ">
+            <Building2 width={20} height={20} />
+            <p>Agentic Simulation</p>
           </div>
-        )}
-      </div>
-
-
+          {isLoading && (
+            <div className="bg-blue-900 rounded-md flex gap-2 font-semibold px-2 py-1">
+              <LoaderCircle className="animate-spin p-1" />
+              Agents Are Interacting
+            </div>
+          )}
+        </div>
+      )}
 
       {personas && personas.length == 0 && isLoading ? (
         <div className="flex flex-wrap gap-2 w-full mt-2">
@@ -86,7 +89,7 @@ export default function ChatSimulation({
               <div
                 onClick={() => handleDirectClick(index)}
                 key={index}
-                className="px-2 py-1 bg-blue-950/60 hover:bg-blue-950 rounded-lg font-serif text-slate-300"
+                className={`px-2 py-1 ${!wrapper ? "bg-blue-800" : "bg-blue-950/60 hover:bg-blue-950 "} rounded-lg font-serif text-slate-300`}
               >
                 {persona?.title || "No title"}
               </div>
@@ -109,7 +112,7 @@ export default function ChatSimulation({
         <Button
           onClick={handleDigDeeper}
           variant="default"
-          className="flex gap-2 bg-g2 hover:bg-blue-950"
+          className={`flex gap-2 ${!wrapper ? "bg-blue-900" : "bg-g2 hover:bg-blue-950"} mb-2`}
         >
           <Flame />
           Dig Deeper
