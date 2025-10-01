@@ -654,7 +654,7 @@ function Chat() {
       resetAllStates();
       await Promise.all([getUploadedDocumentHis(), fetchConversations()]);
 
-      //   isReplayMessages();
+      isReplayMessages();
     }
 
     if (isChatLoading) {
@@ -1611,7 +1611,6 @@ function Chat() {
         if (hasHelios && hasSimulation) {
           block.message = block.message.filter((m) => m.type !== "simulation");
         }
-
       }
       return block;
     });
