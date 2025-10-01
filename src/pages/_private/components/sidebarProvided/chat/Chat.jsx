@@ -1611,7 +1611,7 @@ function Chat() {
         if (hasHelios && hasSimulation) {
           block.message = block.message.filter((m) => m.type !== "simulation");
         }
-        
+
       }
       return block;
     });
@@ -1777,6 +1777,7 @@ function Chat() {
       id,
       toast,
       isDeepThinkMode,
+      isHeliosAgentMode,
       isSwarmMode,
       selectedSuperiorPersona,
       isAutoSwarmContextState,
