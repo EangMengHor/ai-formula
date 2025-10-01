@@ -197,9 +197,16 @@ const AttachmentCard = ({
   showIsRemove = true,
   onRemove = () => {},
   isProcessing = false,
+  isHeliosUnsupported = false,
 }) => {
   return (
-    <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
+    <div
+      className={`flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit ${
+        isHeliosUnsupported
+          ? "bg-slate-800/50 border-2 border-dashed border-slate-600"
+          : "bg-slate-800"
+      }`}
+    >
       <div className="p-2 pl-3">
         {isProcessing ? (
           <LoaderCircle className="w-5 h-5 text-blue-400 animate-spin" />
@@ -210,8 +217,14 @@ const AttachmentCard = ({
       <div className="flex items-center gap-2 py-2 pr-4">
         <span className="text-white text-xs h-full min-w-max">
           {title}
-          <p className={`text-slate-400 ${isProcessing ? "opacity-70" : ""}`}>
-            {isProcessing ? "Processing..." : type}
+          <p
+            className={`text-slate-400 ${isProcessing ? "opacity-70" : ""} ${isHeliosUnsupported ? "text-red-400" : ""}`}
+          >
+            {isProcessing
+              ? "Processing..."
+              : isHeliosUnsupported
+                ? "Helios Unsupported"
+                : type}
           </p>
         </span>
       </div>
@@ -294,6 +307,8 @@ function ChatInput({
   const [recentlyCreatedWorkflowResponse, setRecentlyCreatedWorkflowResponse] =
     useState({});
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
+  const [showHeliosTooltip, setShowHeliosTooltip] = useState(false);
+  const prevSelectedModelLength = useRef(selectedModel.length);
 
   // Prompt import states
   const [isPromptImportOpen, setIsPromptImportOpen] = useState(false);
@@ -312,6 +327,17 @@ function ChatInput({
       setRows(2);
     }
   }, [pathname]);
+
+  useEffect(() => {
+    if (
+      isHeliosAgentMode &&
+      selectedModel.length > prevSelectedModelLength.current
+    ) {
+      setShowHeliosTooltip(true);
+      setTimeout(() => setShowHeliosTooltip(false), 4000);
+    }
+    prevSelectedModelLength.current = selectedModel.length;
+  }, [selectedModel, isHeliosAgentMode]);
 
   // Mobile detection
   useEffect(() => {
@@ -639,6 +665,10 @@ function ChatInput({
       description: "Multi-Agent Orchestration with Full Audit Trail",
       onClick: () => {
         console.log("clicked aslakdjalskdjalskdj");
+        if (selectedModel.length > 0) {
+          setShowHeliosTooltip(true);
+          setTimeout(() => setShowHeliosTooltip(false), 2000);
+        }
         setIsHeliosAgentMode(true); // Toggle context state
         setIsSwarmMode(false); // Ensure Swarm mode is off
         setIsDeepThinkMode(false); // Ensure Deep Think mode is off
@@ -696,6 +726,11 @@ function ChatInput({
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">
+      {showHeliosTooltip && (
+        <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg z-50">
+          Helios doesn't support intent models yet. Use other modes.
+        </div>
+      )}
       {/* scroll to bottom */}
       {pathname !== "/dashboard" && (
         <div className="w-full absolute -top-14 flex justify-end items-center">
@@ -748,6 +783,7 @@ function ChatInput({
                           removeSelectedIntent(model, id);
                         }}
                         icon={<Boxes className="w-5 h-5" />}
+                        isHeliosUnsupported={isHeliosAgentMode}
                       />
                     );
                   })}
