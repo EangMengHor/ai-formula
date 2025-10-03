@@ -30,6 +30,7 @@ import {
   Import,
   FileText,
   Code,
+  Aperture,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -95,9 +96,16 @@ const AttachmentCard = ({
   showIsRemove = true,
   onRemove = () => {},
   isProcessing = false,
+  isHeliosUnsupported = false,
 }) => {
   return (
-    <div className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800">
+    <div
+      className={`flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit ${
+        isHeliosUnsupported
+          ? "bg-slate-800/50 border-2 border-dashed border-slate-600"
+          : "bg-slate-800"
+      }`}
+    >
       <div className="p-2 pl-3">
         {isProcessing ? (
           <LoaderCircle className="w-5 h-5 text-blue-400 animate-spin" />
@@ -108,8 +116,14 @@ const AttachmentCard = ({
       <div className="flex items-center gap-2 py-2 pr-4">
         <span className="text-white text-xs h-full min-w-max">
           {title}
-          <p className={`text-slate-400 ${isProcessing ? "opacity-70" : ""}`}>
-            {isProcessing ? "Processing..." : type}
+          <p
+            className={`text-slate-400 ${isProcessing ? "opacity-70" : ""} ${isHeliosUnsupported ? "text-red-400" : ""}`}
+          >
+            {isProcessing
+              ? "Processing..."
+              : isHeliosUnsupported
+                ? "Helios Unsupported"
+                : type}
           </p>
         </span>
       </div>
@@ -155,6 +169,8 @@ function ChatInput({
     isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
     selectedModel,
+    isHeliosAgentMode,
+    setIsHeliosAgentMode,
     setSelectedModel,
     selectIntentModel,
     removeSelectedIntent,
@@ -190,6 +206,8 @@ function ChatInput({
   const [recentlyCreatedWorkflowResponse, setRecentlyCreatedWorkflowResponse] =
     useState({});
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
+  const [showHeliosTooltip, setShowHeliosTooltip] = useState(false);
+  const prevSelectedModelLength = useRef(selectedModel.length);
 
   const { user } = useUser();
 
@@ -199,6 +217,102 @@ function ChatInput({
     }
   }, [pathname]);
 
+  useEffect(() => {
+    if (
+      isHeliosAgentMode &&
+      selectedModel.length > prevSelectedModelLength.current
+    ) {
+      setShowHeliosTooltip(true);
+      setTimeout(() => setShowHeliosTooltip(false), 4000);
+    }
+    prevSelectedModelLength.current = selectedModel.length;
+  }, [selectedModel, isHeliosAgentMode]);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Fetch user prompts
+  const fetchUserPrompts = useCallback(async () => {
+    if (!user?.id) return;
+
+    setIsLoadingPrompts(true);
+    try {
+      const prompts = await getPrompts(user.id);
+      setUserPrompts(prompts);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch prompts",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrompts(false);
+    }
+  }, [user?.id, toast]);
+
+  // Handle prompt import dialog open
+  const handlePromptImportOpen = useCallback(
+    (open) => {
+      setIsPromptImportOpen(open);
+      if (open) {
+        fetchUserPrompts();
+      }
+    },
+    [fetchUserPrompts],
+  );
+
+  // Handle prompt deletion
+  const handleDeletePrompt = useCallback(
+    async (promptId) => {
+      if (!user?.id) return;
+
+      setDeletingPromptId(promptId);
+      try {
+        await deletePrompt({ id: promptId, userId: user.id });
+        setUserPrompts((prev) => prev.filter((p) => p.id !== promptId));
+        toast({
+          title: "Success",
+          description: "Prompt deleted successfully",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete prompt",
+          variant: "destructive",
+        });
+      } finally {
+        setDeletingPromptId(null);
+      }
+    },
+    [user?.id, toast],
+  );
+
+  // Handle prompt import (text or JSON)
+  const handleImportPrompt = useCallback((prompt, mode) => {
+    setSelectedPrompt(prompt);
+    // Set mode to "both" for full view to show both JSON and text
+    setPromptViewMode(mode === "full" ? "both" : mode);
+    setIsPromptViewOpen(true);
+  }, []);
+
+  // Copy prompt to input
+  const copyPromptToInput = useCallback(
+    (promptText) => {
+      setInput(promptText);
+      setIsPromptViewOpen(false);
+      setIsPromptImportOpen(false);
+      toast({
+        title: "Success",
+        description: "Prompt imported successfully",
+      });
+    },
+    [setInput, toast],
+  );
   useEffect(() => {
     restoreSavedWorkflow(id);
     restoredSavedModel(id);
@@ -435,10 +549,26 @@ function ChatInput({
   // Optimize SwarmMode toggle with useCallback
   const modes = [
     {
+      name: "Agentic Helios",
+      icon: <Aperture size={20} className="hover:rotate-90 transition-all" />,
+      description: "Multi-Agent Orchestration with Full Audit Trail",
+      onClick: () => {
+        console.log("clicked aslakdjalskdjalskdj");
+        if (selectedModel.length > 0) {
+          setShowHeliosTooltip(true);
+          setTimeout(() => setShowHeliosTooltip(false), 2000);
+        }
+        setIsHeliosAgentMode(true); // Toggle context state
+        setIsSwarmMode(false); // Ensure Swarm mode is off
+        setIsDeepThinkMode(false); // Ensure Deep Think mode is off
+      },
+    },
+    {
       name: "Quick Response",
       icon: <Zap size={20} />,
       description: "Get instant replies for fast decisions.",
       onClick: () => {
+        setIsHeliosAgentMode(false); // Set context state
         setIsSwarmMode(false); // Set context state
         setIsDeepThinkMode(false); // Set context state
       },
@@ -448,6 +578,7 @@ function ChatInput({
       icon: <Brain size={20} />,
       description: "Trigger deeper analysis and thoughtful exploration.",
       onClick: () => {
+        setIsHeliosAgentMode(false); // Set context state
         setIsSwarmMode(false); // Set context state
         setIsDeepThinkMode(true); // Set context state
       },
@@ -457,8 +588,9 @@ function ChatInput({
       icon: <SendToBack size={20} />,
       description: "Use multi-agent logic for advanced automation.",
       onClick: () => {
+        setIsHeliosAgentMode(false); // Ensure Helios mode is off
         console.log(" isSwarmMode in ChatInput 1", isSwarmMode);
-        setIsSwarmMode(!isSwarmMode); // Toggle context state
+        setIsSwarmMode(true); // Toggle context state
       },
     },
   ];
@@ -483,6 +615,11 @@ function ChatInput({
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">
+      {showHeliosTooltip && (
+        <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg z-50">
+          Helios doesn't support intent models yet. Use other modes.
+        </div>
+      )}
       {/* scroll to bottom */}
       {pathname !== "/dashboard" && (
         <div className="w-full absolute -top-14 flex justify-end items-center">
@@ -535,6 +672,7 @@ function ChatInput({
                           removeSelectedIntent(model, id);
                         }}
                         icon={<Boxes className="w-5 h-5" />}
+                        isHeliosUnsupported={isHeliosAgentMode}
                       />
                     );
                   })}

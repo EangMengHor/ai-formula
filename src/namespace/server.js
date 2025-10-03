@@ -144,3 +144,5 @@ export const triggerDashboardRecommendationUrl = `${import.meta.env.VITE_SOCKET_
 export const activateEmailOutreachModuleUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/start-email-outreach-module`;
 export const getUserEmailOutreachJobsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getUserEmailJobs/:userId`;
 export const getEmailOutreachJobDetailsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getEmailJobDetails/:jobId`;
+export const getJobEngagementUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getJobEngagementData/:jobId`;
+export const getUserEngagementUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getAllReply/:userId`;

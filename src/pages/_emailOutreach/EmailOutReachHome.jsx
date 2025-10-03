@@ -114,7 +114,7 @@ export default function EmailOutReachHome() {
 
   const handleCheckEngagements = () => {
     // TODO: Implement check engagements functionality
-    toast.info("Check engagements feature coming soon!");
+    navigate("/email-outreach-analytics");
   };
 
   const handleJobClick = (jobId) => {
@@ -214,8 +214,7 @@ export default function EmailOutReachHome() {
               return (
                 <div
                   key={job.id}
-                  onClick={() => handleJobClick(job.id)}
-                  className="bg-g1 hover:bg-g2 transition-all duration-300 rounded-xl p-6 cursor-pointer border border-slate-700 hover:border-slate-600 group"
+                  className="bg-g1 hover:bg-g2 transition-all duration-300 rounded-xl p-6 border border-slate-700 hover:border-slate-600 group"
                 >
                   {/* Status Badge */}
                   <div
@@ -258,6 +257,30 @@ export default function EmailOutReachHome() {
                         {job.numberOfArticles || 0}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/email-outreach-engagement/${job.id}`);
+                      }}
+                      className="flex-1 bg-g1 hover:bg-g2 text-white border border-slate-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <BarChart3 className="w-4 h-4" />
+                      Show Analytics
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/email-outreach-details/${job.id}`);
+                      }}
+                      className="flex-1 bg-g1 hover:bg-g2 text-white border border-slate-600 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Show Campaign
+                    </button>
                   </div>
                 </div>
               );

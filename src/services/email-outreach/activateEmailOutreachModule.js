@@ -8,6 +8,7 @@ export async function activateEmailOutreachModule({
     userId = "",
     freshness = "week",
     pitchDeskPrompt = "",
+    mode = "firecrawl"
 }) {
     try {
         const response = await axios.post(activateEmailOutreachModuleUrl, {
@@ -16,7 +17,8 @@ export async function activateEmailOutreachModule({
             senderName,
             userId,
             freshness,
-            pitchDeskPrompt
+            pitchDeskPrompt,
+            mode
         });
 
         if (response.data?.data?.jobId) {

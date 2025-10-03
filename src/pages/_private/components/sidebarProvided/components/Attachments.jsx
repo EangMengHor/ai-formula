@@ -1,5 +1,5 @@
 import { FileInput, Grid3x3, Orbit, WorkflowIcon, Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { promptTemplate } from "@/lib/config";
 import { useUser } from "@/context/UserContext";
@@ -62,7 +62,7 @@ const contentVariants = {
 //             "citations": [],
 //             "triggerLogId": 296
 //         },
-function Rec({ data }) {
+const Rec = memo(({ data }) => {
   return (
     <Link
       to={`/triggersDetail/${data.id}`}
@@ -80,9 +80,9 @@ function Rec({ data }) {
       </div>
     </Link>
   );
-}
+});
 
-export default function Attachments({ onSubmit }) {
+const Attachments = ({ onSubmit }) => {
   const [direction, setDirection] = useState(0);
   const [recommendations, setRecommendations] = useState([]);
 
@@ -110,4 +110,6 @@ export default function Attachments({ onSubmit }) {
       )}
     </div>
   );
-}
+};
+
+export default memo(Attachments);

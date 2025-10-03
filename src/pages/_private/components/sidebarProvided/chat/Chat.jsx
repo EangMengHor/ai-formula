@@ -30,7 +30,7 @@ import { abortSSEChat } from "@/services/abortSSEChat";
 import { isReplay } from "@/services/isReplay";
 import { replayStream } from "@/services/replayStream";
 import SidebarVectorStoreScrapper from "@/components/custom/webVectorStoreScrapper/SidebarVectorStoreScrapper";
-import { sanitizeFileName } from "@/lib/utils";
+import { extractHelios, sanitizeFileName } from "@/lib/utils";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import SidebarUrlShower from "@/components/custom/urlScraperSidebar/SidebarUrlShower";
 import OsintNewInstanceSidebar from "@/components/custom/osint/OsintNewInstanceSidebar";
@@ -71,6 +71,7 @@ function Chat() {
     isAutoSwarmContextState,
     selectedSuperiorPersona,
     isDeepThinkMode,
+    isHeliosAgentMode,
     setIsUserBanned,
     refreshAccessToken,
     selectedModel,
@@ -834,63 +835,130 @@ function Chat() {
           );
 
           setConversation((prevConv) => {
-            console.log("🔄 Updating conversation...");
             const convCopy = [...prevConv];
             let lastSim = convCopy[convCopy.length - 1];
 
-            console.log("📌 Last message before update:", lastSim);
-
-            const isLastMessageSimulation =
-              lastSim &&
-              lastSim.type === "simulation" &&
-              Array.isArray(lastSim.message) &&
-              lastSim.message.length > 0 &&
-              lastSim.message[0]?.type === "simulation";
-
-            console.log(
-              "✅ Is last message a simulation?",
-              isLastMessageSimulation,
+            const simArray = Array.isArray(simItems) ? simItems : [simItems];
+            const validItems = simArray.filter(
+              (item) => item !== undefined && item !== null,
             );
 
-            if (!isLastMessageSimulation) {
-              console.log("➕ Creating new simulation message");
-              lastSim = newAiMessage("simulation");
-              convCopy.push(lastSim);
-            }
+            if (
+              lastSim &&
+              lastSim.type === "helios" &&
+              lastSim.message?.[0]?.type === "helios"
+            ) {
+              // ✅ push into HELIOS analysisAgent
+              lastSim.message[0].agents = {
+                ...(lastSim.message[0].agents || {
+                  auditAgent: [],
+                  analysisAgent: [],
+                }),
+                analysisAgent: [
+                  ...(lastSim.message[0].agents?.analysisAgent || []),
+                  ...validItems,
+                ],
+              };
+            } else {
+              // fallback → simulation handling
+              const isLastMessageSimulation =
+                lastSim &&
+                lastSim.type === "simulation" &&
+                Array.isArray(lastSim.message) &&
+                lastSim.message.length > 0 &&
+                lastSim.message[0]?.type === "simulation";
 
-            if (!lastSim.message || lastSim.message.length === 0) {
-              console.log("🆕 Initializing message array");
-              lastSim.message = [{ type: "simulation", items: [] }];
-            }
-
-            // ✅ Ensure simItems is an array
-            const simArray = Array.isArray(simItems) ? simItems : [simItems];
-
-            // 🚨 Track incoming items
-            console.log("📥 Incoming simItems:", simArray);
-
-            // ✅ Filter invalid entries
-            const validItems = simArray.filter((item, index) => {
-              const isValid = item !== undefined && item !== null;
-              if (!isValid) {
-                console.warn(
-                  `⚠️ Item at index ${index} is invalid (filtered out):`,
-                  item,
-                );
+              if (!isLastMessageSimulation) {
+                lastSim = newAiMessage("simulation");
+                convCopy.push(lastSim);
               }
-              return isValid;
-            });
 
-            console.log("✅ Valid items after filtering:", validItems);
+              if (!lastSim.message || lastSim.message.length === 0) {
+                lastSim.message = [{ type: "simulation", items: [] }];
+              }
 
-            lastSim.message[0].items.push(...validItems);
+              lastSim.message[0].items.push(...validItems);
+            }
 
-            console.log("📤 Updated conversation message:", lastSim.message);
-
+            console.log("📤 Updated conversation with swarm:", lastSim);
             return convCopy;
           });
         });
         return prev;
+      }
+      // --- utility merge helper ---
+      function mergeHeliosData(target, parsed) {
+        const keep = (newVal, oldVal) =>
+          newVal !== null &&
+          newVal !== undefined &&
+          !(Array.isArray(newVal) && newVal.length === 0)
+            ? newVal
+            : oldVal;
+
+        return {
+          ...target,
+          type: "helios",
+          metadata: keep(parsed.metadata, target.metadata),
+          internetSearchMetadata: keep(
+            parsed.internetSearchMetadata,
+            target.internetSearchMetadata,
+          ),
+          finalAnswer: keep(parsed.finalAnswer, target.finalAnswer),
+          selfImprovement: keep(parsed.selfImprovement, target.selfImprovement),
+          selfImprovementDataRetrieved: keep(
+            parsed.selfImprovementDataRetrieved,
+            target.selfImprovementDataRetrieved,
+          ),
+          audit: keep(parsed.audit, target.audit),
+
+          // arrays → merge instead of replace
+          executionPlan: [
+            ...(target.executionPlan || []),
+            ...(parsed.executionPlan || []),
+          ],
+          auditPlan: [...(target.auditPlan || []), ...(parsed.auditPlan || [])],
+
+          // agents → merge arrays too
+          agents: {
+            auditAgent: [
+              ...(target.agents?.auditAgent || []),
+              ...(parsed.agents?.auditAgent || []),
+            ],
+            analysisAgent: [
+              ...(target.agents?.analysisAgent || []),
+              ...(parsed.agents?.analysisAgent || []),
+            ],
+          },
+        };
+      }
+      if (
+        event.type === "HELIOS_Metadata" ||
+        event.type === "HELIOS_search" ||
+        event.type === "HELIOS_RAG" ||
+        event.type === "HELIOS_Execution_Plan" ||
+        event.type === "HELIOS_selfImproved" ||
+        event.type === "helios_short_answer_complete" ||
+        event.type === "HELIOS_audit_plan"
+      ) {
+        const parsed = extractHelios({
+          m: [null, event.message || ""],
+          start: event.start || 0,
+          end: event.end || 0,
+        });
+
+        if (!last || last.type !== "helios") {
+          last = newAiMessage("helios");
+          conv.push(last);
+        }
+
+        if (!last.message || !last.message[0]) {
+          last.message = [{ type: "helios" }];
+        }
+
+        last.message[0] = mergeHeliosData(last.message[0], parsed);
+
+        console.log("🛰 HELIOS merged:", event.type, last.message[0]);
+        return conv;
       }
 
       /* 2. finalResponse → streaming message */
@@ -969,6 +1037,12 @@ function Chat() {
         setIsAborting(false);
         last.isAbortManually = true;
       }
+
+      //   Helios
+      if (event.type == "HELIOS_Metadata") {
+        console.log(event, "helios metadata event");
+      }
+
       // {
       //     "type": "crawlPageStatus",
       //     "cid": "bcdce60c-5750-479f-9dee-a6546912c47f",
@@ -1103,10 +1177,20 @@ function Chat() {
     }
     return result;
   }
-
+  function normalizeForDetection(str) {
+    return (
+      str
+        // clean up opening/closing tag markers with spaces or newlines
+        .replace(/<\s*\/\s*([a-zA-Z0-9_-]+)\s*>/g, (_, tag) => `</${tag}>`)
+        .replace(/<\s*([a-zA-Z0-9_-]+)\s*>/g, (_, tag) => `<${tag}>`)
+        // tighten up >   < into ><
+        .replace(/>\s+</g, "><")
+    );
+  }
   const processStreamingContent = (input, forceComplete = false) => {
     if (!input) return [];
-
+    input = normalizeForDetection(input);
+    console.log("Processing streaming content:", normalizeForDetection(input));
     /** helper to push a text block if non-empty */
     const pushText = (arr, txt) => {
       const t = txt.trim();
@@ -1156,6 +1240,7 @@ function Chat() {
 
     // --- 2. Mask document spans to avoid nested matches ---
     let masked = input;
+    console.log(masked, "masked before document");
     documentBlocks.forEach(({ start, end }) => {
       masked =
         masked.slice(0, start) + " ".repeat(end - start) + masked.slice(end);
@@ -1163,6 +1248,20 @@ function Chat() {
 
     // --- 3. Define other block patterns ---
     const blockDefs = [
+      {
+        type: "helios",
+        regex: /\s*<helios>([\s\S]*?)<\/helios>\s*/gi,
+        handler: (m, start, end) => {
+          console.log("Helios block match", m);
+          const res = extractHelios({
+            m,
+            start,
+            end,
+          });
+
+          return res;
+        },
+      },
       {
         type: "visual",
         regex: /<visual>([\s\S]*?)<\/visual>/gi,
@@ -1195,6 +1294,7 @@ function Chat() {
           end,
         }),
       },
+
       {
         type: "automationDaily",
         regex: /<automationCard>([\s\S]*?)<\/automationCard>/gi,
@@ -1489,10 +1589,33 @@ function Chat() {
       };
       const filtered = result.filter((b) => b.type !== "persona");
       filtered.splice(idx, 0, simulation);
+      // Remove simulation if a helios block also exists in the same message
+      const hasHelios = filtered.some((b) => b.type === "helios");
+      if (hasHelios) {
+        return filtered.filter((b) => b.type !== "simulation");
+      }
       return filtered;
     }
 
-    return result;
+    // If no personas: also check for helios+simulation mix inside message objects
+    const cleaned = result.map((block) => {
+      if (
+        block.role === "ai" &&
+        block.message &&
+        Array.isArray(block.message)
+      ) {
+        const hasHelios = block.message.some((m) => m.type === "helios");
+        const hasSimulation = block.message.some(
+          (m) => m.type === "simulation",
+        );
+        if (hasHelios && hasSimulation) {
+          block.message = block.message.filter((m) => m.type !== "simulation");
+        }
+      }
+      return block;
+    });
+
+    return cleaned;
   };
 
   // Function to ensure history content is properly parsed and all blocks are marked complete
@@ -1511,7 +1634,14 @@ function Chat() {
       ];
     }
   };
-
+  useEffect(() => {
+    console.log(
+      isDeepThinkMode,
+      isHeliosAgentMode,
+      isSwarmMode,
+      "aslakdjalskdjalskdj",
+    );
+  }, [isDeepThinkMode, isHeliosAgentMode, isSwarmMode]);
   const handleSubmit = useCallback(
     async (prompt, isRetry = false) => {
       console.log(
@@ -1541,11 +1671,21 @@ function Chat() {
       setIsNextChatLoading(true);
       const prevPrompt = prompt;
       setPrompt("");
-
+      console.log(
+        isDeepThinkMode,
+        isHeliosAgentMode,
+        isSwarmMode,
+        "aslakdjalskdjalskdj",
+      );
       const payload = {
         prompt,
         sessionId: id,
-        mode: isDeepThinkMode ? "deep" : "quick",
+        mode:
+          isDeepThinkMode && !isHeliosAgentMode
+            ? "deep"
+            : isHeliosAgentMode
+              ? "helios"
+              : "quick",
         isSwarm: isSwarmMode,
         swarmIds: selectedSuperiorPersona?.map((p) => p.id) || [],
         isAutoSwarm: isAutoSwarmContextState,
@@ -1636,6 +1776,7 @@ function Chat() {
       id,
       toast,
       isDeepThinkMode,
+      isHeliosAgentMode,
       isSwarmMode,
       selectedSuperiorPersona,
       isAutoSwarmContextState,
