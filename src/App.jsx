@@ -54,6 +54,7 @@ import CreateNewEmailOutReach from "./pages/_emailOutreach/CreateNewEmailOutReac
 import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
 import EmailOutReachAnalytics from "./pages/_emailOutreach/EmailOutReachAnalytics";
 import EmailOutReachEachEngagement from "./pages/_emailOutreach/EmailOutReachEachEngagement";
+import PromptBuilder from "./pages/_promptBuilder/PromptBuilder";
 
 export default function App() {
   const location = useLocation();
@@ -95,6 +96,9 @@ export default function App() {
           <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
+            {/* prompt builder */}
+            <Route path="/prompt-builder" element={<PromptBuilder />} />
+
             {/* email outreach */}
             <Route
               path="/create-new-email-outreach"

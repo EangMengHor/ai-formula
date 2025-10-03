@@ -55,11 +55,7 @@ export const WorkflowProvider = ({ children }) => {
       } catch (error) {
         console.error("Error fetching user workflows:", error);
         if (isMounted) {
-          toast({
-            title: "Error",
-            description: "Failed to fetch user workflows",
-            variant: "destructive",
-          });
+          toast.error("Failed to fetch user workflows");
         }
       }
     }
@@ -74,8 +70,7 @@ export const WorkflowProvider = ({ children }) => {
     (workflowId, sessionId) => {
       console.log(workflowId, "selecting workflow", sessionId);
       if (workflowId === null) {
-        toast({
-          title: "Workflow removed",
+        toast("Workflow removed", {
           description: "No workflow selected for this conversation",
         });
         storeInLocalStorage(sessionId, "remove", null);
@@ -85,8 +80,7 @@ export const WorkflowProvider = ({ children }) => {
 
       const workflow = workflowList.find((w) => w.id === workflowId);
       if (workflow) {
-        toast({
-          title: "Workflow selected",
+        toast.success("Workflow selected", {
           description: `${workflow.name} with ${workflow.personaList.length} ${
             workflow.personaList.length > 1 ? "personas" : "persona"
           } has been selected for this conversation`,

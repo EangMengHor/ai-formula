@@ -1,40 +1,27 @@
 "use client";
 
 import {
-  Codesandbox,
-  Delete,
   DeleteIcon,
   Ellipsis,
   Loader,
-  MoreHorizontal,
   Pencil,
   Search,
   SquareDashed,
-  Trash,
   X,
 } from "lucide-react";
 
-import {
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { SidebarGroup, SidebarMenu, useSidebar } from "@/components/ui/sidebar";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 

@@ -1,36 +1,24 @@
 import {
   ArrowDownToDot,
-  ArrowLeftRight,
   ArrowUp,
   AudioLines,
-  AudioWaveform,
   Brain,
-  Camera,
   CircleFadingPlus,
   CirclePause,
   Grid2x2,
   Loader2,
   LoaderCircle,
-  MonitorUp,
-  Paperclip,
   SendToBack,
-  Sparkles,
   SquareDashed,
   X,
   Zap,
   Settings2,
   Database,
-  Component,
   Boxes,
-  Hammer,
-  Trash2,
-  Eye,
-  Copy,
-  Calendar,
-  Import,
   FileText,
-  Code,
   Aperture,
+  Mic,
+  Anvil,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -39,34 +27,25 @@ import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
 import AudioRecorder from "./audio-input/AudioRecorder";
 import { useLocation, useParams } from "react-router-dom";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useUser } from "../../context/UserContext";
 import { motion } from "framer-motion";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogTitle,
-  DialogDescription,
-  DialogHeader,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "../../hooks/use-toast";
 import { Button } from "../ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { useDomain } from "@/context/WhichDomainContext";
-import { getPromptEnhancerApi } from "@/services/n8n-apis/_core/getPromptEnhancer.api";
 import { useWorkflow } from "../../context/WorkflowContext";
 import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUserSavedWorflow";
 import { debounce, set } from "lodash";
@@ -75,18 +54,8 @@ import { useCollection } from "../../context/CollectionContext";
 import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 import VoiceInputBlock from "./VoiceTVoice/VoiceInputBlock";
 import ChatModes from "@/ChatModes";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
-import { Pre } from "./CodeBlock";
+import PromptLibrary from "./PromptLibrary";
+
 const maxRows = 30;
 
 const AttachmentCard = ({
@@ -159,7 +128,7 @@ function ChatInput({
   const { isPublicDomain, domainState } = useDomain();
   const { id } = useParams();
   const { pathname } = useLocation();
-  const { fileCount, memorizedFiles, resetAllStates, files, setFiles } =
+  const { memorizedFiles, resetAllStates, files, setFiles } =
     useFilesUploadMetadata();
   const {
     isSwarmMode,
@@ -182,11 +151,6 @@ function ChatInput({
   const [isTransribed, setIsTransribed] = useState(false);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [isPromptEnhancerLoading, setIsPromptEnhancerLoading] = useState(false);
-  const [isPromptEnchanced, setIsPromptEnhanced] = useState(false);
-  const [prevUnenchancedPrompt, setPrevUnenchancedPrompt] = useState("");
-  // Add a ref to track if input is being set by enhancer API
-  const isEnhancerApiUpdateRef = useRef(false);
   const { toggleCollectionSelection, getSelectedCollections } = useCollection();
   const selectedCollections = getSelectedCollections();
   const [isKnowledgeBlockSelectorOpen, setIsKnowledgeBlockSelectorOpen] =
@@ -207,6 +171,7 @@ function ChatInput({
     useState({});
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
   const [showHeliosTooltip, setShowHeliosTooltip] = useState(false);
+  const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const prevSelectedModelLength = useRef(selectedModel.length);
 
   const { user } = useUser();
@@ -228,91 +193,6 @@ function ChatInput({
     prevSelectedModelLength.current = selectedModel.length;
   }, [selectedModel, isHeliosAgentMode]);
 
-  // Mobile detection
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // Fetch user prompts
-  const fetchUserPrompts = useCallback(async () => {
-    if (!user?.id) return;
-
-    setIsLoadingPrompts(true);
-    try {
-      const prompts = await getPrompts(user.id);
-      setUserPrompts(prompts);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch prompts",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingPrompts(false);
-    }
-  }, [user?.id, toast]);
-
-  // Handle prompt import dialog open
-  const handlePromptImportOpen = useCallback(
-    (open) => {
-      setIsPromptImportOpen(open);
-      if (open) {
-        fetchUserPrompts();
-      }
-    },
-    [fetchUserPrompts],
-  );
-
-  // Handle prompt deletion
-  const handleDeletePrompt = useCallback(
-    async (promptId) => {
-      if (!user?.id) return;
-
-      setDeletingPromptId(promptId);
-      try {
-        await deletePrompt({ id: promptId, userId: user.id });
-        setUserPrompts((prev) => prev.filter((p) => p.id !== promptId));
-        toast({
-          title: "Success",
-          description: "Prompt deleted successfully",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to delete prompt",
-          variant: "destructive",
-        });
-      } finally {
-        setDeletingPromptId(null);
-      }
-    },
-    [user?.id, toast],
-  );
-
-  // Handle prompt import (text or JSON)
-  const handleImportPrompt = useCallback((prompt, mode) => {
-    setSelectedPrompt(prompt);
-    // Set mode to "both" for full view to show both JSON and text
-    setPromptViewMode(mode === "full" ? "both" : mode);
-    setIsPromptViewOpen(true);
-  }, []);
-
-  // Copy prompt to input
-  const copyPromptToInput = useCallback(
-    (promptText) => {
-      setInput(promptText);
-      setIsPromptViewOpen(false);
-      setIsPromptImportOpen(false);
-      toast({
-        title: "Success",
-        description: "Prompt imported successfully",
-      });
-    },
-    [setInput, toast],
-  );
   useEffect(() => {
     restoreSavedWorkflow(id);
     restoredSavedModel(id);
@@ -426,52 +306,6 @@ function ChatInput({
       setIsWorkflowCreatorLoading(false);
     }
   }, [conversationProp, user, workflowPrompt, toast]);
-
-  // Memoize the prompt enhancer function
-  const enchancePrompt = useCallback(async () => {
-    try {
-      setPrevUnenchancedPrompt(input);
-      setIsPromptEnhancerLoading(true);
-
-      if (!input || input.length < 5) {
-        throw new Error("Please enter a valid prompt.");
-      } else if (isPromptEnchanced) {
-        toast({
-          title: "Prompt Already Enhanced",
-          description: `Please enter a new prompt to enhance`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const getPromptEnhanced = await getPromptEnhancerApi(input);
-      isEnhancerApiUpdateRef.current = true;
-      setInput(getPromptEnhanced);
-      setIsPromptEnhanced(true);
-      setRows(13);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Something went wrong while enhancing the prompt : ${error.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsPromptEnhancerLoading(false);
-    }
-  }, [input, isPromptEnchanced, toast]);
-
-  // Memoize the undo function
-  const onUndoPromptEnhance = useCallback(() => {
-    isEnhancerApiUpdateRef.current = true;
-    setInput(prevUnenchancedPrompt);
-    setIsPromptEnhanced(false);
-    setPrevUnenchancedPrompt("");
-    toast({
-      title: "Prompt Enhancement Reverted",
-      description: `The prompt has been reverted to its original state.`,
-      variant: "default",
-    });
-  }, [prevUnenchancedPrompt, toast]);
 
   const textareaRef = useRef(null);
 
@@ -743,7 +577,7 @@ function ChatInput({
             />
 
             <div className="flex items-center w-full ">
-              <div className="flex justify-between w-full gap-2 ">
+              <div className="flex justify-between items-center w-full gap-2 ">
                 <div className="flex gap-2">
                   <div className="flex gap-2 rounded-md">
                     <AudioRecorder
@@ -754,42 +588,18 @@ function ChatInput({
                     />
                   </div>
                   <FileUploadDialog />
-
-                  {/* chat mode */}
-
-                  <div
-                    className={`${isPublicDomain && "hidden"}  rounded-xl hover:bg-gray-800 cursor-pointer `}
+                  <button
+                    className="flex gap-2 hover:bg-slate-800 p-2 rounded-xl cursor-pointer border-none bg-transparent"
+                    onClick={() => setIsPromptLibraryOpen(true)}
+                    title="Open Prompt Library"
+                    type="button"
                   >
-                    {isPromptEnchanced ? (
-                      <div
-                        onClick={onUndoPromptEnhance}
-                        className="flex gap-2 items-center"
-                      >
-                        <ArrowLeftRight className="w-5 h-5 p-2 text-white drop-shadow-[0_0_2px_rgba(255,255,255,0.8)] z-10" />
-                        <p className="text-sm font-semibold text-white">Undo</p>
-                      </div>
-                    ) : isPromptEnhancerLoading ? (
-                      <LoaderCircle className="animate-spin w-5 h-5 text-white" />
-                    ) : (
-                      <div onClick={enchancePrompt}>
-                        <TooltipProvider>
-                          <Tooltip delayDuration={0}>
-                            <TooltipTrigger>
-                              <div className="cursor-pointer flex p-2 items-center rounded-xl hover:bg-gray-800">
-                                <Sparkles className="w-5 h-5 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm text-center">
-                              <p>Enhance your Prompt</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    )}
-                  </div>
+                    <Anvil className="w-5 h-5 drop-shadow-[0_0_4px_rgba(255,255,255,0.8)]" />
+                  </button>
+                  {/* chat mode */}
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex justify-center items-center">
                   <div className="flex gap-1 items-center">
                     <DropdownMenu>
                       <DropdownMenuTrigger>
@@ -1012,6 +822,20 @@ function ChatInput({
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Prompt Library */}
+      <PromptLibrary
+        isOpen={isPromptLibraryOpen}
+        onClose={() => setIsPromptLibraryOpen(false)}
+        onImportPrompt={(prompt) => {
+          setInput(prompt.output || "");
+          toast({
+            title: "Prompt imported",
+            description: `"${prompt.promptName || "Untitled"}" has been imported to the input field.`,
+          });
+        }}
+      />
+
       <div className="p-2 bg-black -mt-2"></div>
     </div>
   );

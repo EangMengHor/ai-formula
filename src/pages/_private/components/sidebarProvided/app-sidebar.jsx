@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  Anvil,
   CalendarHeart,
   ClipboardType,
   Compass,
@@ -223,23 +224,6 @@ export function AppSidebar({ ...props }) {
             </div>
 
             <div
-              hidden={isPublicDomain}
-              onClick={() => {
-                navigate("/workshop");
-              }}
-              className="cursor-pointer px-2 py-1 hover:bg-g1/80 mt-2 mx-2 rounded-md"
-              size="lg"
-              asChild
-            >
-              <div className="flex gap-2 items-center">
-                <div className="w-6 h-6 flex gap-1 items-center p-1">
-                  <Layers className="w-5 rounded-md  " />
-                </div>
-                <p className="font-bold">Workshop</p>
-              </div>
-            </div>
-
-            <div
               onClick={() => {
                 navigate("/addToPersonalKnowledgeBase");
               }}
@@ -303,6 +287,22 @@ export function AppSidebar({ ...props }) {
                   <Mails className="w-5 rounded-md " />
                 </div>
                 <p className="font-bold">Email Outreach</p>
+              </div>
+            </div>
+
+            <div
+              onClick={() => {
+                navigate("/prompt-builder");
+              }}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
+              size="lg"
+              asChild
+            >
+              <div className="flex gap-2 items-center">
+                <div className="w-6 h-6 flex gap-1 items-center p-1">
+                  <Anvil className="w-5 rounded-md " />
+                </div>
+                <p className="font-bold">Prompt Anvil</p>
               </div>
             </div>
           </SidebarMenuItem>
