@@ -34,7 +34,6 @@ import { Button } from "@/components/ui/button";
 import { CircleArrowDown } from "lucide-react";
 import TriggerHome from "@/pages/_trigger/components/TriggerHome";
 import TriggersDetail from "@/pages/_trigger/components/TriggersDetail";
-import PromptBuilder from "./components/PromptBuilder";
 import EmailOutReachHome from "@/pages/_emailOutreach/EmailOutReachHome";
 import CreateNewEmailOutReach from "@/pages/_emailOutreach/CreateNewEmailOutReach";
 import EmailOutReachDetails from "@/pages/_emailOutreach/EmailOutReachDetails";
@@ -87,11 +86,12 @@ export default function Page() {
             {pathname.startsWith("/template-library") && (
               <PromptTemplateLibrary />
             )}
-            {pathname === "/prompt-builder" && <PromptBuilder />}
             {pathname === "/trigger" && <TriggerHome />}
             {/* email out reach */}
             {pathname == "/email-outreach" && <EmailOutReachHome />}
-            {pathname.startsWith("/email-outreach-details") && <EmailOutReachDetails />}
+            {pathname.startsWith("/email-outreach-details") && (
+              <EmailOutReachDetails />
+            )}
             {pathname == "/create-new-email-outreach" && (
               <CreateNewEmailOutReach />
             )}

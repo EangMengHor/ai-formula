@@ -49,7 +49,6 @@ import Test from "./components/custom/Test";
 import TriggerLayout from "./pages/_trigger/TriggerLayout";
 import TriggerHome from "./pages/_trigger/components/TriggerHome";
 import TriggersDetail from "./pages/_trigger/components/TriggersDetail";
-import PromptBuilder from "./pages/_private/components/sidebarProvided/components/PromptBuilder";
 import EmailOutReachHome from "./pages/_emailOutreach/EmailOutReachHome";
 import CreateNewEmailOutReach from "./pages/_emailOutreach/CreateNewEmailOutReach";
 import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
@@ -105,7 +104,6 @@ export default function App() {
               element={<EmailOutReachDetails />}
             />
 
-            <Route path="/prompt-builder" element={<PromptBuilder />} />
             <Route path="/workshop" element={<Workshop />} />
             <Route index path="/dashboard" element={<Dashboard />} />
             {/* <Route path="/chat/:id" element={<Chat />} /> */}
