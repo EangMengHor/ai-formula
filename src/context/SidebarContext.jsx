@@ -41,7 +41,15 @@ export const SidebarProvider = ({ children }) => {
         setIsSidebarChatHistoryLoading(false);
       }
     };
-    const allowedRoutes = ["dashboard", "chat", "workshop", "trigger", "email-outreach"];
+    const allowedRoutes = [
+      "dashboard",
+      "chat",
+      "workshop",
+      "trigger",
+      "email-outreach",
+      "prompt-builder",
+      "generate-prompt",
+    ];
     if (
       allowedRoutes.some((route) => pathname.includes(route)) &&
       Object.keys(chatHistory).length === 0

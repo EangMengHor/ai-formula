@@ -1,11 +1,3 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -17,29 +9,25 @@ import { useLocation } from "react-router-dom";
 import Dashboard from "./components/Dashboard";
 import Chat from "./chat/Chat";
 import { _useSidebar } from "../../../../context/SidebarContext";
-import StackSidebarProvider, {
-  useStackSidebar,
-} from "../../../../context/StackSidebarContext";
+import { useStackSidebar } from "../../../../context/StackSidebarContext";
 import StackSidebarContainer from "../../../../components/custom/StackableSidebar/StackSidebarContainer";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { variants } from "../../../../lib/config";
 import Workshop from "./components/Workshop";
 import AutomationPage from "@/pages/_automations/AutomationPage";
-import AutomationJobDetails from "@/pages/_automations/AutomationJobsDetails";
 import PromptTemplateLibrary from "./components/PromptTemplateLibrary";
 import { useChatCtx } from "@/context/ChatContext";
 import DownloadThreadWithUser from "@/components/custom/downloadThread/DownloadThreadWithUser";
-import { Button } from "@/components/ui/button";
 import { CircleArrowDown } from "lucide-react";
 import TriggerHome from "@/pages/_trigger/components/TriggerHome";
 import TriggersDetail from "@/pages/_trigger/components/TriggersDetail";
-import PromptBuilder from "./components/PromptBuilder";
 import EmailOutReachHome from "@/pages/_emailOutreach/EmailOutReachHome";
 import CreateNewEmailOutReach from "@/pages/_emailOutreach/CreateNewEmailOutReach";
 import EmailOutReachDetails from "@/pages/_emailOutreach/EmailOutReachDetails";
 import EmailOutReachEachEngagement from "@/pages/_emailOutreach/EmailOutReachEachEngagement";
 import EmailOutReachAnalytics from "@/pages/_emailOutreach/EmailOutReachAnalytics";
+import PromptBuilder from "@/pages/_promptBuilder/PromptBuilder";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -89,7 +77,6 @@ export default function Page() {
             {pathname.startsWith("/template-library") && (
               <PromptTemplateLibrary />
             )}
-            {pathname === "/prompt-builder" && <PromptBuilder />}
             {pathname === "/trigger" && <TriggerHome />}
             {/* email out reach */}
             {pathname == "/email-outreach" && <EmailOutReachHome />}
@@ -105,6 +92,7 @@ export default function Page() {
             {pathname == "/email-outreach-analytics" && (
               <EmailOutReachAnalytics />
             )}
+            {pathname.startsWith("/prompt-builder") && <PromptBuilder />}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}

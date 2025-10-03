@@ -140,11 +140,6 @@ export const getAllJobsUrls = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/g
 export const deleteTriggerUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/deleteTrigger`;
 export const triggerDashboardRecommendationUrl = `${import.meta.env.VITE_SOCKET_URL}/api/triggers/getRecommendedTriggers`;
 
-// prompt buildert
-export const storePromptUrl = `${import.meta.env.VITE_SOCKET_URL}/api/promptBuilder/savePrompt`;
-export const getUserPromptsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/promptBuilder/getPrompts/:id`;
-export const deleteUserPromptUrl = `${import.meta.env.VITE_SOCKET_URL}/api/promptBuilder/deletePrompt/:promptId/:userId`;
-
 // email out reach
 export const activateEmailOutreachModuleUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/start-email-outreach-module`;
 export const getUserEmailOutreachJobsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getUserEmailJobs/:userId`;

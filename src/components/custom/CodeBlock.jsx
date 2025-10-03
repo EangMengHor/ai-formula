@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Copy, WrapText, ListCollapse } from "lucide-react";
+import MarkdownRenderer from "@/pages/_private/components/sidebarProvided/components/AnimatedMarkdown";
 
 export const Pre = ({ children }) => {
   const [isWrapped, setIsWrapped] = useState(true);
@@ -7,7 +8,10 @@ export const Pre = ({ children }) => {
 
   const handleCopy = () => {
     navigator.clipboard.writeText(
-      children?.props?.children.replaceAll("*", "").replaceAll("#", "") || "",
+      typeof children == "string"
+        ? children
+        : children?.props?.children?.replaceAll("*", "")?.replaceAll("#", "") ||
+            "",
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
@@ -55,11 +59,15 @@ export const Pre = ({ children }) => {
           isWrapped ? "whitespace-pre-wrap break-words" : "whitespace-pre"
         }`}
       >
-        {typeof children == "string"
-          ? children
-          : children?.props?.children
-              ?.replaceAll("*", "")
-              ?.replaceAll("#", "") || ""}
+        <MarkdownRenderer
+          content={
+            typeof children == "string"
+              ? children
+              : children?.props?.children
+                  ?.replaceAll("*", "")
+                  ?.replaceAll("#", "") || ""
+          }
+        />
       </div>
     </div>
   );
