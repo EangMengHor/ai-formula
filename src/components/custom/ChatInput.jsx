@@ -175,7 +175,8 @@ function ChatInput({
   useEffect(() => {
     if (
       isHeliosAgentMode &&
-      selectedModel.length > prevSelectedModelLength.current
+      selectedModel.length > prevSelectedModelLength.current &&
+      !selectedModel.includes("documentation")
     ) {
       setShowHeliosTooltip(true);
       setTimeout(() => setShowHeliosTooltip(false), 4000);
@@ -378,7 +379,10 @@ function ChatInput({
       description: "Multi-Agent Orchestration with Full Audit Trail",
       onClick: () => {
         console.log("clicked aslakdjalskdjalskdj");
-        if (selectedModel.length > 0) {
+        if (
+          selectedModel.length > 0 &&
+          !selectedModel.includes("documentation")
+        ) {
           setShowHeliosTooltip(true);
           setTimeout(() => setShowHeliosTooltip(false), 2000);
         }
@@ -496,7 +500,9 @@ function ChatInput({
                           removeSelectedIntent(model, id);
                         }}
                         icon={<Boxes className="w-5 h-5" />}
-                        isHeliosUnsupported={isHeliosAgentMode}
+                        isHeliosUnsupported={
+                          isHeliosAgentMode && dataObj.name !== "Documentation"
+                        }
                       />
                     );
                   })}
