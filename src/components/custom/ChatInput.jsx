@@ -38,13 +38,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "../../hooks/use-toast";
 import { Button } from "../ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { useDomain } from "@/context/WhichDomainContext";
 import { useWorkflow } from "../../context/WorkflowContext";
 import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUserSavedWorflow";
@@ -125,7 +118,7 @@ function ChatInput({
   isVoiceMode = false,
   setIsVoiceMode = () => {},
 }) {
-  const { isPublicDomain, domainState } = useDomain();
+  const { isPublicDomain } = useDomain();
   const { id } = useParams();
   const { pathname } = useLocation();
   const { memorizedFiles, resetAllStates, files, setFiles } =
@@ -133,15 +126,12 @@ function ChatInput({
   const {
     isSwarmMode,
     setIsSwarmMode,
-    isAutoSwarmContextState,
     setIsAutoSwarmContextState,
-    isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
     selectedModel,
     isHeliosAgentMode,
     setIsHeliosAgentMode,
     setSelectedModel,
-    selectIntentModel,
     removeSelectedIntent,
     restoredSavedModel,
   } = useUser();
