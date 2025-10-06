@@ -38,13 +38,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "../../hooks/use-toast";
 import { Button } from "../ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { useDomain } from "@/context/WhichDomainContext";
 import { useWorkflow } from "../../context/WorkflowContext";
 import createUserSavedWorflow from "@/services/user-saved-workflow-apis/createUserSavedWorflow";
@@ -125,7 +118,7 @@ function ChatInput({
   isVoiceMode = false,
   setIsVoiceMode = () => {},
 }) {
-  const { isPublicDomain, domainState } = useDomain();
+  const { isPublicDomain } = useDomain();
   const { id } = useParams();
   const { pathname } = useLocation();
   const { memorizedFiles, resetAllStates, files, setFiles } =
@@ -133,15 +126,12 @@ function ChatInput({
   const {
     isSwarmMode,
     setIsSwarmMode,
-    isAutoSwarmContextState,
     setIsAutoSwarmContextState,
-    isDeepThinkMode, // Use context state
     setIsDeepThinkMode, // Use context setter
     selectedModel,
     isHeliosAgentMode,
     setIsHeliosAgentMode,
     setSelectedModel,
-    selectIntentModel,
     removeSelectedIntent,
     restoredSavedModel,
   } = useUser();
@@ -185,7 +175,8 @@ function ChatInput({
   useEffect(() => {
     if (
       isHeliosAgentMode &&
-      selectedModel.length > prevSelectedModelLength.current
+      selectedModel.length > prevSelectedModelLength.current &&
+      !selectedModel.includes("documentation")
     ) {
       setShowHeliosTooltip(true);
       setTimeout(() => setShowHeliosTooltip(false), 4000);
@@ -388,7 +379,10 @@ function ChatInput({
       description: "Multi-Agent Orchestration with Full Audit Trail",
       onClick: () => {
         console.log("clicked aslakdjalskdjalskdj");
-        if (selectedModel.length > 0) {
+        if (
+          selectedModel.length > 0 &&
+          !selectedModel.includes("documentation")
+        ) {
           setShowHeliosTooltip(true);
           setTimeout(() => setShowHeliosTooltip(false), 2000);
         }
@@ -506,7 +500,9 @@ function ChatInput({
                           removeSelectedIntent(model, id);
                         }}
                         icon={<Boxes className="w-5 h-5" />}
-                        isHeliosUnsupported={isHeliosAgentMode}
+                        isHeliosUnsupported={
+                          isHeliosAgentMode && dataObj.name !== "Documentation"
+                        }
                       />
                     );
                   })}
