@@ -43,7 +43,7 @@ const DetailsModal = ({
     return (
       <Drawer open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DrawerContent className="bg-g1 border-t border-slate-700">
-          <div className="p-6 text-white">
+          <div className="p-6 text-white touch-manipulation cursor-pointer">
             <div className="mb-4">
               <h2 className="text-xl font-semibold">
                 {selectedPrompt.promptName || "Untitled Prompt"}
@@ -545,11 +545,11 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
         {getPreviewText(prompt.output)}
       </p>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col gap-2">
         <Button
           size="sm"
           onClick={() => handleImport(prompt)}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Download className="w-3 h-3 mr-1" />
           Import
@@ -558,7 +558,7 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
           variant="outline"
           size="sm"
           onClick={() => handleDetails(prompt)}
-          className="flex-1 bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+          className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
         >
           <Eye className="w-3 h-3 mr-1" />
           Details
@@ -771,8 +771,10 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
     return (
       <>
         <Drawer open={isOpen} onOpenChange={onClose}>
-          <DrawerContent className="bg-g1 border-t border-slate-700 max-h-[90vh]">
-            {mainContent}
+          <DrawerContent className="bg-g1 border-t border-slate-700 max-h-[90vh] overflow-hidden">
+            <div className="h-full overflow-y-auto">
+              {mainContent}
+            </div>
           </DrawerContent>
         </Drawer>
       </>
