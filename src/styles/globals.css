@@ -60,3 +60,34 @@
 .glow-parent {
     
 }
+
+.drawer-content, .dialog-content {
+  -webkit-overflow-scrolling: touch;
+  touch-action: manipulation;
+}
+
+/* Only apply hover effects on devices that support hover properly */
+@media (hover: hover) and (pointer: fine) {
+  .bg-blue-600:hover {
+    background-color: rgb(37 99 235) !important; /* blue-700 */
+  }
+  
+  .bg-slate-700:hover {
+    background-color: rgb(71 85 105) !important; /* slate-600 */
+  }
+  
+  .bg-red-600:hover {
+    background-color: rgb(185 28 28) !important; /* red-700 */
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    min-height: 44px; /* iOS Human Interface Guidelines minimum touch target */
+  }
+}
