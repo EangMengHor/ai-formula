@@ -55,7 +55,9 @@ function Chat() {
       localStorage.getItem("prompt"),
     );
     console.log("Environment:", process.env.NODE_ENV);
-  }, []);
+    // Reset loading state on mount to prevent stuck loading from previous sessions
+    setIsNextChatLoading(false);
+  }, [id]);
 
   const { toast } = useToast();
   const {
@@ -777,15 +779,87 @@ function Chat() {
 
   // function that set the response when streaming the latest response
   const appendChunk = (msg, chunk) => {
-    console.log(msg, chunk, "asdlhjaskdlh09123");
+    console.log(
+      "Appending chunk:",
+      chunk?.length,
+      "characters, total content now:",
+      (msg.tempContent + chunk)?.length,
+    );
     msg.tempContent += chunk;
     msg.isStreaming = true;
-    msg.message = processStreamingContent(msg.tempContent);
+    const processed = processStreamingContent(msg.tempContent);
+
+    // Safety check: if processing fails or returns empty/incomplete result, fall back to raw text
+    if (!processed || processed.length === 0) {
+      console.warn("Processing returned empty result, using raw text");
+      msg.message = [
+        { type: "text", content: msg.tempContent.trim(), isComplete: false },
+      ];
+    } else {
+      // Check if the processed content contains all the raw content
+      const extractedContent = processed
+        .map((block) =>
+          block.type === "text" ? block.content : block.content || "",
+        )
+        .join("");
+
+      // If the processed content is significantly shorter than raw content, something went wrong
+      if (extractedContent.length < msg.tempContent.trim().length * 0.8) {
+        console.warn(
+          "Content processing may have truncated content, falling back to raw text",
+        );
+        msg.message = [
+          { type: "text", content: msg.tempContent.trim(), isComplete: false },
+        ];
+      } else {
+        msg.message = processed;
+      }
+    }
   };
 
   const completeStreaming = (msg) => {
+    console.log(
+      "Completing streaming for message:",
+      msg.tempContent?.length,
+      "characters",
+    );
     msg.isStreaming = false;
     msg.isComplete = true;
+
+    // Final processing with forceComplete = true to ensure all blocks are marked complete
+    if (msg.tempContent) {
+      const finalProcessed = processStreamingContent(msg.tempContent, true);
+      console.log("Final processed blocks:", finalProcessed?.length);
+
+      if (finalProcessed && finalProcessed.length > 0) {
+        // Check if the final processing significantly reduced the content
+        const existingContent =
+          msg.message
+            ?.map((block) =>
+              block.type === "text" ? block.content : block.content || "",
+            )
+            .join("") || "";
+        const finalContent = finalProcessed
+          .map((block) =>
+            block.type === "text" ? block.content : block.content || "",
+          )
+          .join("");
+
+        // If final content is significantly shorter, keep the existing message
+        if (finalContent.length < existingContent.length * 0.9) {
+          console.warn(
+            "Final processing truncated content, keeping existing message",
+          );
+        } else {
+          msg.message = finalProcessed;
+        }
+      } else {
+        console.warn(
+          "Final processing returned empty result, keeping existing message",
+        );
+      }
+    }
+
     delete msg.tempContent;
   };
 
@@ -1199,6 +1273,7 @@ function Chat() {
 
     // --- 1. Extract balanced <document> blocks ---
     const documentBlocks = [];
+    // Create a new regex instance to avoid lastIndex persistence
     const docRegex = /<document>/gi;
     let match;
     while ((match = docRegex.exec(input)) !== null) {
@@ -1234,7 +1309,7 @@ function Chat() {
           start,
           end,
         });
-        docRegex.lastIndex = end;
+        // Don't update lastIndex for the manual parsing
       }
     }
 
@@ -1546,7 +1621,8 @@ function Chat() {
     // --- 4. Find other blocks in masked content ---
     const found = [];
     blockDefs.forEach((def) => {
-      let rx = def.regex;
+      // Create a new regex instance to avoid lastIndex persistence issues
+      let rx = new RegExp(def.regex.source, def.regex.flags);
       let m;
       while ((m = rx.exec(masked)) !== null) {
         found.push(def.handler(m, m.index, rx.lastIndex));
@@ -1649,7 +1725,16 @@ function Chat() {
         prompt,
         isNextChatLoading,
       );
-      if (!prompt.trim() || prompt.length == 0 || isNextChatLoading) return;
+      if (!prompt.trim() || prompt.length == 0) return;
+
+      // If already loading but no conversation ID, reset the loading state (stuck from previous failed request)
+      if (isNextChatLoading && !currConversationId) {
+        console.log("Resetting stuck loading state");
+        setIsNextChatLoading(false);
+      }
+
+      // Prevent concurrent requests
+      if (isNextChatLoading) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
 
@@ -1784,6 +1869,7 @@ function Chat() {
       isError,
       selectedCollectionIds,
       selectedModel,
+      currConversationId,
     ],
   );
 
@@ -1844,6 +1930,16 @@ function Chat() {
       if (abort.success) {
         convesationCleanup();
       } else {
+        // Even if abort fails, reset loading states to prevent stuck UI
+        setIsNextChatLoading(false);
+        setIsChatLoading(false);
+        setIsAborting(false);
+        setCurrConversationId(null);
+        setCurrLoadingStatus("");
+        isAboartController.current = null;
+        agentCitationsRef.current = [];
+        searchCitationsRef.current = [];
+
         setIsError(true);
         setErrorMessage(
           abort.message || "An error occurred while stopping the response.",
