@@ -772,9 +772,7 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
       <>
         <Drawer open={isOpen} onOpenChange={onClose}>
           <DrawerContent className="bg-g1 border-t border-slate-700 max-h-[90vh] overflow-hidden">
-            <div className="h-full overflow-y-auto">
-              {mainContent}
-            </div>
+            <div className="h-full overflow-y-auto">{mainContent}</div>
           </DrawerContent>
         </Drawer>
       </>
