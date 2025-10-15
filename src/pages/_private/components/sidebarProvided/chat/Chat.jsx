@@ -526,10 +526,10 @@ function Chat() {
       fallBackPrompt.trim().length > 0 &&
       handleSubmitRef.current
     ) {
-      if (fallBackPrompt.length > 30000) {
+      if (fallBackPrompt.length > 45000) {
         toast({
           title: "Error",
-          description: "Prompt length exceeds 30000 characters.",
+          description: "Prompt length exceeds 45000 characters.",
           variant: "destructive",
         });
         setFallBackPrompt(""); // Clear the fallback to prevent infinite retries
@@ -1737,11 +1737,12 @@ function Chat() {
       if (isNextChatLoading) return;
       scrollToBottom();
       // Remove onScrollDown() call - the hook will handle auto-scrolling
-
-      if (prompt.length > 30000) {
+      console.log(prompt.length, "prompt length");
+      if (prompt.length > 45000) {
         toast({
           title: "Error",
-          description: "Prompt is too long. Please shorten it.",
+          description:
+            "Prompt is too long. Please shorten it. Must be 45,000 characters",
           variant: "destructive",
         });
         return;
