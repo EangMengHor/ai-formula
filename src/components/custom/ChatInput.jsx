@@ -19,6 +19,7 @@ import {
   Aperture,
   Mic,
   Anvil,
+  Skull,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -134,6 +135,7 @@ function ChatInput({
     setSelectedModel,
     removeSelectedIntent,
     restoredSavedModel,
+    setIsAbliteratedMode,
   } = useUser();
   // component states
   const [rows, setRows] = useState(5);
@@ -368,10 +370,7 @@ function ChatInput({
     },
     [isWorkflowCreatorLoading, toast],
   );
-  useEffect(() => {
-    console.log(isSwarmMode, " isSwarmMode in ChatInput");
-  }, [isSwarmMode]);
-  // Optimize SwarmMode toggle with useCallback
+
   const modes = [
     {
       name: "Agentic Helios",
@@ -389,6 +388,18 @@ function ChatInput({
         setIsHeliosAgentMode(true); // Toggle context state
         setIsSwarmMode(false); // Ensure Swarm mode is off
         setIsDeepThinkMode(false); // Ensure Deep Think mode is off
+      },
+    },
+    {
+      name: "Ablite8 ARX",
+      icon: <Skull size={22} />,
+      description: "Unrestricted, non-refusal, Jail-broken response mode.",
+      onClick: () => {
+        console.log("clicked abliterated mode");
+        setIsHeliosAgentMode(false); // Ensure Helios mode is off
+        setIsSwarmMode(false); // Ensure Swarm mode is off
+        setIsDeepThinkMode(false); // Ensure Deep Think mode is off
+        setIsAbliteratedMode(true); // Toggle context state
       },
     },
     {
@@ -675,7 +686,7 @@ function ChatInput({
                       (isLoading && !currConversationId)
                         ? "bg-white border-slate-600 hover:bg-gray-300 cursor-not-allowed"
                         : "bg-white hover:bg-slate-300"
-                    } rounded-2xl p-1 cursor-pointer`}
+                    } rounded-xl p-1 cursor-pointer`}
                   >
                     {isLoading && (!currConversationId || isAborting) ? (
                       <LoaderCircle className="animate-spin w-5 h-5 m-2 text-black" />
