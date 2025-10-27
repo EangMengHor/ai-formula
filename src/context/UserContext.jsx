@@ -30,6 +30,7 @@ export const UserProvider = ({ children }) => {
   const tokenRefreshTimerRef = useRef(null); // Reference to store the timer
   const [isDeepThinkMode, setIsDeepThinkMode] = useState(false); // Default to Quick Response
   const [isHeliosAgentMode, setIsHeliosAgentMode] = useState(true); // helios agent mode
+  const [isAbliteratedMode, setIsAbliteratedMode] = useState(false);
   // swarm
   const [isSwarmMode, setIsSwarmMode] = useState(false);
   const [isAutoSwarmContextState, setIsAutoSwarmContextState] = useState(false);
@@ -133,6 +134,8 @@ export const UserProvider = ({ children }) => {
       return "deep";
     } else if (isHeliosAgentMode) {
       return "helios";
+    } else if (isAbliteratedMode) {
+      return "abliterated";
     } else {
       return "quick";
     }
@@ -207,6 +210,8 @@ export const UserProvider = ({ children }) => {
         selectIntentModel,
         removeSelectedIntent,
         restoredSavedModel,
+        isAbliteratedMode,
+        setIsAbliteratedMode,
       }}
     >
       {children}

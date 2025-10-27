@@ -78,6 +78,8 @@ function Chat() {
     refreshAccessToken,
     selectedModel,
     setSelectedModel,
+    isAbliteratedMode,
+    setIsAbliteratedMode,
   } = useUser();
   const { setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
@@ -1771,7 +1773,9 @@ function Chat() {
             ? "deep"
             : isHeliosAgentMode
               ? "helios"
-              : "quick",
+              : isAbliteratedMode
+                ? "abliterated"
+                : "quick",
         isSwarm: isSwarmMode,
         swarmIds: selectedSuperiorPersona?.map((p) => p.id) || [],
         isAutoSwarm: isAutoSwarmContextState,
@@ -1866,6 +1870,7 @@ function Chat() {
       isSwarmMode,
       selectedSuperiorPersona,
       isAutoSwarmContextState,
+      isAbliteratedMode,
       selectedWorkflowId,
       isError,
       selectedCollectionIds,
