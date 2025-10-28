@@ -20,7 +20,7 @@ import {
 export default function ChatModes({ modes } = { modes: [] }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const isInitialRendered = useRef(null);
+  const isInitialRendered = useRef(false);
   const { getMode } = useUser();
   const isMobile = useIsMobile();
 
@@ -28,17 +28,20 @@ export default function ChatModes({ modes } = { modes: [] }) {
     if (!isInitialRendered.current) {
       const mode = getMode();
       if (mode === "swarm") {
-        setSelectedIndex(3);
+        setSelectedIndex(4);
       } else if (mode === "deep") {
-        setSelectedIndex(2);
+        setSelectedIndex(3);
       } else if (mode === "helios") {
         setSelectedIndex(0);
-      } else {
+      } else if (mode === "ablite8") {
         setSelectedIndex(1);
+      } else {
+        setSelectedIndex(2);
       }
       console.log("Selected mode: isSwarmMode in ChatInput 2", mode);
+      isInitialRendered.current = true;
     }
-  }, []);
+  }, [getMode]);
 
   const handleModeSelect = (index, mode) => {
     setSelectedIndex(index);
