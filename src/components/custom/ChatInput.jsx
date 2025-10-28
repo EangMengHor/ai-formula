@@ -377,7 +377,6 @@ function ChatInput({
       icon: <Aperture size={20} className="hover:rotate-90 transition-all" />,
       description: "Multi-Agent Orchestration with Full Audit Trail",
       onClick: () => {
-        console.log("clicked aslakdjalskdjalskdj");
         if (
           selectedModel.length > 0 &&
           !selectedModel.includes("documentation")
@@ -385,6 +384,7 @@ function ChatInput({
           setShowHeliosTooltip(true);
           setTimeout(() => setShowHeliosTooltip(false), 2000);
         }
+        setIsAbliteratedMode(false); // Ensure Abliterated mode is off
         setIsHeliosAgentMode(true); // Toggle context state
         setIsSwarmMode(false); // Ensure Swarm mode is off
         setIsDeepThinkMode(false); // Ensure Deep Think mode is off
@@ -395,11 +395,10 @@ function ChatInput({
       icon: <Skull size={22} />,
       description: "Unrestricted, non-refusal, Jail-broken response mode.",
       onClick: () => {
-        console.log("clicked abliterated mode");
+        setIsAbliteratedMode(true); // Toggle context state
         setIsHeliosAgentMode(false); // Ensure Helios mode is off
         setIsSwarmMode(false); // Ensure Swarm mode is off
         setIsDeepThinkMode(false); // Ensure Deep Think mode is off
-        setIsAbliteratedMode(true); // Toggle context state
       },
     },
     {
@@ -407,6 +406,7 @@ function ChatInput({
       icon: <Zap size={20} />,
       description: "Get instant replies for fast decisions.",
       onClick: () => {
+        setIsAbliteratedMode(false); // Set context state
         setIsHeliosAgentMode(false); // Set context state
         setIsSwarmMode(false); // Set context state
         setIsDeepThinkMode(false); // Set context state
@@ -417,6 +417,7 @@ function ChatInput({
       icon: <Brain size={20} />,
       description: "Trigger deeper analysis and thoughtful exploration.",
       onClick: () => {
+        setIsAbliteratedMode(false); // Set context state
         setIsHeliosAgentMode(false); // Set context state
         setIsSwarmMode(false); // Set context state
         setIsDeepThinkMode(true); // Set context state
@@ -427,16 +428,13 @@ function ChatInput({
       icon: <SendToBack size={20} />,
       description: "Use multi-agent logic for advanced automation.",
       onClick: () => {
+        setIsAbliteratedMode(false); // Ensure Abliterated mode is off
         setIsHeliosAgentMode(false); // Ensure Helios mode is off
         console.log(" isSwarmMode in ChatInput 1", isSwarmMode);
         setIsSwarmMode(true); // Toggle context state
       },
     },
   ];
-
-  useEffect(() => {
-    console.log(selectedCollections, "Selected Collections in ChatInput");
-  }, []);
 
   const handleClick = useCallback(() => {
     if (isLoading && currConversationId && !isAborting) {
