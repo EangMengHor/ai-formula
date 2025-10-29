@@ -79,7 +79,26 @@ export default function App() {
       localStorage.setItem("refreshCache", "true");
     }
   }, []);
+  useEffect(() => {
+    // 1) Fix if body gets stuck
+    const fixBody = () => {
+      const s = document.body.style;
+      if (s && s.pointerEvents === "none") s.pointerEvents = "auto";
+    };
 
+    // 2) Watch for inline style changes on body
+    const mo = new MutationObserver(fixBody);
+    mo.observe(document.body, { attributes: true, attributeFilter: ["style"] });
+
+    // 3) Also repair after any Radix open/close microtask
+    const onAnyClick = () => queueMicrotask(fixBody);
+    window.addEventListener("pointerup", onAnyClick, true);
+
+    return () => {
+      mo.disconnect();
+      window.removeEventListener("pointerup", onAnyClick, true);
+    };
+  }, []);
   return (
     <>
       <Routes>

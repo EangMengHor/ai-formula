@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useStackSidebar } from "@/context/StackSidebarContext";
-import { BadgeCheck, Globe, SquareTerminal } from "lucide-react";
+import { BadgeCheck, Globe, SquareTerminal, PencilLine } from "lucide-react";
 import StandardWorkflow from "../Workflow/StandardWorkflow";
 import { useEffect, useState } from "react";
 import { verifyAndSuggestion } from "@/services/verifyAndSuggest";
@@ -33,7 +33,12 @@ function SearchStarted({ citations = [], isLoading = false }) {
   );
 }
 
-function PromptCorrections({ correctionPrompt = "", handleSubmit = () => { } }) {
+function PromptCorrections({
+  correctionPrompt = "",
+  handleSubmit = () => {},
+  setInput = null,
+  setSidebarStack = null,
+}) {
   return (
     <div className="bg-g1/60 p-3  space-y-2 rounded-lg">
       <div className="flex items-center gap-2   text-sm font-semibold rounded-xl">
@@ -43,15 +48,32 @@ function PromptCorrections({ correctionPrompt = "", handleSubmit = () => { } }) 
       <div className="bg-slate-800 rounded-md p-2 text-wrap">
         {correctionPrompt}
       </div>
-      <button
-        onClick={(e) => {
-          handleSubmit(correctionPrompt);
-          e.target.style.display = "none";
-        }}
-        className="px-3 py-2 bg-white rounded-md font-semibold text-black hover:bg-slate-300 transition-all"
-      >
-        Apply Prompt
-      </button>
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={(e) => {
+            handleSubmit(correctionPrompt);
+            e.target.style.display = "none";
+          }}
+          className="px-3 py-2 bg-white rounded-md font-semibold text-black hover:bg-slate-300 transition-all"
+        >
+          Apply Prompt
+        </button>
+        {setInput && (
+          <button
+            onClick={() => {
+              setInput(correctionPrompt);
+              // Close the sidebar when inserting to show the textarea
+              if (setSidebarStack) {
+                setSidebarStack([]);
+              }
+            }}
+            className="px-3 py-2 bg-blue-500 rounded-md font-semibold text-white hover:bg-blue-600 transition-all flex items-center gap-2"
+          >
+            <PencilLine className="w-4 h-4" />
+            Insert and Edit Prompt
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -59,7 +81,8 @@ function PromptCorrections({ correctionPrompt = "", handleSubmit = () => { } }) 
 export default function VerifyAndSuggest({
   content = "",
   isRealtime = false,
-  handleSubmit = () => { },
+  handleSubmit = () => {},
+  setInput = null,
 }) {
   const { setSidebarStack } = useStackSidebar();
   const { id } = useParams();
@@ -88,17 +111,16 @@ export default function VerifyAndSuggest({
                 }
                 break;
               case "verify-completeEventId":
-
                 if (data?.id) {
                   setWorkflow((prev) => {
                     const updatedWorkflow = prev.map((item) =>
                       item.id === data.id
                         ? {
-                          ...item,
-                          isCompleted: true,
-                          isLoading: false,
-                          description: "Completed",
-                        }
+                            ...item,
+                            isCompleted: true,
+                            isLoading: false,
+                            description: "Completed",
+                          }
                         : item,
                     );
                     return updatedWorkflow;
@@ -123,11 +145,11 @@ export default function VerifyAndSuggest({
                   const updatedWorkflow = prev.map((task) =>
                     task.id === data.index
                       ? {
-                        ...task,
-                        description: "Working ...",
-                        isLoading: true,
-                        isCompleted: false,
-                      }
+                          ...task,
+                          description: "Working ...",
+                          isLoading: true,
+                          isCompleted: false,
+                        }
                       : task,
                   );
                   return updatedWorkflow;
@@ -138,12 +160,12 @@ export default function VerifyAndSuggest({
                   const updatedWorkflow = prev.map((task) =>
                     task.id === data.id
                       ? {
-                        ...task,
-                        description: "Searching Sources and content ...",
-                        children: <SearchStarted isLoading={true} />,
-                        isLoading: true,
-                        isCompleted: false,
-                      }
+                          ...task,
+                          description: "Searching Sources and content ...",
+                          children: <SearchStarted isLoading={true} />,
+                          isLoading: true,
+                          isCompleted: false,
+                        }
                       : task,
                   );
                   return updatedWorkflow;
@@ -154,11 +176,11 @@ export default function VerifyAndSuggest({
                   const updatedWorkflow = prev.map((task) =>
                     task.id === data.id
                       ? {
-                        ...task,
-                        description: data.text || "No text provided",
-                        isLoading: false,
-                        isCompleted: true,
-                      }
+                          ...task,
+                          description: data.text || "No text provided",
+                          isLoading: false,
+                          isCompleted: true,
+                        }
                       : task,
                   );
                   return updatedWorkflow;
@@ -170,11 +192,11 @@ export default function VerifyAndSuggest({
                     const updatedWorkflow = prev.map((task) =>
                       task.id === data.id
                         ? {
-                          ...task,
-                          children: <SearchStarted citations={data.urls} />,
-                          isLoading: false,
-                          isCompleted: true,
-                        }
+                            ...task,
+                            children: <SearchStarted citations={data.urls} />,
+                            isLoading: false,
+                            isCompleted: true,
+                          }
                         : task,
                     );
                     return updatedWorkflow;
@@ -194,6 +216,8 @@ export default function VerifyAndSuggest({
                         <PromptCorrections
                           correctionPrompt={data.correctionPrompt}
                           handleSubmit={handleSubmit}
+                          setInput={setInput}
+                          setSidebarStack={setSidebarStack}
                         />
                       ),
                     },

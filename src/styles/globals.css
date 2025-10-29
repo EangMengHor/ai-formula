@@ -91,3 +91,20 @@
     min-height: 44px; /* iOS Human Interface Guidelines minimum touch target */
   }
 }
+
+/* Keep body interactive even when Radix locks scroll (Safari/Brave bug) */
+body[data-scroll-locked] {
+  pointer-events: auto !important;
+  overflow: hidden !important; /* preserve scroll lock */
+}
+
+/* Closed popper wrappers should never receive hits during transitions */
+[data-radix-popper-content-wrapper][data-state="closed"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Any closed layer shouldn’t intercept pointer events */
+[data-state="closed"] {
+  pointer-events: none !important;
+}
