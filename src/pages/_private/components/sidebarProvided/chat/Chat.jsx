@@ -2086,6 +2086,7 @@ function Chat() {
         errorMessage={errorMessage}
         onRetry={onRetry}
         handleSubmit={handleSubmit}
+        setInput={setPrompt}
       />
 
       <div className="w-full sticky bottom-0  mb-2 flex items-center justify-center">

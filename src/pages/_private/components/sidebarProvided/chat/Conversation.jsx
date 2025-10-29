@@ -78,6 +78,7 @@ const Conversation = forwardRef(
       errorMessage = "Something Went Wrong!!",
       onRetry,
       handleSubmit = () => {},
+      setInput = null,
     },
     ref,
   ) => {
@@ -210,6 +211,7 @@ const Conversation = forwardRef(
               setPdfDialogOpen={setPdfDialogOpen}
               item={item}
               handleSubmit={handleSubmit}
+              setInput={setInput}
             />
           )}
         </div>
