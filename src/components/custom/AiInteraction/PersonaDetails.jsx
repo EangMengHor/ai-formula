@@ -7,6 +7,8 @@ import {
   Hand,
   Brain,
   Terminal,
+  Copy,
+  CheckCheck,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -23,6 +25,7 @@ import { Button } from "../../ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useStackSidebar } from "../../../context/StackSidebarContext";
 import ChainOfThoughtVisualizer from "../agenticAutomation/ChainOfThoughtVisualizer";
+import { useState } from "react";
 
 export default function PersonaDetails({
   output,
@@ -32,6 +35,9 @@ export default function PersonaDetails({
   cot = [],
 }) {
   const { sidebarStack, setSidebarStack } = useStackSidebar();
+  const [copiedAgent, setCopiedAgent] = useState(false);
+  const [copiedOutput, setCopiedOutput] = useState(false);
+
   function handleCoT() {
     if (cot.length > 0) {
       setSidebarStack((prev) => [
@@ -42,6 +48,55 @@ export default function PersonaDetails({
       ]);
     }
   }
+
+  const handleCopyAgent = async () => {
+    const agentText = `
+AGENT DETAILS
+-------------------------------------
+
+Title: ${title}
+
+Goal: ${goal}
+
+${team && team.length > 0 ? `Collaborated With Personas:
+${team.map((item) => `- ${item.replace(/^"|"$/g, "")}`).join("\n")}
+
+-------------------------------------` : "-------------------------------------"}
+
+OUTPUT:
+
+${output}
+
+-------------------------------------
+    `.trim();
+
+    try {
+      await navigator.clipboard.writeText(agentText);
+      setCopiedAgent(true);
+      setTimeout(() => setCopiedAgent(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy agent details:", err);
+    }
+  };
+
+  const handleCopyOutput = async () => {
+    const outputText = `
+OUTPUT
+-------------------------------------
+
+${output}
+
+-------------------------------------
+    `.trim();
+
+    try {
+      await navigator.clipboard.writeText(outputText);
+      setCopiedOutput(true);
+      setTimeout(() => setCopiedOutput(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy output:", err);
+    }
+  };
   return (
     <div className="p-6 bg-slate-800 rounded-lg shadow-md">
       {cot.length > 0 && (
@@ -52,6 +107,47 @@ export default function PersonaDetails({
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Copy Buttons */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Button
+          onClick={handleCopyAgent}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-200"
+        >
+          {copiedAgent ? (
+            <>
+              <CheckCheck className="w-4 h-4" />
+              <span className="text-sm">Copied Agent!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              <span className="text-sm">Copy Agent</span>
+            </>
+          )}
+        </Button>
+        <Button
+          onClick={handleCopyOutput}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-200"
+        >
+          {copiedOutput ? (
+            <>
+              <CheckCheck className="w-4 h-4" />
+              <span className="text-sm">Copied Output!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              <span className="text-sm">Copy Output</span>
+            </>
+          )}
+        </Button>
+      </div>
+
       <div className="flex items-center gap-4 mb-5">
         <Briefcase className="text-slate-400 w-6 h-6" />
         <h2 className="text-2xl font-bold text-slate-100">{title}</h2>
