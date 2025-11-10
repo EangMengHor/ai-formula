@@ -1,22 +1,8 @@
 import * as React from "react";
-import {
-  Anvil,
-  CalendarHeart,
-  ClipboardType,
-  Compass,
-  Ellipsis,
-  GalleryVerticalEnd,
-  Layers,
-  Mails,
-  Orbit,
-  Plus,
-  SunMoon,
-  UserCircle2,
-  Workflow,
-  X,
-} from "lucide-react";
+import { Ellipsis, Plus, Workflow } from "lucide-react";
 
 import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main";
+import { ToolsMenu } from "@/pages/_private/components/sidebarProvided/ToolsMenu";
 import {
   Sidebar,
   SidebarContent,
@@ -29,27 +15,12 @@ import {
 } from "@/components/ui/sidebar";
 import { useUser } from "../../../../context/UserContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { _useSidebar } from "../../../../context/SidebarContext";
 import JamesLogo from "./components/JamesLogo";
 import SettingsModal from "@/components/custom/SettingModal";
 import { useState } from "react";
 import { useDomain } from "../../../../context/WhichDomainContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import SearchChats from "@/components/custom/SearchChats";
 
 // This is sample data.
@@ -224,21 +195,6 @@ export function AppSidebar({ ...props }) {
             </div>
 
             <div
-              onClick={() => {
-                navigate("/addToPersonalKnowledgeBase");
-              }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
-              size="lg"
-              asChild
-            >
-              <div className="flex gap-2 items-center">
-                <div className="w-6 h-6 flex gap-1 items-center p-1">
-                  <Orbit className="w-5 rounded-md  " />
-                </div>
-                <p className="font-bold">Internal Knowledge</p>
-              </div>
-            </div>
-            <div
               onClick={handleWorkflowsClick}
               className={`cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md flex items-center justify-between ${
                 isClickedWorkflows ? "bg-slate-800" : ""
@@ -255,78 +211,36 @@ export function AppSidebar({ ...props }) {
                 </p>
               </div>
             </div>
-            <div
-              onClick={() => {
-                navigate("/trigger");
-              }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
-              size="lg"
-              asChild
-            >
-              <div className="flex gap-2 items-center">
-                <div className="w-6 h-6 flex gap-1 items-center p-1">
-                  <SunMoon className="w-5 rounded-md  " />
-                </div>
-                <p className="font-bold">Trigger</p>
-              </div>
-            </div>
+  
 
-            {/* Search */}
+            {/* Search - Secondary Option */}
             <SearchChats />
 
-            <div
-              onClick={() => {
-                navigate("/email-outreach");
-              }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
-              size="lg"
-              asChild
-            >
-              <div className="flex gap-2 items-center">
-                <div className="w-6 h-6 flex gap-1 items-center p-1">
-                  <Mails className="w-5 rounded-md " />
-                </div>
-                <p className="font-bold">Email Outreach</p>
-              </div>
-            </div>
-
-            <div
-              onClick={() => {
-                navigate("/prompt-builder");
-              }}
-              className="cursor-pointer px-2 py-1 hover:bg-slate-800  mt-2 mx-2 rounded-md"
-              size="lg"
-              asChild
-            >
-              <div className="flex gap-2 items-center">
-                <div className="w-6 h-6 flex gap-1 items-center p-1">
-                  <Anvil className="w-5 rounded-md " />
-                </div>
-                <p className="font-bold">Prompt Anvil</p>
-              </div>
-            </div>
+            {/* Tools Menu - Collapsible Section */}
+            <ToolsMenu />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} isClickedWorkflows={isClickedWorkflows} />
+        <NavMain items={data.navMain} isClickedWorkflows={isClickedWorkflows}/>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex gap-2 items-center">
-          <Avatar>
+        <div className="flex gap-2 items-center px-2 py-2 rounded-md hover:bg-slate-800 transition-colors">
+          <Avatar className="w-8 h-8">
             <AvatarImage src="#" />
-            <AvatarFallback>
+            <AvatarFallback className="bg-slate-700 text-slate-100 text-xs font-semibold">
               {user.email.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <p className="truncate">{user.email}</p>
+          <p className="truncate text-sm text-slate-200 flex-1">{user.email}</p>
 
-          <div
-            className="bg-gray-700 rounded-md mt-2 p-2 cursor-pointer hover:bg-slate-800"
+          <button
+            className="rounded-md p-1.5 cursor-pointer hover:bg-slate-700 transition-colors flex-shrink-0"
             onClick={() => setOpenSettingsModal(true)}
+            title="Settings"
           >
-            <Ellipsis className="w-4 h-4 " />
-          </div>
+            <Ellipsis className="w-4 h-4 text-slate-400 hover:text-slate-200" />
+          </button>
         </div>
       </SidebarFooter>
       <SettingsModal
