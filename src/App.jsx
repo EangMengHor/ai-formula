@@ -55,6 +55,8 @@ import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
 import EmailOutReachAnalytics from "./pages/_emailOutreach/EmailOutReachAnalytics";
 import EmailOutReachEachEngagement from "./pages/_emailOutreach/EmailOutReachEachEngagement";
 import PromptBuilder from "./pages/_promptBuilder/PromptBuilder";
+import OsintTools from "./pages/_osint/OsintTools";
+import OsintFinding from "./pages/_osint/OsintFinding";
 
 export default function App() {
   const location = useLocation();
@@ -115,6 +117,10 @@ export default function App() {
           <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
+            {/* osint */}
+            <Route path="/osint-tools" element={<OsintTools />} />
+            <Route path="/osint-finding" element={<OsintFinding />} />
+
             {/* prompt builder */}
             <Route path="/prompt-builder" element={<PromptBuilder />} />
 

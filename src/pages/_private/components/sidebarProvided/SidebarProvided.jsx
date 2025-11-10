@@ -28,6 +28,8 @@ import EmailOutReachDetails from "@/pages/_emailOutreach/EmailOutReachDetails";
 import EmailOutReachEachEngagement from "@/pages/_emailOutreach/EmailOutReachEachEngagement";
 import EmailOutReachAnalytics from "@/pages/_emailOutreach/EmailOutReachAnalytics";
 import PromptBuilder from "@/pages/_promptBuilder/PromptBuilder";
+import OsintTools from "@/pages/_osint/OsintTools";
+import OsintFinding from "@/pages/_osint/OsintFinding";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -93,6 +95,8 @@ export default function Page() {
               <EmailOutReachAnalytics />
             )}
             {pathname.startsWith("/prompt-builder") && <PromptBuilder />}
+            {pathname === "/osint-tools" && <OsintTools />}
+            {pathname === "/osint-finding" && <OsintFinding />}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}
