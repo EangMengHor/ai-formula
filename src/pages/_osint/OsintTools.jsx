@@ -147,7 +147,9 @@ export default function OsintTools() {
                   {query.length}/50 characters
                 </span>
                 {validationError && (
-                  <span className="text-xs text-red-400">{validationError}</span>
+                  <span className="text-xs text-red-400">
+                    {validationError}
+                  </span>
                 )}
               </div>
             </div>

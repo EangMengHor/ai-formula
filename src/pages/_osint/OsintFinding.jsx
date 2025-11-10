@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Download,
-  AlertCircle,
-  Clock,
-  Zap,
-} from "lucide-react";
+import { ArrowLeft, Download, AlertCircle, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   IdentitySection,
@@ -102,7 +96,9 @@ export default function OsintFinding() {
                 Investigation Results
               </h1>
               <p className="text-sm text-slate-400">
-                Search: <span className="font-mono text-slate-300">{query}</span> ({type})
+                Search:{" "}
+                <span className="font-mono text-slate-300">{query}</span> (
+                {type})
               </p>
             </div>
           </div>
@@ -171,7 +167,9 @@ export default function OsintFinding() {
         {/* Summary */}
         {data.summary && (
           <div className="mb-6 rounded-lg border border-blue-900/30 bg-blue-900/10 p-4">
-            <p className="text-sm leading-relaxed text-blue-200">{data.summary}</p>
+            <p className="text-sm leading-relaxed text-blue-200">
+              {data.summary}
+            </p>
           </div>
         )}
 
@@ -202,7 +200,8 @@ export default function OsintFinding() {
               Download Full Report
             </h3>
             <p className="mb-4 text-sm text-slate-400">
-              Export your OSINT investigation results as a comprehensive PDF report for further analysis or documentation.
+              Export your OSINT investigation results as a comprehensive PDF
+              report for further analysis or documentation.
             </p>
             <Button
               onClick={() => handleDownload()}

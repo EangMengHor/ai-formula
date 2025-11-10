@@ -1,6 +1,7 @@
 # OSINT Tools Integration
 
 ## Overview
+
 This feature integrates an OSINT (Open Source Intelligence) API that investigates publicly available information about emails, phone numbers, names, and usernames.
 
 ## File Structure
@@ -29,6 +30,7 @@ src/
 ## Features
 
 ### Input Form (OsintTools.jsx)
+
 - Query input with 50-character limit
 - Search type selection: Email, Phone, Name, Username
 - Real-time validation
@@ -36,6 +38,7 @@ src/
 - Loading state with estimated time (30-60 seconds)
 
 ### Results Display (OsintFinding.jsx)
+
 - Expandable sections for each data category
 - Clean, organized layout with neutral colors (slate, white, black)
 - Investigation metadata (time taken, API calls)
@@ -49,7 +52,9 @@ src/
   - **Web Intelligence** - Web search results
 
 ### Download Features
+
 Multiple export formats available:
+
 - **CSV** - Tabular format for spreadsheet analysis
 - **TXT** - Formatted text report with clear sections
 - **JSON** - Raw data for programmatic access
@@ -57,16 +62,18 @@ Multiple export formats available:
 ## API Integration
 
 ### Service: `osintInvestigation()`
+
 ```javascript
 import { osintInvestigation } from "@/services/osint/osintInvestigation";
 
 const result = await osintInvestigation({
-  query: "example@email.com",  // max 50 characters
-  type: "email"                 // one of: email, phone, name, username
+  query: "example@email.com", // max 50 characters
+  type: "email", // one of: email, phone, name, username
 });
 ```
 
 ### Environment Variable
+
 ```env
 VITE_OSINT_API_URL=http://localhost:8080/api/osint/osint
 ```
@@ -133,6 +140,7 @@ The API returns data in this structure:
 ## Data Storage
 
 Results are stored in `sessionStorage` for the current session:
+
 - `osintResult` - Full API response
 - `osintQuery` - Original search query
 - `osintType` - Search type used
@@ -148,6 +156,7 @@ Session data is cleared when starting a new investigation.
 ## Browser Compatibility
 
 Requires modern browser with:
+
 - ES6+ JavaScript support
 - `sessionStorage` API
 - Blob API for downloads

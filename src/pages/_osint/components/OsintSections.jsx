@@ -1,4 +1,10 @@
-import { Badge, DataTable, DataList, NoDataFound, StatsGrid } from "./ResultComponents";
+import {
+  Badge,
+  DataTable,
+  DataList,
+  NoDataFound,
+  StatsGrid,
+} from "./ResultComponents";
 import { ExpandableSection, SummaryCard } from "./ResultComponents";
 
 // Identity Section
@@ -60,7 +66,11 @@ export function ContactsSection({ data }) {
   const contacts = data.contacts;
 
   return (
-    <ExpandableSection title="📧 Contacts" count={contacts.emails?.total_unique + contacts.phones?.total_unique} defaultOpen={true}>
+    <ExpandableSection
+      title="📧 Contacts"
+      count={contacts.emails?.total_unique + contacts.phones?.total_unique}
+      defaultOpen={true}
+    >
       <div className="space-y-6">
         {contacts.summary && (
           <SummaryCard title="Summary" summary={contacts.summary} />
@@ -77,7 +87,9 @@ export function ContactsSection({ data }) {
                 items={contacts.emails.all_emails}
                 renderItem={(item) => (
                   <div className="space-y-1">
-                    <div className="font-mono text-sm text-slate-200 break-all">{item.email}</div>
+                    <div className="font-mono text-sm text-slate-200 break-all">
+                      {item.email}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <Badge variant="info">{item.type}</Badge>
                       <span>{item.found_in_breaches} breach record(s)</span>
@@ -114,7 +126,9 @@ export function ContactsSection({ data }) {
                 items={contacts.phones.all_phones}
                 renderItem={(item) => (
                   <div className="space-y-1">
-                    <div className="font-mono text-sm text-slate-200">{item.phone}</div>
+                    <div className="font-mono text-sm text-slate-200">
+                      {item.phone}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <span>{item.found_in_breaches} breach record(s)</span>
                     </div>
@@ -170,22 +184,42 @@ export function ProfessionalSection({ data }) {
                   <div className="space-y-2">
                     {/* Name and Email */}
                     <div className="flex flex-col gap-1">
-                      <div className="font-medium text-slate-200">{item.full_name}</div>
-                      <div className="font-mono text-xs text-blue-400 break-all">{item.email}</div>
+                      <div className="font-medium text-slate-200">
+                        {item.full_name}
+                      </div>
+                      <div className="font-mono text-xs text-blue-400 break-all">
+                        {item.email}
+                      </div>
                     </div>
-                    
+
                     {/* First and Last Name */}
                     {(item.first_name || item.last_name) && (
                       <div className="flex gap-4 text-xs text-slate-500">
-                        {item.first_name && <span>First: <span className="text-slate-300">{item.first_name}</span></span>}
-                        {item.last_name && <span>Last: <span className="text-slate-300">{item.last_name}</span></span>}
+                        {item.first_name && (
+                          <span>
+                            First:{" "}
+                            <span className="text-slate-300">
+                              {item.first_name}
+                            </span>
+                          </span>
+                        )}
+                        {item.last_name && (
+                          <span>
+                            Last:{" "}
+                            <span className="text-slate-300">
+                              {item.last_name}
+                            </span>
+                          </span>
+                        )}
                       </div>
                     )}
-                    
+
                     {/* Additional Emails */}
                     {item.additional_emails?.length > 0 && (
                       <div>
-                        <p className="text-xs text-slate-500 mb-1">Additional Emails:</p>
+                        <p className="text-xs text-slate-500 mb-1">
+                          Additional Emails:
+                        </p>
                         <div className="flex flex-wrap gap-1">
                           {item.additional_emails.map((email, idx) => (
                             <Badge key={idx} variant="info">
@@ -195,11 +229,13 @@ export function ProfessionalSection({ data }) {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Social Links */}
                     {item.social_links?.length > 0 && (
                       <div>
-                        <p className="text-xs text-slate-500 mb-1">Social Links:</p>
+                        <p className="text-xs text-slate-500 mb-1">
+                          Social Links:
+                        </p>
                         <div className="flex flex-wrap gap-1">
                           {item.social_links.map((link, idx) => (
                             <a
@@ -209,7 +245,7 @@ export function ProfessionalSection({ data }) {
                               rel="noopener noreferrer"
                               className="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-900/30 text-blue-300 border border-blue-800 hover:bg-blue-900/50 transition break-all"
                             >
-                              {link.replace(/^https?:\/\/(www\.)?/, '')}
+                              {link.replace(/^https?:\/\/(www\.)?/, "")}
                             </a>
                           ))}
                         </div>
@@ -247,22 +283,24 @@ export function ProfessionalSection({ data }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {professional.companies.all_companies.map((company, idx) => (
-                      <tr
-                        key={idx}
-                        className="border-b border-slate-800 hover:bg-slate-800/30"
-                      >
-                        <td className="px-4 py-3 font-mono text-slate-300">
-                          {company.domain}
-                        </td>
-                        <td className="px-4 py-3 text-slate-400">
-                          {company.employee_count?.toLocaleString() || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-400">
-                          {company.source}
-                        </td>
-                      </tr>
-                    ))}
+                    {professional.companies.all_companies.map(
+                      (company, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-b border-slate-800 hover:bg-slate-800/30"
+                        >
+                          <td className="px-4 py-3 font-mono text-slate-300">
+                            {company.domain}
+                          </td>
+                          <td className="px-4 py-3 text-slate-400">
+                            {company.employee_count?.toLocaleString() || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-400">
+                            {company.source}
+                          </td>
+                        </tr>
+                      ),
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -285,7 +323,10 @@ export function DigitalFootprintSection({ data }) {
   return (
     <ExpandableSection
       title="🔗 Digital Footprint"
-      count={(footprint.usernames?.total_unique || 0) + (footprint.urls?.total_unique || 0)}
+      count={
+        (footprint.usernames?.total_unique || 0) +
+        (footprint.urls?.total_unique || 0)
+      }
     >
       <div className="space-y-6">
         {footprint.summary && (
@@ -378,10 +419,7 @@ export function LocationsSection({ data }) {
   const locations = data.locations;
 
   return (
-    <ExpandableSection
-      title="📍 Locations"
-      count={locations.total_unique}
-    >
+    <ExpandableSection title="📍 Locations" count={locations.total_unique}>
       <div className="space-y-4">
         {locations.summary && (
           <SummaryCard title="Summary" summary={locations.summary} />

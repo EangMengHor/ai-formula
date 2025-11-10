@@ -2,7 +2,12 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
 // Expandable Section Component
-export function ExpandableSection({ title, count, children, defaultOpen = false }) {
+export function ExpandableSection({
+  title,
+  count,
+  children,
+  defaultOpen = false,
+}) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -145,7 +150,9 @@ export function Badge({ children, variant = "default" }) {
   };
 
   return (
-    <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${variants[variant]}`}>
+    <span
+      className={`inline-block px-2 py-1 rounded text-xs font-medium ${variants[variant]}`}
+    >
       {children}
     </span>
   );
