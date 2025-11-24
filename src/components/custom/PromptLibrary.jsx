@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Search,
   Clock,
@@ -8,14 +8,23 @@ import {
   Trash2,
   Edit3,
   ArrowLeft,
+  MoreVertical,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getPrompt } from "@/services/n8n-apis/promptBuilder/getPrompt";
 import { deletePrompt } from "@/services/n8n-apis/promptBuilder/deletePrompt";
 import { renamePrompt } from "@/services/n8n-apis/promptBuilder/renamePrompt";
+import { cognitiveSearch } from "@/services/n8n-apis/search/cognitiveSearch";
+import { getPromptById } from "@/services/n8n-apis/search/getPromptById";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -111,6 +120,7 @@ const RenameModal = ({
   confirmRename,
   actionLoading,
   isMobile,
+  setSelectedPrompt,
 }) => {
   if (!selectedPrompt) return null;
 
@@ -218,6 +228,7 @@ const DeleteModal = ({
   confirmDelete,
   actionLoading,
   isMobile,
+  setSelectedPrompt,
 }) => {
   if (!selectedPrompt) return null;
 
@@ -316,6 +327,8 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
   const [newName, setNewName] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [currentView, setCurrentView] = useState("list");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [abortController, setAbortController] = useState(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -325,6 +338,29 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
       fetchPrompts();
     }
   }, [isOpen]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Cancel any ongoing search
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setSearchLoading(false);
+    }
+
+    const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        performSearch(searchQuery.trim());
+      } else {
+        // When search is cleared, fetch all prompts
+        fetchPrompts();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, isOpen]);
 
   const fetchPrompts = async () => {
     setLoading(true);
@@ -341,6 +377,94 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
       setPrompts([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const performSearch = async (query) => {
+    // Create new abort controller for this search
+    const controller = new AbortController();
+    setAbortController(controller);
+    
+    setSearchLoading(true);
+    setPrompts([]); // Clear existing results
+
+    try {
+      const response = await cognitiveSearch(query);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const processedIds = new Set();
+      let finished = false;
+
+      // Function to fetch and display a prompt immediately
+      const fetchAndShowPrompt = async (id) => {
+        if (processedIds.has(id)) return;
+        processedIds.add(id);
+
+        try {
+          const res = await getPromptById(id);
+          if (res.success && res.data) {
+            // Check if search was aborted before updating state
+            if (!controller.signal.aborted) {
+              setPrompts((prevPrompts) => [{ ...res.data, id }, ...prevPrompts]);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching prompt ${id}:`, error);
+        }
+      };
+
+      while (!finished && !controller.signal.aborted) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // Keep incomplete line
+
+        for (const line of lines) {
+          if (controller.signal.aborted) break;
+          
+          const trimmed = line.trim();
+          if (trimmed.startsWith("event: ids")) {
+            // Next line should be data
+          } else if (trimmed.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(trimmed.slice(6));
+              if (data.ids && Array.isArray(data.ids)) {
+                // Immediately fetch and show each ID
+                data.ids.forEach((id) => fetchAndShowPrompt(id));
+              }
+            } catch (e) {
+              console.error("Error parsing data:", e);
+            }
+          } else if (trimmed.startsWith("event: finish")) {
+            finished = true;
+            break;
+          }
+        }
+      }
+      
+      // Clean up reader if aborted
+      if (controller.signal.aborted) {
+        reader.cancel();
+      }
+    } catch (error) {
+      if (error.name === 'AbortError' || controller.signal.aborted) {
+        console.log("Search aborted");
+        return;
+      }
+      console.error("Error performing search:", error);
+      toast({
+        title: "Error",
+        description: "Failed to search prompts. Please try again.",
+        variant: "destructive",
+      });
+      setPrompts([]);
+    } finally {
+      if (!controller.signal.aborted) {
+        setSearchLoading(false);
+        setAbortController(null);
+      }
     }
   };
 
@@ -370,21 +494,10 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
     }
   };
 
-  // Filter prompts based on search query
+  // Filter prompts based on search query (only for local filtering if needed, but since search is server-side, maybe not)
   const filteredPrompts = useMemo(() => {
-    if (!searchQuery.trim()) return prompts;
-
-    const query = searchQuery.toLowerCase();
-    return prompts.filter((prompt) => {
-      const nameMatch = prompt.promptName?.toLowerCase().includes(query);
-      const contentMatch = prompt.output?.toLowerCase().includes(query);
-      const timeMatch = formatRelativeTime(prompt.created_at)
-        .toLowerCase()
-        .includes(query);
-
-      return nameMatch || contentMatch || timeMatch;
-    });
-  }, [prompts, searchQuery]);
+    return prompts;
+  }, [prompts]);
 
   // Get preview text (first 150 characters)
   const getPreviewText = (text) => {
@@ -517,63 +630,156 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
     }
   };
 
-  const PromptCard = ({ prompt }) => (
-    <div className="bg-g2 border border-slate-700 rounded-lg p-4 hover:bg-slate-800/50 transition-colors">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-white font-medium text-sm truncate mb-1">
-            {prompt.promptName || "Untitled Prompt"}
-          </h3>
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <Clock className="w-3 h-3" />
-            <span>{formatRelativeTime(prompt.created_at)}</span>
+  const PromptCard = ({ prompt }) => {
+    if (isMobile) {
+      return (
+        <div className="bg-g2 border border-slate-700 rounded-lg p-4">
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-medium text-sm truncate mb-1">
+                {prompt.promptName || "Untitled Prompt"}
+              </h3>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <Clock className="w-3 h-3" />
+                <span>{formatRelativeTime(prompt.created_at)}</span>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-slate-400"
+              onClick={() => {
+                setSelectedPrompt(
+                  selectedPrompt?.id === prompt.id ? null : prompt,
+                );
+              }}
+            >
+              <MoreVertical className="w-4 h-4" />
+            </Button>
           </div>
+
+          <p className="text-slate-300 text-sm mb-4 line-clamp-3">
+            {getPreviewText(prompt.output)}
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              onClick={() => handleImport(prompt)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Download className="w-3 h-3 mr-1" />
+              Import
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDetails(prompt)}
+              className="bg-slate-700 border-slate-600 text-white"
+            >
+              <Eye className="w-3 h-3 mr-1" />
+              View
+            </Button>
+          </div>
+
+          {selectedPrompt?.id === prompt.id && (
+            <div className="mt-3 pt-3 border-t border-slate-600 flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  handleRename(prompt);
+                  setSelectedPrompt(null);
+                }}
+                className="flex-1 bg-slate-700 border-slate-600 text-white text-xs"
+              >
+                <Edit3 className="w-3 h-3 mr-1" />
+                Rename
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  handleDelete(prompt);
+                  setSelectedPrompt(null);
+                }}
+                className="flex-1 bg-red-600 border-red-600 text-white text-xs"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Delete
+              </Button>
+            </div>
+          )}
         </div>
-      </div>
+      );
+    }
 
-      <p className="text-slate-300 text-sm mb-4 line-clamp-3">
-        {getPreviewText(prompt.output)}
-      </p>
+    return (
+      <div className="bg-g2 border border-slate-700 rounded-lg p-4 hover:bg-slate-800/50 transition-colors">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white font-medium text-sm truncate mb-1">
+              {prompt.promptName || "Untitled Prompt"}
+            </h3>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <Clock className="w-3 h-3" />
+              <span>{formatRelativeTime(prompt.created_at)}</span>
+            </div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-slate-400 "
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-slate-800 border-slate-700"
+            >
+              <DropdownMenuItem
+                onClick={() => handleDetails(prompt)}
+                className="text-white hover:bg-slate-700"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Details
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleRename(prompt)}
+                className="text-white hover:bg-slate-700"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDelete(prompt)}
+                className="text-red-400 hover:bg-red-900"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-      <div className="flex flex-col gap-2">
+        <p className="text-slate-300 text-sm mb-4 line-clamp-3">
+          {getPreviewText(prompt.output)}
+        </p>
+
         <Button
           size="sm"
           onClick={() => handleImport(prompt)}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Download className="w-3 h-3 mr-1" />
           Import
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleDetails(prompt)}
-          className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-        >
-          <Eye className="w-3 h-3 mr-1" />
-          Details
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleRename(prompt)}
-          className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-        >
-          <Edit3 className="w-3 h-3 mr-1" />
-          Rename
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleDelete(prompt)}
-          className="bg-red-600 border-red-600 text-white hover:bg-red-700"
-        >
-          <Trash2 className="w-3 h-3 mr-1" />
-          Delete
-        </Button>
       </div>
-    </div>
-  );
+    );
+  };
 
   const mainContent = (
     <div className="bg-g1 text-white">
@@ -594,12 +800,12 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
         </div>
 
         {/* Content */}
-        {loading ? (
+        {loading && !searchLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
             <span className="ml-2 text-slate-400">Loading prompts...</span>
           </div>
-        ) : filteredPrompts.length === 0 ? (
+        ) : filteredPrompts.length === 0 && !searchLoading ? (
           <div className="text-center py-12">
             <div className="text-slate-400 mb-2">
               {searchQuery
@@ -747,11 +953,21 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
             </div>
           ) : null
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:max-h-96 lg:overflow-y-auto">
-            {filteredPrompts.map((prompt) => (
-              <PromptCard key={prompt.id} prompt={prompt} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:max-h-96 lg:overflow-y-auto">
+              {filteredPrompts.map((prompt) => (
+                <PromptCard key={prompt.id} prompt={prompt} />
+              ))}
+            </div>
+            {searchLoading && (
+              <div className="flex items-center justify-center py-6 mt-4">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                <span className="ml-2 text-slate-400 text-sm">
+                  Loading more results...
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -772,7 +988,7 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="bg-g1 border border-slate-700 max-w-4xl max-h-[90vh] overflow-hidden p-0">
+        <DialogContent className="bg-g1 border border-slate-700 max-w-7xl max-h-[90vh] overflow-hidden p-0">
           {mainContent}
         </DialogContent>
       </Dialog>
