@@ -352,6 +352,7 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
 
     const timer = setTimeout(() => {
       if (searchQuery.trim()) {
+        setPrompts([]); // Clear previous results before starting new search
         performSearch(searchQuery.trim());
       } else {
         // When search is cleared, fetch all prompts
@@ -384,9 +385,9 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
     // Create new abort controller for this search
     const controller = new AbortController();
     setAbortController(controller);
-    
+
     setSearchLoading(true);
-    setPrompts([]); // Clear existing results
+    // Note: prompts are already cleared before this function is called
 
     try {
       const response = await cognitiveSearch(query);
@@ -406,7 +407,10 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
           if (res.success && res.data) {
             // Check if search was aborted before updating state
             if (!controller.signal.aborted) {
-              setPrompts((prevPrompts) => [{ ...res.data, id }, ...prevPrompts]);
+              setPrompts((prevPrompts) => [
+                { ...res.data, id },
+                ...prevPrompts,
+              ]);
             }
           }
         } catch (error) {
@@ -423,7 +427,7 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
 
         for (const line of lines) {
           if (controller.signal.aborted) break;
-          
+
           const trimmed = line.trim();
           if (trimmed.startsWith("event: ids")) {
             // Next line should be data
@@ -443,13 +447,13 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
           }
         }
       }
-      
+
       // Clean up reader if aborted
       if (controller.signal.aborted) {
         reader.cancel();
       }
     } catch (error) {
-      if (error.name === 'AbortError' || controller.signal.aborted) {
+      if (error.name === "AbortError" || controller.signal.aborted) {
         console.log("Search aborted");
         return;
       }
