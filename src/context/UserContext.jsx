@@ -40,6 +40,75 @@ export const UserProvider = ({ children }) => {
   const [isUserBanned, setIsUserBanned] = useState(false);
   const [promptTemplatePrompt, setPromptTemplatePrompt] = useState(""); // Add this line
   const [selectedModel, setSelectedModel] = useState([]);
+  const [persistantAgent, setPersistantAgent] = useState([]);
+
+  // Persistant Agent helper functions
+  function savePersistantAgentsToStorage(sessionId, agents) {
+    if (!sessionId) return;
+    localStorage.setItem(
+      `persistantAgent:${sessionId}`,
+      JSON.stringify(agents),
+    );
+  }
+
+  function loadPersistantAgentsFromStorage(sessionId) {
+    if (!sessionId) return;
+    const stored = localStorage.getItem(`persistantAgent:${sessionId}`);
+    if (stored) {
+      try {
+        const agents = JSON.parse(stored);
+        setPersistantAgent(agents);
+      } catch (error) {
+        console.error("Failed to parse stored agents:", error);
+      }
+    } else {
+      setPersistantAgent([]);
+    }
+  }
+
+  function addPersistantAgent(agent, sessionId) {
+    setPersistantAgent((prev) => {
+      if (prev.length >= 10) return prev;
+      if (
+        prev.find(
+          (a) => a.name === agent.name && a.description === agent.description,
+        )
+      )
+        return prev;
+      const newId =
+        prev.length > 0 ? Math.max(...prev.map((a) => a.id)) + 1 : 1;
+      const updated = [...prev, { ...agent, id: newId }];
+      savePersistantAgentsToStorage(sessionId, updated);
+      return updated;
+    });
+  }
+
+  function removePersistantAgent(agentId, sessionId) {
+    setPersistantAgent((prev) => {
+      const updated = prev.filter((a) => a.id !== agentId);
+      savePersistantAgentsToStorage(sessionId, updated);
+      return updated;
+    });
+  }
+
+  function clearPersistantAgents(sessionId) {
+    setPersistantAgent([]);
+    if (sessionId) {
+      localStorage.removeItem(`persistantAgent:${sessionId}`);
+    }
+  }
+
+  function togglePersistantAgent(agent, sessionId) {
+    const exists = persistantAgent.find(
+      (a) => a.name === agent.name && a.description === agent.description,
+    );
+    if (exists) {
+      removePersistantAgent(exists.id, sessionId);
+    } else {
+      addPersistantAgent(agent, sessionId);
+    }
+  }
+
   //   logic to restore the selected model
   // restore selected model
   function restoredSavedModel(sessionId) {
@@ -212,6 +281,13 @@ export const UserProvider = ({ children }) => {
         restoredSavedModel,
         isAbliteratedMode,
         setIsAbliteratedMode,
+        persistantAgent,
+        setPersistantAgent,
+        addPersistantAgent,
+        removePersistantAgent,
+        clearPersistantAgents,
+        togglePersistantAgent,
+        loadPersistantAgentsFromStorage,
       }}
     >
       {children}

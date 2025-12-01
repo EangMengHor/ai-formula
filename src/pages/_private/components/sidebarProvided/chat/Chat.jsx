@@ -80,6 +80,7 @@ function Chat() {
     setSelectedModel,
     isAbliteratedMode,
     setIsAbliteratedMode,
+    persistantAgent,
   } = useUser();
   const { setSidebarStack } = useStackSidebar();
   const navigate = useNavigate();
@@ -1782,6 +1783,7 @@ function Chat() {
         workflowId: selectedWorkflowId,
         collectionIds: selectedCollectionIds,
         intentModel: selectedModel,
+        persistantAgent: persistantAgent,
       };
 
       // Reset state
@@ -1876,6 +1878,7 @@ function Chat() {
       selectedCollectionIds,
       selectedModel,
       currConversationId,
+      persistantAgent,
     ],
   );
 
