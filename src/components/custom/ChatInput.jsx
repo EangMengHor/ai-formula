@@ -20,6 +20,8 @@ import {
   Mic,
   Anvil,
   Skull,
+  Users,
+  Trash2,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -30,7 +32,21 @@ import AudioRecorder from "./audio-input/AudioRecorder";
 import { useLocation, useParams } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
 import { motion } from "framer-motion";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +65,7 @@ import ModelSelectionDialog, { models } from "./ModelSelectionDialog";
 import VoiceInputBlock from "./VoiceTVoice/VoiceInputBlock";
 import ChatModes from "@/ChatModes";
 import PromptLibrary from "./PromptLibrary";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const maxRows = 30;
 
@@ -129,6 +146,7 @@ function ChatInput({
     setIsSwarmMode,
     setIsAutoSwarmContextState,
     setIsDeepThinkMode, // Use context setter
+    isDeepThinkMode,
     selectedModel,
     isHeliosAgentMode,
     setIsHeliosAgentMode,
@@ -136,6 +154,10 @@ function ChatInput({
     removeSelectedIntent,
     restoredSavedModel,
     setIsAbliteratedMode,
+    persistantAgent,
+    togglePersistantAgent,
+    clearPersistantAgents,
+    loadPersistantAgentsFromStorage,
   } = useUser();
   // component states
   const [rows, setRows] = useState(5);
@@ -165,6 +187,8 @@ function ChatInput({
   const [showHeliosTooltip, setShowHeliosTooltip] = useState(false);
   const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const prevSelectedModelLength = useRef(selectedModel.length);
+  const [isAgentDialogOpen, setIsAgentDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const { user } = useUser();
 
@@ -189,6 +213,7 @@ function ChatInput({
   useEffect(() => {
     restoreSavedWorkflow(id);
     restoredSavedModel(id);
+    loadPersistantAgentsFromStorage(id);
     return () => {
       setSelectedWorkflowId(null);
       setSelectedModel([]);
@@ -449,6 +474,68 @@ function ChatInput({
     }
   }, [isLoading, currConversationId, isAborting, onAbort, handleSubmit, input]);
 
+  // Extract agents from conversation
+  const extractAgentsFromConversation = useCallback(() => {
+    const agents = [];
+    if (!conversationProp?.current) return agents;
+
+    conversationProp.current.forEach((msg) => {
+      if (msg.role === "ai" && msg.message) {
+        msg.message.forEach((block) => {
+          // Check for agents in helios mode
+          if (block.type === "helios" && block.agents) {
+            if (block.agents.analysisAgent) {
+              block.agents.analysisAgent.forEach((agent) => {
+                if (agent.title && agent.content) {
+                  agents.push({
+                    name: agent.title,
+                    description: agent.content.substring(0, 100),
+                  });
+                }
+              });
+            }
+            if (block.agents.auditAgent) {
+              block.agents.auditAgent.forEach((agent) => {
+                if (agent.title && agent.content) {
+                  agents.push({
+                    name: agent.title,
+                    description: agent.content.substring(0, 100),
+                  });
+                }
+              });
+            }
+          }
+          // Check for persona type (simulation agents)
+          if (block.type === "persona" && block.title) {
+            agents.push({
+              name: block.title,
+              description: (block.goal || block.content || "").substring(
+                0,
+                100,
+              ),
+            });
+          }
+        });
+      }
+    });
+
+    // Remove duplicates based on name
+    return agents.filter(
+      (agent, index, self) =>
+        index === self.findIndex((a) => a.name === agent.name),
+    );
+  }, [conversationProp]);
+
+  const availableAgents = extractAgentsFromConversation();
+  const showAttachAgentButton =
+    (isHeliosAgentMode || isSwarmMode) && availableAgents.length > 0;
+  console.log(
+    "asdasda",
+    isHeliosAgentMode,
+    isSwarmMode,
+    availableAgents.length,
+    showAttachAgentButton,
+  );
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">
@@ -495,6 +582,28 @@ function ChatInput({
               transition={{ duration: 0.2, ease: "easeInOut" }}
             >
               <div className="flex gap-2 ml-2 items-center w-full overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+                {/* Attach Agent Button */}
+                {showAttachAgentButton && (
+                  <button
+                    onClick={() => setIsAgentDialogOpen(true)}
+                    className={`flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit px-4 py-3 transition-all ${
+                      persistantAgent.length > 0
+                        ? "bg-slate-800 "
+                        : "bg-slate-800/50 border-2 border-slate-600 border-dashed"
+                    }`}
+                  >
+                    <Users className="w-5 h-5 mr-2" />
+                    <span className="text-white text-xs">
+                      Attach Agent
+                      {persistantAgent.length > 0 && (
+                        <span className="ml-1 text-blue-400">
+                          ({persistantAgent.length})
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                )}
+
                 {selectedModel.length > 0 &&
                   selectedModel.map((model, index) => {
                     const dataObj = models.find((m) => m.value == model);
@@ -827,6 +936,184 @@ function ChatInput({
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Agent Selection Dialog (Desktop) and Drawer (Mobile) */}
+      {!isMobile ? (
+        <Dialog open={isAgentDialogOpen} onOpenChange={setIsAgentDialogOpen}>
+          <DialogContent className="bg-slate-900 border-slate-700 max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl">
+                Attach Persistent Agents
+              </DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Select up to 10 agents to persist across conversations. Selected
+                agents will be included in all future messages.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              {persistantAgent.length > 0 && (
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-sm text-gray-400">
+                    {persistantAgent.length} of 10 agents selected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => clearPersistantAgents(id)}
+                    className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove All
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                {availableAgents.map((agent, index) => {
+                  const isSelected = persistantAgent.some(
+                    (a) =>
+                      a.name === agent.name &&
+                      a.description === agent.description,
+                  );
+                  const isDisabled =
+                    !isSelected && persistantAgent.length >= 10;
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() =>
+                        !isDisabled && togglePersistantAgent(agent, id)
+                      }
+                      disabled={isDisabled}
+                      className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
+                        isSelected
+                          ? "bg-slate-800 border-2 border-blue-500 shadow-lg"
+                          : isDisabled
+                            ? "bg-slate-800/30 border-2 border-slate-700 opacity-50 cursor-not-allowed"
+                            : "bg-slate-800/50 border-2 border-slate-700 hover:bg-slate-800 hover:border-slate-600"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1">
+                          <Users
+                            className={`w-5 h-5 ${isSelected ? "text-blue-400" : "text-gray-400"}`}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white mb-1">
+                            {agent.name}
+                          </h4>
+                          <p className="text-sm text-gray-400 line-clamp-2">
+                            {agent.description}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="flex-shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {availableAgents.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  No agents available in this conversation yet.
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={isAgentDialogOpen} onOpenChange={setIsAgentDialogOpen}>
+          <DrawerContent className="bg-slate-900 border-slate-700">
+            <DrawerHeader>
+              <DrawerTitle className="text-white">
+                Attach Persistent Agents
+              </DrawerTitle>
+              <DrawerDescription className="text-gray-400">
+                Select up to 10 agents to persist across conversations
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="px-4 pb-4 space-y-4">
+              {persistantAgent.length > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-400">
+                    {persistantAgent.length} of 10 selected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => clearPersistantAgents(id)}
+                    className="bg-red-900/20 hover:bg-red-900/40 text-red-400 border-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove All
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {availableAgents.map((agent, index) => {
+                  const isSelected = persistantAgent.some(
+                    (a) =>
+                      a.name === agent.name &&
+                      a.description === agent.description,
+                  );
+                  const isDisabled =
+                    !isSelected && persistantAgent.length >= 10;
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() =>
+                        !isDisabled && togglePersistantAgent(agent, id)
+                      }
+                      disabled={isDisabled}
+                      className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
+                        isSelected
+                          ? "bg-slate-800 border-2 border-blue-500"
+                          : isDisabled
+                            ? "bg-slate-800/30 border-2 border-slate-700 opacity-50"
+                            : "bg-slate-800/50 border-2 border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Users
+                          className={`w-5 h-5 mt-1 ${isSelected ? "text-blue-400" : "text-gray-400"}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-white mb-1">
+                            {agent.name}
+                          </h4>
+                          <p className="text-sm text-gray-400 line-clamp-2">
+                            {agent.description}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {availableAgents.length === 0 && (
+                <div className="text-center py-8 text-gray-400">
+                  No agents available yet.
+                </div>
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
 
       {/* Prompt Library */}
       <PromptLibrary
