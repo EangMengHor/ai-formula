@@ -146,3 +146,8 @@ export const getUserEmailOutreachJobsUrl = `${import.meta.env.VITE_SOCKET_URL}/a
 export const getEmailOutreachJobDetailsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getEmailJobDetails/:jobId`;
 export const getJobEngagementUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getJobEngagementData/:jobId`;
 export const getUserEngagementUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getAllReply/:userId`;
+
+// podcast search
+export const startPodcastSearchUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/start-podcast-search`;
+export const getUserPodcastJobsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getUserPodcastJobs/:userId`;
+export const getPodcastJobDetailsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getEmailJobDetails/:jobId`;

@@ -54,6 +54,9 @@ import CreateNewEmailOutReach from "./pages/_emailOutreach/CreateNewEmailOutReac
 import EmailOutReachDetails from "./pages/_emailOutreach/EmailOutReachDetails";
 import EmailOutReachAnalytics from "./pages/_emailOutreach/EmailOutReachAnalytics";
 import EmailOutReachEachEngagement from "./pages/_emailOutreach/EmailOutReachEachEngagement";
+import SearchPodcast from "./pages/_podcastSearch/SearchPodcast";
+import FoundPodcast from "./pages/_podcastSearch/FoundPodcast";
+import SearchPodcastHistory from "./pages/_podcastSearch/SearchPodcastHistory";
 import PromptBuilder from "./pages/_promptBuilder/PromptBuilder";
 import OsintTools from "./pages/_osint/OsintTools";
 import OsintFinding from "./pages/_osint/OsintFinding";
@@ -142,6 +145,11 @@ export default function App() {
               path="/email-outreach-analytics"
               element={<EmailOutReachAnalytics />}
             />
+
+            {/* podcast search */}
+            <Route path="/search-podcast" element={<SearchPodcast />} />
+            <Route path="/found-podcast/:id" element={<FoundPodcast />} />
+            <Route path="/search-podcast-history" element={<SearchPodcastHistory />} />
 
             <Route path="/workshop" element={<Workshop />} />
             <Route index path="/dashboard" element={<Dashboard />} />
