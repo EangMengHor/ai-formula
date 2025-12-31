@@ -6,6 +6,7 @@ import {
   FireExtinguisherIcon,
   Mails,
   Orbit,
+  Podcast,
   SearchXIcon,
   SunMoon,
   Workflow,
@@ -61,6 +62,13 @@ const tools = [
     description: "Access Open-Source Intelligence tools",
     icon: SearchXIcon,
     path: "/osint-tools",
+  },
+  {
+    id: "podcast-search",
+    title: "Podcast Search",
+    description: "Search and discover podcasts with contact info",
+    icon: Podcast,
+    path: "/search-podcast-history",
   },
 ];
 

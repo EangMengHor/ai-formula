@@ -30,6 +30,9 @@ import EmailOutReachAnalytics from "@/pages/_emailOutreach/EmailOutReachAnalytic
 import PromptBuilder from "@/pages/_promptBuilder/PromptBuilder";
 import OsintTools from "@/pages/_osint/OsintTools";
 import OsintFinding from "@/pages/_osint/OsintFinding";
+import SearchPodcast from "@/pages/_podcastSearch/SearchPodcast";
+import SearchPodcastHistory from "@/pages/_podcastSearch/SearchPodcastHistory";
+import FoundPodcast from "@/pages/_podcastSearch/FoundPodcast";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -97,6 +100,16 @@ export default function Page() {
             {pathname.startsWith("/prompt-builder") && <PromptBuilder />}
             {pathname === "/osint-tools" && <OsintTools />}
             {pathname === "/osint-finding" && <OsintFinding />}
+
+            {/* podcast search */}
+            {/* <Route path="/search-podcast" element={<SearchPodcast />} />
+            <Route path="/found-podcast/:id" element={<FoundPodcast />} />
+            <Route path="/search-podcast-history" element={<SearchPodcastHistory />} /> */}
+
+            {/* podcast */}
+            {pathname == "/search-podcast" && <SearchPodcast />}
+            {pathname.startsWith("/found-podcast/") && <FoundPodcast />}
+            {pathname == "/search-podcast-history" && <SearchPodcastHistory />}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}
