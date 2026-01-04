@@ -151,3 +151,8 @@ export const getUserEngagementUrl = `${import.meta.env.VITE_SOCKET_URL}/api/emai
 export const startPodcastSearchUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/start-podcast-search`;
 export const getUserPodcastJobsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getUserPodcastJobs/:userId`;
 export const getPodcastJobDetailsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/email-outreach/getEmailJobDetails/:jobId`;
+
+// content AI
+export const startContentTaskUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/start-content-task`;
+export const pollContentTaskUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/poll-content-task`;
+export const getPresignedUrlForContentUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/get-presigned-url`;

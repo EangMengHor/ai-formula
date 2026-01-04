@@ -33,6 +33,8 @@ import OsintFinding from "@/pages/_osint/OsintFinding";
 import SearchPodcast from "@/pages/_podcastSearch/SearchPodcast";
 import SearchPodcastHistory from "@/pages/_podcastSearch/SearchPodcastHistory";
 import FoundPodcast from "@/pages/_podcastSearch/FoundPodcast";
+import ContentChat from "@/pages/_contenAi/ContentChat";
+import ContentDashboard from "@/pages/_contenAi/ContentDashboard";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -110,6 +112,8 @@ export default function Page() {
             {pathname == "/search-podcast" && <SearchPodcast />}
             {pathname.startsWith("/found-podcast/") && <FoundPodcast />}
             {pathname == "/search-podcast-history" && <SearchPodcastHistory />}
+            {pathname.startsWith("/content-ai/chat/") && <ContentChat />}
+            {pathname == "/content-ai" && <ContentDashboard />}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}
