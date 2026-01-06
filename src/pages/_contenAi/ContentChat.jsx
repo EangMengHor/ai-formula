@@ -9,10 +9,22 @@ import {
 } from "@/services/contentAi/contentAi.api";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Upload, X, FileIcon, Send, LoaderCircle, Presentation } from "lucide-react";
+import {
+  Upload,
+  X,
+  FileIcon,
+  Send,
+  LoaderCircle,
+  Presentation,
+  Play,
+  Pause,
+  Download,
+  Clapperboard,
+} from "lucide-react";
 import LoadingAnimation from "@/components/custom/Loading";
 import MarkdownRenderer from "../_private/components/sidebarProvided/components/AnimatedMarkdown";
 import Presentations from "./formatShowcase/Presentation";
+import AudioPlayer from "./formatShowcase/Audio";
 
 // Helper function to get file type label from file name
 const getFileTypeLabel = (fileName) => {
@@ -358,9 +370,7 @@ export default function ContentChat() {
 
           {isTaskRunning && taskStatus !== "completed" && (
             <div className="flex justify-start">
-              <div className="bg-slate-800 rounded-lg p-4 max-w-[80%]">
-                <LoadingAnimation currentQuote="Generating content" />
-              </div>
+              <LoadingAnimation currentQuote="Generating content" />
             </div>
           )}
 
@@ -505,12 +515,199 @@ export default function ContentChat() {
   );
 }
 
+// Video Grid Component
+function VideoGrid({ videos }) {
+  const getGridClass = (count) => {
+    if (count === 1) return "grid-cols-1";
+    if (count === 2) return "grid-cols-2";
+    if (count === 3) return "grid-cols-2";
+    if (count === 4) return "grid-cols-3";
+    if (count <= 6) return "grid-cols-3";
+    return "grid-cols-3";
+  };
+
+  return (
+    <div className="bg-gradient-to-tr to-g2 via-g1 from-g1 px-3 py-2 rounded-2xl">
+      <div className="w-full flex justify-between items-center">
+        <div className="flex gap-2  py-2 ">
+          <Clapperboard />
+          <p className="font-semibold">Generated Video(s)</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-400">{videos.length} videos</p>
+        </div>
+      </div>
+      <div className={`grid ${getGridClass(videos.length)} gap-2`}>
+        {videos.map((video, idx) => (
+          <VideoItem key={idx} video={video} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Individual Video Component
+function VideoItem({ video }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleDownload = async (e) => {
+    e.stopPropagation();
+    try {
+      setIsDownloading(true);
+      const response = await fetch(video.fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = video.fileName || "video.mp4";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading video:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div
+      className="relative group"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <video
+        src={video.fileUrl}
+        controls
+        className="w-full h-auto rounded-2xl bg-black"
+        preload="metadata"
+      />
+      {/* Download button overlay */}
+      {isHovered && (
+        <div className="absolute top-2 right-2 z-10">
+          <Button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            variant="secondary"
+            size="sm"
+            className="bg-white/90 hover:bg-white text-black shadow-lg"
+          >
+            {isDownloading ? (
+              <LoaderCircle className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-1" />
+                Download
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Image Grid Component
+function ImageGrid({ images }) {
+  const getGridClass = (count) => {
+    if (count === 1) return "grid-cols-1";
+    if (count === 2) return "grid-cols-2";
+    if (count === 3) return "grid-cols-2";
+    if (count === 4) return "grid-cols-3";
+    if (count <= 6) return "grid-cols-4";
+    return "grid-cols-3";
+  };
+
+  return (
+    <div className="bg-gradient-to-tr to-g2 via-g1 from-g1 px-3 py-2 rounded-2xl">
+      <div className="w-full flex justify-between mb-1 items-center">
+        <div className="flex gap-2  py-2 ">
+          <Clapperboard />
+          <p className="font-semibold">Generated Image(s)</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-400">{images.length} Image</p>
+        </div>
+      </div>
+      <div className={`grid ${getGridClass(images.length)} gap-2`}>
+        {images.map((image, idx) => (
+          <ImageItem key={idx} image={image} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Individual Image Component
+function ImageItem({ image }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleDownload = async (e) => {
+    e.stopPropagation();
+    try {
+      setIsDownloading(true);
+      const response = await fetch(image.fileUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = image.fileName || "image.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div
+      className="relative group cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <img
+        src={image.fileUrl}
+        alt={image.fileName || "Image"}
+        className="w-full h-auto rounded-lg object-cover "
+      />
+      {/* Download button overlay */}
+      {isHovered && (
+        <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center transition-opacity">
+          <Button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            variant="secondary"
+            size="sm"
+            className="bg-white/90 hover:bg-white text-black"
+          >
+            {isDownloading ? (
+              <LoaderCircle className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-1" />
+                Download
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Message block component
 function MessageBlock({ message }) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="bg-blue-950 rounded-lg p-3 max-w-[80%]">
+        <div className="bg-gradient-to-tr to-g2 via-g1 from-g1 p-3 max-w-[80%] rounded-2xl">
           <p className="text-white whitespace-pre-wrap">{message.prompt}</p>
         </div>
       </div>
@@ -518,14 +715,60 @@ function MessageBlock({ message }) {
   }
 
   if (message.role === "assistant") {
+    // Group consecutive images and videos together
+    const groupedItems = [];
+    let currentImageGroup = [];
+    let currentVideoGroup = [];
+
+    message.data?.forEach((item, idx) => {
+      if (item.type === "element" && item.format === "img") {
+        // Flush video group if exists
+        if (currentVideoGroup.length > 0) {
+          groupedItems.push({ type: "videoGroup", videos: currentVideoGroup });
+          currentVideoGroup = [];
+        }
+        currentImageGroup.push(item);
+      } else if (item.type === "element" && item.format === "mp4") {
+        // Flush image group if exists
+        if (currentImageGroup.length > 0) {
+          groupedItems.push({ type: "imageGroup", images: currentImageGroup });
+          currentImageGroup = [];
+        }
+        currentVideoGroup.push(item);
+      } else {
+        // Flush both groups if they exist
+        if (currentImageGroup.length > 0) {
+          groupedItems.push({ type: "imageGroup", images: currentImageGroup });
+          currentImageGroup = [];
+        }
+        if (currentVideoGroup.length > 0) {
+          groupedItems.push({ type: "videoGroup", videos: currentVideoGroup });
+          currentVideoGroup = [];
+        }
+        groupedItems.push(item);
+      }
+    });
+
+    // Add remaining groups if any
+    if (currentImageGroup.length > 0) {
+      groupedItems.push({ type: "imageGroup", images: currentImageGroup });
+    }
+    if (currentVideoGroup.length > 0) {
+      groupedItems.push({ type: "videoGroup", videos: currentVideoGroup });
+    }
+
     return (
       <div className="flex justify-start">
-        <div className=" rounded-lg p-4  space-y-3">
-          {message.data &&
-            Array.isArray(message.data) &&
-            message.data.map((item, idx) => (
-              <MessageItem key={idx} item={item} />
-            ))}
+        <div className="rounded-lg space-y-3 max-w-full">
+          {groupedItems.map((item, idx) => {
+            if (item.type === "imageGroup") {
+              return <ImageGrid key={idx} images={item.images} />;
+            }
+            if (item.type === "videoGroup") {
+              return <VideoGrid key={idx} videos={item.videos} />;
+            }
+            return <MessageItem key={idx} item={item} />;
+          })}
         </div>
       </div>
     );
@@ -536,8 +779,6 @@ function MessageBlock({ message }) {
 
 // Message item component (text, element, or presentation)
 function MessageItem({ item }) {
-  const [selectedSlide, setSelectedSlide] = useState(null);
-
   if (item.type === "text") {
     return (
       <div className="text-gray-200 whitespace-pre-wrap">
@@ -558,21 +799,30 @@ function MessageItem({ item }) {
     );
   }
 
-  // Regular file element
-  if (item.type === "element") {
+  // Handle MP3 audio files
+  if (item.type === "element" && item.format === "mp3") {
+    return <AudioPlayer fileUrl={item.fileUrl} fileName={item.fileName} />;
+  }
+
+  // Regular file element (skip images and videos as they're handled by their respective grids)
+  if (
+    item.type === "element" &&
+    item.format !== "img" &&
+    item.format !== "mp4"
+  ) {
     return (
       <a
         href={item.fileUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="block border-2 border-gray-600 rounded-lg p-4 hover:border-blue-500 hover:bg-slate-700 transition-colors cursor-pointer"
+        className="bg-gradient-to-tr to-g2 via-g1 from-g1 hover:to-g1 hover:from-g2 transition-all block  rounded-2xl p-4  cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <FileIcon className="w-8 h-8 text-blue-400" />
+          <FileIcon className="w-8 h-8 " />
           <div className="flex-1">
             <p className="font-semibold text-white">{item.fileName}</p>
             <p className="text-sm text-gray-400">
-              {item.format} • Click to open
+              {item.format == "other" ? "File" : item.format} • Click to open
             </p>
           </div>
         </div>
