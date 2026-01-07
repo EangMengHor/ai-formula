@@ -62,6 +62,7 @@ import OsintTools from "./pages/_osint/OsintTools";
 import OsintFinding from "./pages/_osint/OsintFinding";
 import ContentChat from "./pages/_contenAi/ContentChat";
 import ContentDashboard from "./pages/_contenAi/ContentDashboard";
+import ContentChatInput from "./pages/_contenAi/ContentChatInput";
 
 export default function App() {
   const location = useLocation();
@@ -123,12 +124,14 @@ export default function App() {
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
             {/* content ai */}
-            <Route path="/content-ai" element={<ContentDashboard />} />
+            <Route
+              path="/content-ai"
+              element={<ContentChatInput isUsedInDashboard={true} />}
+            />
             <Route
               path="/content-ai/chat/:sessionId"
-              element={<ContentChat />}
+              element={<ContentChatInput />}
             />
-            
 
             {/* osint */}
             <Route path="/osint-tools" element={<OsintTools />} />

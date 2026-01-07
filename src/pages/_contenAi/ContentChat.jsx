@@ -1,30 +1,17 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/context/UserContext";
 import {
   startContentTask,
   pollContentTask,
-  uploadFileToBackend,
 } from "@/services/contentAi/contentAi.api";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Upload,
-  X,
-  FileIcon,
-  Send,
-  LoaderCircle,
-  Presentation,
-  Play,
-  Pause,
-  Download,
-  Clapperboard,
-} from "lucide-react";
+import { FileIcon, LoaderCircle, Download, Clapperboard } from "lucide-react";
 import LoadingAnimation from "@/components/custom/Loading";
 import MarkdownRenderer from "../_private/components/sidebarProvided/components/AnimatedMarkdown";
 import Presentations from "./formatShowcase/Presentation";
 import AudioPlayer from "./formatShowcase/Audio";
+import ContentChatInput from "./ContentChatInput";
 
 // Helper function to get file type label from file name
 const getFileTypeLabel = (fileName) => {
@@ -80,17 +67,13 @@ export default function ContentChat() {
   const { toast } = useToast();
 
   const [messages, setMessages] = useState([]);
-  const [prompt, setPrompt] = useState("");
   const [isTaskRunning, setIsTaskRunning] = useState(false);
-  const [uploadingFiles, setUploadingFiles] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
   const [taskStatus, setTaskStatus] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   const messagesEndRef = useRef(null);
   const pollIntervalRef = useRef(null);
-  const fileInputRef = useRef(null);
   const hasLoadedHistory = useRef(false);
 
   // Load previous conversation and files when component mounts
@@ -195,156 +178,21 @@ export default function ContentChat() {
     };
   }, []);
 
-  // Handle file selection
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files || []);
-    handleFiles(files);
-  };
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  // Handle drag and drop
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files || []);
-    handleFiles(files);
-  };
-
-  // Process files
-  const handleFiles = async (files) => {
-    if (files.length === 0) return;
-
-    // Initialize uploading state for each file
-    const newUploadingFiles = files.map((file) => ({
-      file,
-      name: file.name,
-      progress: 0,
-      status: "uploading",
-    }));
-
-    setUploadingFiles((prev) => [...prev, ...newUploadingFiles]);
-
-    // Upload each file with the same sessionId
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const fileIndex = uploadingFiles.length + i;
-
-      try {
-        // Upload file to backend with sessionId
-        const uploadRes = await uploadFileToBackend(
-          file,
-          sessionId,
-          (progress) => {
-            setUploadingFiles((prev) =>
-              prev.map((f, idx) =>
-                idx === fileIndex ? { ...f, progress } : f,
-              ),
-            );
-          },
-        );
-
-        if (uploadRes.success) {
-          setUploadingFiles((prev) =>
-            prev.map((f, idx) =>
-              idx === fileIndex ? { ...f, status: "completed" } : f,
-            ),
-          );
-        } else {
-          throw new Error(uploadRes.message);
-        }
-      } catch (error) {
-        console.error("Error uploading file:", error);
-        setUploadingFiles((prev) =>
-          prev.map((f, idx) =>
-            idx === fileIndex
-              ? { ...f, status: "failed", error: error.message }
-              : f,
-          ),
-        );
-        toast({
-          title: "Upload Failed",
-          description: `Failed to upload ${file.name}`,
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  // Remove uploading/uploaded file
-  const removeFile = (index) => {
-    setUploadingFiles((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  // Handle submit
-  const handleSubmit = async (overridePrompt = null) => {
-    const finalPrompt = overridePrompt || prompt;
-
-    if (!finalPrompt.trim() && uploadingFiles.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please enter a prompt or upload files",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if any files are still uploading
-    if (uploadingFiles.some((f) => f.status === "uploading")) {
-      toast({
-        title: "Please wait",
-        description: "Files are still uploading",
-        variant: "default",
-      });
-      return;
-    }
-
-    try {
-      setIsTaskRunning(true);
-
-      // Start task (backend already has the uploaded files linked to sessionId)
-      const res = await startContentTask(sessionId, finalPrompt.trim());
-
-      if (res.success) {
-        // Clear input and files
-        setPrompt("");
-        setUploadingFiles([]);
-
-        // Start polling
-        await startPolling();
-      } else {
-        throw new Error(res.message);
-      }
-    } catch (error) {
-      console.error("Error starting task:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start task",
-        variant: "destructive",
-      });
-      setIsTaskRunning(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey && !isTaskRunning) {
-      e.preventDefault();
-      handleSubmit();
-    }
+  // Handle when a new message is sent from the input
+  const handleMessageSent = async () => {
+    setIsTaskRunning(true);
+    await startPolling();
   };
 
   // Show loading state while fetching history
   if (isLoadingHistory) {
     return (
-      <div className="w-full h-screen flex items-center justify-center">
+      <div className="w-full h-full flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <LoaderCircle className="w-8 h-8 animate-spin" />
           <p className="text-gray-400">Loading conversation...</p>
@@ -354,162 +202,60 @@ export default function ContentChat() {
   }
 
   return (
-    <div className="w-full h-screen flex items-center justify-center">
-      <div className="flex flex-col h-screen max-w-3xl w-full">
-        {/* Messages container */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && !isTaskRunning && (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              <p>Start a conversation by typing a message below</p>
-            </div>
-          )}
+    <div className="flex flex-col h-full max-w-3xl mx-auto w-full overflow-hidden">
+      {/* Messages container - this is the only scrollable area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+        {messages.length === 0 && !isTaskRunning && (
+          <div className="flex items-center justify-center h-full text-gray-400">
+            <p>Start a conversation by typing a message below</p>
+          </div>
+        )}
 
-          {messages.map((message, idx) => (
-            <MessageBlock key={idx} message={message} />
-          ))}
+        {messages.map((message, idx) => (
+          <MessageBlock key={idx} message={message} />
+        ))}
 
-          {isTaskRunning && taskStatus !== "completed" && (
-            <div className="flex justify-start">
-              <LoadingAnimation currentQuote="Generating content" />
-            </div>
-          )}
+        {isTaskRunning && taskStatus !== "completed" && (
+          <div className="flex justify-start">
+            <LoadingAnimation currentQuote="Generating content" />
+          </div>
+        )}
 
-          <div ref={messagesEndRef} />
-        </div>
+        <div ref={messagesEndRef} />
+      </div>
 
-        {/* Input container */}
-        <div className="border-t border-gray-700 p-4">
-          {/* Uploaded files and uploading files display */}
-          {(uploadedFiles.length > 0 || uploadingFiles.length > 0) && (
-            <div className="flex gap-2 ml-2 items-center w-full overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
-              {/* Display already uploaded files */}
-              {uploadedFiles.map((fileName, idx) => (
-                <div
-                  key={`uploaded-${idx}`}
-                  className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800"
-                >
-                  <div className="p-2 pl-3">
-                    <FileIcon className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div className="flex items-center gap-2 py-2 pr-4">
-                    <span className="text-white text-xs h-full min-w-max">
-                      {fileName}
-                      <p className="text-slate-400">
-                        {getFileTypeLabel(fileName)}
-                      </p>
-                    </span>
-                  </div>
+      {/* Uploaded files display - fixed at bottom above input */}
+      {uploadedFiles.length > 0 && (
+        <div className="flex-shrink-0 px-4 pb-2">
+          <div className="flex gap-2 items-center w-full overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+            {uploadedFiles.map((fileName, idx) => (
+              <div
+                key={`uploaded-${idx}`}
+                className="flex items-center rounded-2xl justify-between w-fit bg-slate-800"
+              >
+                <div className="p-2 pl-3">
+                  <FileIcon className="w-5 h-5 text-blue-400" />
                 </div>
-              ))}
-
-              {/* Display currently uploading files */}
-              {uploadingFiles.map((file, idx) => (
-                <div
-                  key={`uploading-${idx}`}
-                  className="flex mt-3 items-center rounded-2xl justify-between mb-2 w-fit bg-slate-800"
-                >
-                  <div className="p-2 pl-3">
-                    {file.status === "uploading" ? (
-                      <LoaderCircle className="w-5 h-5 text-blue-400 animate-spin" />
-                    ) : file.status === "completed" ? (
-                      <FileIcon className="w-5 h-5 text-green-400" />
-                    ) : (
-                      <FileIcon className="w-5 h-5 text-red-400" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 py-2 pr-2">
-                    <span className="text-white text-xs h-full min-w-max">
-                      {file.name}
-                      <p
-                        className={`text-slate-400 ${
-                          file.status === "uploading" ? "opacity-70" : ""
-                        } ${file.status === "failed" ? "text-red-400" : ""}`}
-                      >
-                        {file.status === "uploading"
-                          ? `${getFileTypeLabel(file.name)} - ${file.progress}%`
-                          : file.status === "completed"
-                            ? getFileTypeLabel(file.name)
-                            : "Failed"}
-                      </p>
-                    </span>
-                  </div>
-                  {file.status !== "uploading" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-slate-800 rounded-xl p-2 m-2 hover:bg-slate-700 text-white"
-                      onClick={() => removeFile(idx)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
+                <div className="flex items-center gap-2 py-2 pr-4">
+                  <span className="text-white text-xs h-full min-w-max">
+                    {fileName}
+                    <p className="text-slate-400">
+                      {getFileTypeLabel(fileName)}
+                    </p>
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Input area */}
-          <div
-            className={`relative border-2 rounded-lg transition-colors ${
-              isDragging ? "border-blue-500 bg-blue-500/10" : "border-gray-700"
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            {isDragging && (
-              <div className="absolute inset-0 flex items-center justify-center bg-blue-500/20 rounded-lg z-10 pointer-events-none">
-                <p className="text-lg font-semibold">Drop files here</p>
               </div>
-            )}
-
-            <div className="flex items-end gap-2 p-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                multiple
-                className="hidden"
-              />
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isTaskRunning}
-              >
-                <Upload className="w-5 h-5" />
-              </Button>
-
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your message or drag and drop files..."
-                className="flex-1 min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0"
-                disabled={isTaskRunning}
-              />
-
-              <Button
-                onClick={() => handleSubmit()}
-                disabled={
-                  isTaskRunning ||
-                  (!prompt.trim() &&
-                    uploadingFiles.filter((f) => f.status === "completed")
-                      .length === 0) ||
-                  uploadingFiles.some((f) => f.status === "uploading")
-                }
-                size="icon"
-              >
-                {isTaskRunning ? (
-                  <LoaderCircle className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </Button>
-            </div>
+            ))}
           </div>
         </div>
+      )}
+
+      {/* Input container - fixed at bottom */}
+      <div className="flex-shrink-0 p-4 pt-2">
+        <ContentChatInput
+          onMessageSent={handleMessageSent}
+          disabled={isTaskRunning}
+        />
       </div>
     </div>
   );
