@@ -1,4 +1,12 @@
-import { Paperclip, Send, X, FileIcon, LoaderCircle } from "lucide-react";
+import {
+  Paperclip,
+  Send,
+  X,
+  FileIcon,
+  LoaderCircle,
+  Loader2,
+  Folder,
+} from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -7,6 +15,7 @@ import {
   uploadFileToBackend,
 } from "@/services/contentAi/contentAi.api";
 import { getNewSession } from "@/services/n8n-apis/_core/getNewSession.api";
+import { set } from "lodash";
 
 // Helper function to get file type label from file name
 const getFileTypeLabel = (fileName) => {
@@ -39,10 +48,16 @@ const getFileTypeLabel = (fileName) => {
   return typeMap[extension] || "File";
 };
 
+// Constants for input limits
+const MAX_PROMPT_LENGTH = 5000;
+const MAX_FILES = 15;
+
 export default function ContentChatInput({
   isUsedInDashboard = false,
-  onMessageSent,
+  setUploadedFiles = () => {},
+  uploadedFiles = [],
   disabled = false,
+  handleSubmitProps,
 }) {
   const sid = useRef(null);
   const textareaRef = useRef(null);
@@ -63,6 +78,10 @@ export default function ContentChatInput({
     } else {
       sid.current = routeSessionId;
     }
+
+    setIsDragging(false);
+    setUploadingFiles([]);
+    setPrompt("");
   }, [routeSessionId, isUsedInDashboard]);
 
   // Auto-resize textarea
@@ -110,16 +129,27 @@ export default function ContentChatInput({
     async (files) => {
       if (files.length === 0) return;
 
+      // Check total file limit
+      const totalFiles = uploadedFiles.length + files.length;
+      if (totalFiles > MAX_FILES) {
+        toast({
+          title: "File Limit Exceeded",
+          description: `You can only upload up to ${MAX_FILES} files. Currently have ${uploadedFiles.length}, trying to add ${files.length}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const newFiles = files.map((file) => ({
         id: crypto.randomUUID(),
         file,
-        name: file.name,
+        fileName: file.name,
         size: file.size,
         progress: 0,
         status: "uploading",
       }));
-
-      setUploadingFiles((prev) => [...prev, ...newFiles]);
+      console.log("Uploading files:", newFiles);
+      setUploadingFiles([...newFiles]);
 
       for (const fileData of newFiles) {
         try {
@@ -136,13 +166,8 @@ export default function ContentChatInput({
           );
 
           if (uploadRes.success) {
-            setUploadingFiles((prev) =>
-              prev.map((f) =>
-                f.id === fileData.id
-                  ? { ...f, status: "completed", progress: 100 }
-                  : f,
-              ),
-            );
+            setUploadingFiles([]);
+            setUploadedFiles((prev) => [fileData.fileName, ...prev]);
           } else {
             throw new Error(uploadRes.message || "Upload failed");
           }
@@ -163,18 +188,24 @@ export default function ContentChatInput({
         }
       }
     },
-    [toast],
+    [toast, uploadedFiles.length],
   );
-
-  const removeFile = (fileId) => {
-    setUploadingFiles((prev) => prev.filter((f) => f.id !== fileId));
-  };
 
   const handleSubmit = async () => {
     const trimmedPrompt = prompt.trim();
     const completedFiles = uploadingFiles.filter(
       (f) => f.status === "completed",
     );
+
+    // Check prompt length
+    if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
+      toast({
+        title: "Message Too Long",
+        description: `Your message exceeds ${MAX_PROMPT_LENGTH} characters. Please shorten it.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!trimmedPrompt && completedFiles.length === 0) {
       toast({
@@ -210,14 +241,9 @@ export default function ContentChatInput({
           throw new Error(res.message || "Failed to create session");
         }
       } else {
-        const res = await startContentTask(sid.current, trimmedPrompt);
-        if (res.success) {
-          setPrompt("");
-          setUploadingFiles([]);
-          onMessageSent?.();
-        } else {
-          throw new Error(res.message || "Failed to send message");
-        }
+        await handleSubmitProps(trimmedPrompt);
+        setPrompt("");
+        setUploadingFiles([]);
       }
     } catch (error) {
       console.error("Submit error:", error);
@@ -245,56 +271,7 @@ export default function ContentChatInput({
   const isDisabled = disabled || isSubmitting;
 
   return (
-    <div className="w-full max-w-[720px] mx-auto">
-      {/* Uploaded Files Display */}
-      {uploadingFiles.length > 0 && (
-        <div className="flex gap-2 mb-2 overflow-x-auto pb-2 hide-scrollbar">
-          {uploadingFiles.map((file) => (
-            <div
-              key={file.id}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm shrink-0 ${
-                file.status === "uploading"
-                  ? "bg-blue-500/20 border border-blue-500/30"
-                  : file.status === "completed"
-                    ? "bg-green-500/20 border border-green-500/30"
-                    : "bg-red-500/20 border border-red-500/30"
-              }`}
-            >
-              {file.status === "uploading" ? (
-                <LoaderCircle className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
-              ) : file.status === "completed" ? (
-                <FileIcon className="w-4 h-4 text-green-400 shrink-0" />
-              ) : (
-                <FileIcon className="w-4 h-4 text-red-400 shrink-0" />
-              )}
-
-              <div className="flex flex-col min-w-0">
-                <span className="text-white text-xs truncate max-w-[120px]">
-                  {file.name}
-                </span>
-                <span className="text-[10px] text-gray-400">
-                  {file.status === "uploading"
-                    ? `${file.progress}%`
-                    : file.status === "completed"
-                      ? getFileTypeLabel(file.name)
-                      : "Failed"}
-                </span>
-              </div>
-
-              {file.status !== "uploading" && (
-                <button
-                  onClick={() => removeFile(file.id)}
-                  className="p-1 hover:bg-white/10 rounded-full transition-colors shrink-0"
-                  disabled={isDisabled}
-                >
-                  <X className="w-3 h-3 text-gray-400" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
+    <div className="w-full max-w-[770px] mx-auto">
       {/* Input Container */}
       <div
         className={`relative bg-gradient-to-t from-g1 to-g2 rounded-3xl transition-all ${
@@ -313,6 +290,46 @@ export default function ContentChatInput({
         )}
 
         <div className="px-4 pt-3 pb-2">
+          {(uploadedFiles.length > 0 || uploadingFiles.length > 0) && (
+            <div className="flex-shrink-0 ">
+              <div className="flex gap-2 items-center w-full overflow-x-auto scroll-smooth hide-scrollbar flex-nowrap">
+                {uploadingFiles.map((file, idx) => (
+                  <div
+                    key={`uploaded-${idx}`}
+                    className="flex items-center rounded-2xl justify-between w-fit bg-blue-950 hover:bg-blue-900 transition-all mb-3"
+                  >
+                    <div className="p-2 pl-3">
+                      <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                    </div>
+                    <div className="flex items-center gap-2 py-2 pr-4">
+                      <span className="text-white text-xs h-full min-w-max">
+                        {file.fileName}
+                        <p className="text-slate-400">{file.progress}%</p>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {uploadedFiles.map((fileName, idx) => (
+                  <div
+                    key={`uploaded-${idx}`}
+                    className="flex items-center rounded-2xl justify-between w-fit bg-blue-950 transition-all mb-3"
+                  >
+                    <div className="p-2 pl-3">
+                      <Folder className="w-5 h-5 " />
+                    </div>
+                    <div className="flex items-center gap-2 py-2 pr-4">
+                      <span className="text-white text-xs h-full min-w-max">
+                        {fileName}
+                        <p className="text-slate-400">
+                          {getFileTypeLabel(fileName)}
+                        </p>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             className="bg-transparent outline-none border-none w-full text-white resize-none leading-relaxed break-words whitespace-pre-wrap placeholder:text-gray-400"
@@ -324,17 +341,30 @@ export default function ContentChatInput({
                   : "Type your message..."
             }
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => {
+              // Limit prompt to MAX_PROMPT_LENGTH characters
+              if (e.target.value.length <= MAX_PROMPT_LENGTH) {
+                setPrompt(e.target.value);
+              }
+            }}
             onKeyDown={handleKeyDown}
             disabled={isDisabled}
             rows={1}
+            maxLength={MAX_PROMPT_LENGTH}
           />
-
+          {/* Character count indicator */}
+          {prompt.length > MAX_PROMPT_LENGTH * 0.8 && (
+            <div
+              className={`text-xs text-right mt-1 ${prompt.length >= MAX_PROMPT_LENGTH ? "text-red-400" : "text-yellow-400"}`}
+            >
+              {prompt.length}/{MAX_PROMPT_LENGTH} characters
+            </div>
+          )}
           {/* Controls */}
           <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/10">
             <div className="flex items-center gap-1">
               <label
-                className={`p-2 hover:bg-white/10 rounded-lg transition-colors ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                className={`p-2 hover:bg-white/10 rounded-lg transition-colors ${isDisabled || uploadedFiles.length >= MAX_FILES ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
               >
                 <input
                   ref={fileInputRef}
@@ -343,10 +373,17 @@ export default function ContentChatInput({
                   multiple
                   accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.gif,.webp,.csv,.xlsx,.xls"
                   onChange={handleFileInput}
-                  disabled={isDisabled}
+                  disabled={isDisabled || uploadedFiles.length >= MAX_FILES}
                 />
                 <Paperclip className="w-5 h-5 text-gray-400 hover:text-white transition-colors" />
               </label>
+              {uploadedFiles.length > 0 && (
+                <span
+                  className={`text-xs ${uploadedFiles.length >= MAX_FILES ? "text-red-400" : "text-gray-400"}`}
+                >
+                  {uploadedFiles.length}/{MAX_FILES} files
+                </span>
+              )}
             </div>
 
             <button

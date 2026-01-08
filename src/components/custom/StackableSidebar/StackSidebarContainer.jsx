@@ -25,6 +25,7 @@ export default function StackSidebarContainer() {
           <Drawer
             key={index}
             open={true}
+            className="w-full"  
             onOpenChange={() => closeSidebar(index)}
           >
             <DrawerContent>
@@ -36,9 +37,9 @@ export default function StackSidebarContainer() {
               />
               <DrawerFooter className="pt-2">
                 <DrawerClose asChild>
-                  <Button variant="outline" className="text-white">
+                  <button variant="outline" className="text-white ">
                     Close
-                  </Button>
+                  </button>
                 </DrawerClose>
               </DrawerFooter>
             </DrawerContent>

@@ -156,3 +156,4 @@ export const getPodcastJobDetailsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/e
 export const startContentTaskUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/start-content-task`;
 export const pollContentTaskUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/poll-content-task`;
 export const getPresignedUrlForContentUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/get-presigned-url`;
+export const deployToVercelUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/deploy-to-vercel`;
