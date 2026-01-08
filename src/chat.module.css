@@ -24,22 +24,63 @@
   color: gray;
 }
 .module li {
-  margin: 0px;
-  padding: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.3 !important;
 }
 
-.module ul {
-  margin: 0px;
-  padding: 0;
+.module ul,
+.module ol {
+  margin: 0 !important;
+  padding-left: 1.25rem !important;
+  gap: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
 
-.module li {
+.module ul li,
+.module ol li {
+  margin: 0 !important;
+  margin-bottom: 0.1rem !important;
+  padding: 0 !important;
   white-space: normal !important;
+}
+
+.module ul li:last-child,
+.module ol li:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Remove any paragraph spacing inside list items */
+.module li p,
+.module li > p {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.3 !important;
+}
+
+/* Nested lists */
+.module ul ul,
+.module ul ol,
+.module ol ul,
+.module ol ol {
+  margin: 0 !important;
+  margin-top: 0.1rem !important;
+  padding-left: 1rem !important;
 }
 
 .module li,
 .module li * {
   white-space: normal !important;
+}
+
+/* Override any spacing from markdown content */
+.module li > *:first-child {
+  margin-top: 0 !important;
+}
+
+.module li > *:last-child {
+  margin-bottom: 0 !important;
 }
 
 /* Overall Container - Dark Slate Background */
@@ -101,10 +142,16 @@
 .module h5,
 .module h6,
 .module p {
-  margin-top: 0.5rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
   color: #ffffff;
   /* Ensure headings and paragraphs have enough contrast */
+}
+
+.module p {
+  margin-top: 0.15rem;
+  margin-bottom: 0.15rem;
+  line-height: 1.4;
 }
 
 /* Links within the module (optional) */

@@ -60,6 +60,9 @@ import SearchPodcastHistory from "./pages/_podcastSearch/SearchPodcastHistory";
 import PromptBuilder from "./pages/_promptBuilder/PromptBuilder";
 import OsintTools from "./pages/_osint/OsintTools";
 import OsintFinding from "./pages/_osint/OsintFinding";
+import ContentChat from "./pages/_contenAi/ContentChat";
+import ContentDashboard from "./pages/_contenAi/ContentDashboard";
+import ContentChatInput from "./pages/_contenAi/ContentChatInput";
 
 export default function App() {
   const location = useLocation();
@@ -120,6 +123,16 @@ export default function App() {
           <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
+            {/* content ai */}
+            <Route
+              path="/content-ai"
+              element={<ContentChatInput isUsedInDashboard={true} />}
+            />
+            <Route
+              path="/content-ai/chat/:sessionId"
+              element={<ContentChatInput />}
+            />
+
             {/* osint */}
             <Route path="/osint-tools" element={<OsintTools />} />
             <Route path="/osint-finding" element={<OsintFinding />} />
@@ -149,7 +162,10 @@ export default function App() {
             {/* podcast search */}
             <Route path="/search-podcast" element={<SearchPodcast />} />
             <Route path="/found-podcast/:id" element={<FoundPodcast />} />
-            <Route path="/search-podcast-history" element={<SearchPodcastHistory />} />
+            <Route
+              path="/search-podcast-history"
+              element={<SearchPodcastHistory />}
+            />
 
             <Route path="/workshop" element={<Workshop />} />
             <Route index path="/dashboard" element={<Dashboard />} />
@@ -234,6 +250,7 @@ export default function App() {
               element={<UserFormProgress />}
             />
           </Route>
+
           <Route path="*" element={<ComingSoonPage />} />
         </Route>
       </Routes>

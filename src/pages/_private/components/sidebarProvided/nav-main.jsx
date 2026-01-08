@@ -4,6 +4,7 @@ import {
   DeleteIcon,
   Ellipsis,
   Loader,
+  Paintbrush,
   Pencil,
   Search,
   SquareDashed,
@@ -97,7 +98,6 @@ export function NavMain({ items, isClickedWorkflows }) {
               }
               return acc;
             }, []);
-
             return (
               <div key={label}>
                 <div className="font-semibold capitalize  px-2 py-1 w-full rounded-md text-sm mt-4 text-slate-400 my-2 ">
@@ -111,7 +111,9 @@ export function NavMain({ items, isClickedWorkflows }) {
                           return;
                         }
                         setCurrentActiveChat(item.chatname);
-                        navigate(`/chat/${item.sessionid}`);
+                        item.isContentAi
+                          ? navigate(`/content-ai/chat/${item.sessionid}`)
+                          : navigate(`/chat/${item.sessionid}`);
                       }}
                       onMouseEnter={() =>
                         setIsShowChatSessionOptions(item.sessionid)
@@ -119,7 +121,11 @@ export function NavMain({ items, isClickedWorkflows }) {
                       key={index}
                       className={`${String(id) == item.sessionid ? "bg-slate-600" : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-800 rounded-md cursor-pointer px-2 items-center`}
                     >
-                      <p className="truncate max-w-xs py-1">{item.chatname}</p>
+                      <div className="flex gap-2 items-center">
+                        <p className="truncate max-w-xs py-1">
+                          {item.chatname}
+                        </p>
+                      </div>
                       {!isShowChatSessionOptions == item.sessionid
                         ? clickedDropdown == item.sessionid
                         : isShowChatSessionOptions == item.sessionid && (

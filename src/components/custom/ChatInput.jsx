@@ -22,6 +22,7 @@ import {
   Skull,
   Users,
   Trash2,
+  MoveRight,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { memo, useEffect, useRef, useState, useCallback } from "react";
@@ -29,7 +30,7 @@ import { _useSidebar } from "../../context/SidebarContext";
 import FileUploadDialog from "./file-upload-dialog/file-upload-dialog";
 import { useFilesUploadMetadata } from "../../context/FilesUploadMetadata";
 import AudioRecorder from "./audio-input/AudioRecorder";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useUser } from "../../context/UserContext";
 import { motion } from "framer-motion";
 import {
@@ -138,6 +139,7 @@ function ChatInput({
 }) {
   const { isPublicDomain } = useDomain();
   const { id } = useParams();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
   const { memorizedFiles, resetAllStates, files, setFiles } =
     useFilesUploadMetadata();
@@ -539,6 +541,19 @@ function ChatInput({
   // More efficient method to prepare URL for voice agents - memoized to avoid recalculation
   return (
     <div className="relative ">
+      {pathname.includes("dashboard") && (
+        <div
+          onClick={() => {
+            navigate("/content-ai");
+          }}
+          className="bg-slate-800 hover:bg-slate-700 cursor-pointer transition-all mx-5 rounded-t-lg py-1 flex items-center justify-between"
+        >
+          <p className="mx-2 text-sm">Try Content Generation AI</p>
+          <div className="text-sm mr-2 flex gap-2 items-center">
+            Go To Content AI <MoveRight />
+          </div>
+        </div>
+      )}
       {showHeliosTooltip && (
         <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-md shadow-lg z-50">
           Helios doesn't support intent models yet. Use other modes.
