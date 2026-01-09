@@ -1,21 +1,75 @@
-import {
-  Paperclip,
-  Send,
-  X,
-  FileIcon,
-  LoaderCircle,
-  Loader2,
-  Folder,
-} from "lucide-react";
+import { Paperclip, Send, LoaderCircle, Loader2, Folder } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import {
-  startContentTask,
-  uploadFileToBackend,
-} from "@/services/contentAi/contentAi.api";
+import { uploadFileToBackend } from "@/services/contentAi/contentAi.api";
 import { getNewSession } from "@/services/n8n-apis/_core/getNewSession.api";
-import { set } from "lodash";
+
+const promptTemplates = [
+  {
+    icon: "/public/manus/image.webp",
+    title: "Create Images",
+    description:
+      "Generate stunning AI-powered images tailored to your creative vision.",
+    prompt: "Generate 2 images for ",
+  },
+  {
+    icon: "/public/manus/video.webp",
+    title: "Create Videos",
+    description:
+      "Produce engaging short videos with AI-generated visuals and animations.",
+    prompt: "Generate a short video about ",
+  },
+  {
+    icon: "/public/manus/report.webp",
+    title: "PDF Report",
+    description:
+      "Create comprehensive PDF reports with professional formatting and insights.",
+    prompt: "Generate a detailed PDF report on ",
+  },
+  {
+    icon: "/public/manus/slides.webp",
+    title: "Create Slides",
+    description:
+      "Design polished presentation decks ready for your next meeting or pitch.",
+    prompt: "Generate a slide deck on ",
+  },
+  {
+    icon: "/public/manus/web.webp",
+    title: "Create Website",
+    description:
+      "Build a clean, responsive website with modern design elements.",
+    prompt: "Generate a simple website about ",
+  },
+  {
+    icon: "/public/manus/platform-api.webp",
+    title: "Create Website App with platform API",
+    description:
+      "Develop a fully functional AI web app integrated with platform APIs.",
+    prompt: "Generate a website with app using platform API on ",
+  },
+  {
+    icon: "/public/manus/report.webp",
+    title: "Report with Images",
+    description:
+      "Generate detailed reports enriched with relevant images and visuals.",
+    prompt: "Generate a detailed report with images about ",
+  },
+  {
+    icon: "/public/manus/visual.webp",
+    title: "Data Visualization",
+    description:
+      "Create compelling data visualizations to illustrate key insights.",
+    prompt: "Generate data visualizations for ",
+  },
+  {
+    icon: "/public/manus/audio.webp",
+    title: "Create Audio",
+    description:
+      "Produce high-quality AI-generated audio content for various uses.",
+    prompt: "Generate an audio clip about ",
+  },
+];
 
 // Helper function to get file type label from file name
 const getFileTypeLabel = (fileName) => {
@@ -64,7 +118,11 @@ export default function ContentChatInput({
   const fileInputRef = useRef(null);
   const { sessionId: routeSessionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Check if we're on the main content-ai route (not in a chat session)
+  const isMainContentAiRoute = location.pathname === "/content-ai";
 
   const [prompt, setPrompt] = useState("");
   const [isDragging, setIsDragging] = useState(false);
@@ -89,8 +147,12 @@ export default function ContentChatInput({
     const textarea = textareaRef.current;
     if (!textarea) return;
     textarea.style.height = "auto";
+    const minHeight = 72; // ~3 rows
     const maxHeight = 160;
-    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    const newHeight = Math.max(
+      minHeight,
+      Math.min(textarea.scrollHeight, maxHeight),
+    );
     textarea.style.height = `${newHeight}px`;
     textarea.style.overflowY =
       textarea.scrollHeight > maxHeight ? "auto" : "hidden";
@@ -270,6 +332,14 @@ export default function ContentChatInput({
   const isUploading = uploadingFiles.some((f) => f.status === "uploading");
   const isDisabled = disabled || isSubmitting;
 
+  // Handle template click - add template prompt to input
+  const handleTemplateClick = (templatePrompt) => {
+    if (isDisabled) return;
+    setPrompt(templatePrompt);
+    // Focus the textarea after setting the prompt
+    textareaRef.current?.focus();
+  };
+
   return (
     <div className="w-full max-w-[770px] mx-auto">
       {/* Input Container */}
@@ -349,7 +419,7 @@ export default function ContentChatInput({
             }}
             onKeyDown={handleKeyDown}
             disabled={isDisabled}
-            rows={1}
+            rows={3}
             maxLength={MAX_PROMPT_LENGTH}
           />
           {/* Character count indicator */}
@@ -404,6 +474,23 @@ export default function ContentChatInput({
           </div>
         </div>
       </div>
+      {isMainContentAiRoute && (
+        <div className="grid md:grid-cols-2 sm:grid-cols-1 grid-cols-3 gap-2 mt-2">
+          {promptTemplates.map((template, index) => (
+            <div
+              className="bg-g1 px-4 py-3 flex gap-2 rounded-2xl hover:bg-g2 cursor-pointer transition-all"
+              key={index}
+              onClick={() => handleTemplateClick(template.prompt)}
+            >
+              <div className="width-[70%] flex justify-between flex-col">
+                <p>{template.title}</p>
+                <p className="text-sm text-gray-400">{template.description}</p>
+              </div>
+              <img src={template.icon} className="w-24" alt={template.title} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
