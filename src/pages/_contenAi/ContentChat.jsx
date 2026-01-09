@@ -1026,18 +1026,18 @@ function PreviewLinkBox({ url }) {
       onClick={handleOpenPreviewSidebar}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-between bg-gradient-to-tr to-g1 via-g1 from-g1 hover:to-g1 hover:from-g2 transition-all rounded-2xl p-4 cursor-pointer group"
+      className="flex items-center justify-between bg-gradient-to-tr to-g1 via-g1 from-g1 hover:to-g1 hover:from-g2 transition-all rounded-3xl p-4 cursor-pointer group"
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-          <ExternalLink className="w-5 h-5 text-blue-400" />
+        <div className="w-10 h-10 bg-blue-500/20 rounded-2xl flex items-center justify-center">
+          <ExternalLink className="w-5 h-5 " />
         </div>
         <div>
           <p className="font-semibold text-white">Website Link</p>
           <p className="text-sm text-gray-400 truncate max-w-[300px]">{url}</p>
         </div>
       </div>
-      <div className="flex items-center gap-1 text-blue-400 group-hover:text-blue-300 transition-colors">
+      <div className="flex items-center gap-1  group-hover:text-blue-300 transition-colors">
         <span className="text-sm font-medium">Open</span>
         <ExternalLink className="w-4 h-4" />
       </div>

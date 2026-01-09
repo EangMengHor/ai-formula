@@ -1,4 +1,16 @@
-import { Sparkles, FileText, BarChart3, BookOpen, Upload } from "lucide-react";
+import {
+  Sparkles,
+  FileText,
+  BarChart3,
+  BookOpen,
+  Upload,
+  Video,
+  Clapperboard,
+  CaseSensitive,
+  AppWindowMac,
+  LayoutPanelTop,
+  Webhook,
+} from "lucide-react";
 import ContentChatInput from "./ContentChatInput";
 import { useState } from "react";
 
@@ -37,12 +49,13 @@ export default function ContentDashboard() {
             Generate Image, Video, Report, Websites And More . . .
           </p>
         </div>
-        <div className="sticky bottom-0 flex justify-center pb-4 bg-gradient-to-t from-black via-black to-transparent pt-8">
+        <div className="sticky bottom-0 flex justify-center pb-4 bg-gradient-to-t from-black via-black to-transparent pt-8 flex-col ">
           <ContentChatInput
             isUsedInDashboard={true}
             setUploadedFiles={setUploadedFiles}
             uploadedFiles={uploadedFiles}
           />
+          
         </div>
       </div>
     </div>
