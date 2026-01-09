@@ -7,63 +7,63 @@ import { getNewSession } from "@/services/n8n-apis/_core/getNewSession.api";
 
 const promptTemplates = [
   {
-    icon: "/public/manus/image.webp",
+    icon: "/manus/image.webp",
     title: "Create Images",
     description:
       "Generate stunning AI-powered images tailored to your creative vision.",
     prompt: "Generate 2 images for ",
   },
   {
-    icon: "/public/manus/video.webp",
+    icon: "/manus/video.webp",
     title: "Create Videos",
     description:
       "Produce engaging short videos with AI-generated visuals and animations.",
     prompt: "Generate a short video about ",
   },
   {
-    icon: "/public/manus/report.webp",
+    icon: "/manus/report.webp",
     title: "PDF Report",
     description:
       "Create comprehensive PDF reports with professional formatting and insights.",
     prompt: "Generate a detailed PDF report on ",
   },
   {
-    icon: "/public/manus/slides.webp",
+    icon: "/manus/slides.webp",
     title: "Create Slides",
     description:
       "Design polished presentation decks ready for your next meeting or pitch.",
     prompt: "Generate a slide deck on ",
   },
   {
-    icon: "/public/manus/web.webp",
+    icon: "/manus/web.webp",
     title: "Create Website",
     description:
       "Build a clean, responsive website with modern design elements.",
     prompt: "Generate a simple website about ",
   },
   {
-    icon: "/public/manus/platform-api.webp",
+    icon: "/manus/platform-api.webp",
     title: "Create Website App with platform API",
     description:
       "Develop a fully functional AI web app integrated with platform APIs.",
     prompt: "Generate a website with app using platform API on ",
   },
   {
-    icon: "/public/manus/report.webp",
+    icon: "/manus/report.webp",
     title: "Report with Images",
     description:
       "Generate detailed reports enriched with relevant images and visuals.",
     prompt: "Generate a detailed report with images about ",
   },
   {
-    icon: "/public/manus/visual.webp",
+    icon: "/manus/visual.webp",
     title: "Data Visualization",
     description:
       "Create compelling data visualizations to illustrate key insights.",
     prompt: "Generate data visualizations for ",
   },
   {
-    icon: "/public/manus/audio.webp",
+    icon: "/manus/audio.webp",
     title: "Create Audio",
     description:
       "Produce high-quality AI-generated audio content for various uses.",
@@ -475,18 +475,22 @@ export default function ContentChatInput({
         </div>
       </div>
       {isMainContentAiRoute && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2 mt-2">
           {promptTemplates.map((template, index) => (
             <div
               className="bg-g1 px-4 py-3 flex gap-2 rounded-2xl hover:bg-g2 cursor-pointer transition-all"
               key={index}
               onClick={() => handleTemplateClick(template.prompt)}
             >
-              <div className="width-[70%] flex justify-between flex-col">
+              <div className="w-[70%] flex justify-between flex-col">
                 <p>{template.title}</p>
                 <p className="text-sm text-gray-400">{template.description}</p>
               </div>
-              <img src={template.icon} className="w-24" alt={template.title} />
+              <img
+                src={template.icon}
+                className="w-20 h-20"
+                alt={template.title}
+              />
             </div>
           ))}
         </div>

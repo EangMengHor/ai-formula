@@ -49,6 +49,7 @@ export const SidebarProvider = ({ children }) => {
       "email-outreach",
       "prompt-builder",
       "generate-prompt",
+      "content-ai",
     ];
     if (
       allowedRoutes.some((route) => pathname.includes(route)) &&
