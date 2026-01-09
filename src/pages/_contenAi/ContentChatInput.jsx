@@ -475,7 +475,7 @@ export default function ContentChatInput({
         </div>
       </div>
       {isMainContentAiRoute && (
-        <div className="grid md:grid-cols-2 sm:grid-cols-1 grid-cols-3 gap-2 mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
           {promptTemplates.map((template, index) => (
             <div
               className="bg-g1 px-4 py-3 flex gap-2 rounded-2xl hover:bg-g2 cursor-pointer transition-all"
