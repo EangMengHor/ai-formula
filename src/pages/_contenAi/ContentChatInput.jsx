@@ -21,49 +21,49 @@ const promptTemplates = [
     prompt: "Generate a short video about ",
   },
   {
-    icon: "/public/manus/report.webp",
+    icon: "/manus/report.webp",
     title: "PDF Report",
     description:
       "Create comprehensive PDF reports with professional formatting and insights.",
     prompt: "Generate a detailed PDF report on ",
   },
   {
-    icon: "/public/manus/slides.webp",
+    icon: "/manus/slides.webp",
     title: "Create Slides",
     description:
       "Design polished presentation decks ready for your next meeting or pitch.",
     prompt: "Generate a slide deck on ",
   },
   {
-    icon: "/public/manus/web.webp",
+    icon: "/manus/web.webp",
     title: "Create Website",
     description:
       "Build a clean, responsive website with modern design elements.",
     prompt: "Generate a simple website about ",
   },
   {
-    icon: "/public/manus/platform-api.webp",
+    icon: "/manus/platform-api.webp",
     title: "Create Website App with platform API",
     description:
       "Develop a fully functional AI web app integrated with platform APIs.",
     prompt: "Generate a website with app using platform API on ",
   },
   {
-    icon: "/public/manus/report.webp",
+    icon: "/manus/report.webp",
     title: "Report with Images",
     description:
       "Generate detailed reports enriched with relevant images and visuals.",
     prompt: "Generate a detailed report with images about ",
   },
   {
-    icon: "/public/manus/visual.webp",
+    icon: "/manus/visual.webp",
     title: "Data Visualization",
     description:
       "Create compelling data visualizations to illustrate key insights.",
     prompt: "Generate data visualizations for ",
   },
   {
-    icon: "/public/manus/audio.webp",
+    icon: "/manus/audio.webp",
     title: "Create Audio",
     description:
       "Produce high-quality AI-generated audio content for various uses.",
@@ -486,7 +486,11 @@ export default function ContentChatInput({
                 <p>{template.title}</p>
                 <p className="text-sm text-gray-400">{template.description}</p>
               </div>
-              <img src={template.icon} className="w-20 h-20" alt={template.title} />
+              <img
+                src={template.icon}
+                className="w-20 h-20"
+                alt={template.title}
+              />
             </div>
           ))}
         </div>
