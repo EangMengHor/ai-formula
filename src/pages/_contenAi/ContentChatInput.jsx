@@ -7,14 +7,14 @@ import { getNewSession } from "@/services/n8n-apis/_core/getNewSession.api";
 
 const promptTemplates = [
   {
-    icon: "/public/manus/image.webp",
+    icon: "/manus/image.webp",
     title: "Create Images",
     description:
       "Generate stunning AI-powered images tailored to your creative vision.",
     prompt: "Generate 2 images for ",
   },
   {
-    icon: "/public/manus/video.webp",
+    icon: "/manus/video.webp",
     title: "Create Videos",
     description:
       "Produce engaging short videos with AI-generated visuals and animations.",
@@ -475,18 +475,18 @@ export default function ContentChatInput({
         </div>
       </div>
       {isMainContentAiRoute && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2 mt-2">
           {promptTemplates.map((template, index) => (
             <div
               className="bg-g1 px-4 py-3 flex gap-2 rounded-2xl hover:bg-g2 cursor-pointer transition-all"
               key={index}
               onClick={() => handleTemplateClick(template.prompt)}
             >
-              <div className="width-[70%] flex justify-between flex-col">
+              <div className="w-[70%] flex justify-between flex-col">
                 <p>{template.title}</p>
                 <p className="text-sm text-gray-400">{template.description}</p>
               </div>
-              <img src={template.icon} className="w-24" alt={template.title} />
+              <img src={template.icon} className="w-20 h-20" alt={template.title} />
             </div>
           ))}
         </div>
