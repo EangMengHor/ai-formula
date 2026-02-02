@@ -60,9 +60,10 @@ import SearchPodcastHistory from "./pages/_podcastSearch/SearchPodcastHistory";
 import PromptBuilder from "./pages/_promptBuilder/PromptBuilder";
 import OsintTools from "./pages/_osint/OsintTools";
 import OsintFinding from "./pages/_osint/OsintFinding";
-import ContentChat from "./pages/_contenAi/ContentChat";
-import ContentDashboard from "./pages/_contenAi/ContentDashboard";
 import ContentChatInput from "./pages/_contenAi/ContentChatInput";
+import WebFrameworkExtraction from "./pages/_webFrameworkExtraction/WebFrameworkExtraction";
+import WebFrameworkCreateNewJob from "./pages/_webFrameworkExtraction/WebFrameworkCreateNewJob";
+import WebFrameworkJobStatus from "./pages/_webFrameworkExtraction/WebFrameworkJobStatus";
 
 export default function App() {
   const location = useLocation();
@@ -115,7 +116,21 @@ export default function App() {
           <Route path={signup} element={<Signup />} />
         </Route>
         <Route element={<PrivateRoute />}>
-          {/* trigger */}
+          {/* web framework dashboard */}
+          <Route
+            path="/web-framework-extraction"
+            element={<WebFrameworkExtraction />}
+          />
+          {/* web framework create new job */}
+          <Route
+            path="/web-framework-extraction/create-new-job"
+            element={<WebFrameworkCreateNewJob />}
+          />
+          {/* web framework loading or success page */}
+          <Route
+            path="/web-framework-extraction/job-status/:jobId"
+            element={<WebFrameworkJobStatus />}
+          />
 
           {/* user manual */}
           <Route path="/manual" element={<UserManualLayout />} />

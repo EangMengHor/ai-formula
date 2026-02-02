@@ -23,7 +23,6 @@ export default function ChatModes({ modes } = { modes: [] }) {
   const isInitialRendered = useRef(false);
   const { getMode } = useUser();
   const isMobile = useIsMobile();
-
   useEffect(() => {
     if (!isInitialRendered.current) {
       const mode = getMode();

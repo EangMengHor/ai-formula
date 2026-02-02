@@ -36,6 +36,9 @@ import FoundPodcast from "@/pages/_podcastSearch/FoundPodcast";
 import ContentChat from "@/pages/_contenAi/ContentChat";
 import ContentDashboard from "@/pages/_contenAi/ContentDashboard";
 import ContentChatInput from "@/pages/_contenAi/ContentChatInput";
+import WebFrameworkExtraction from "@/pages/_webFrameworkExtraction/WebFrameworkExtraction";
+import WebFrameworkCreateNewJob from "@/pages/_webFrameworkExtraction/WebFrameworkCreateNewJob";
+import WebFrameworkJobStatus from "@/pages/_webFrameworkExtraction/WebFrameworkJobStatus";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -121,6 +124,15 @@ export default function Page() {
               </div>
             )}
             {pathname === "/content-ai" && <ContentDashboard />}
+            {pathname === "/web-framework-extraction" && (
+              <WebFrameworkExtraction />
+            )}
+            {pathname === "/web-framework-extraction/create-new-job" && (
+              <WebFrameworkCreateNewJob />
+            )}
+            {pathname === "/web-framework-extraction/job-status/:jobId" && (
+              <WebFrameworkJobStatus />
+            )}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}
