@@ -3,6 +3,7 @@ import {
   Anvil,
   Bolt,
   ChevronDown,
+  Cpu,
   FireExtinguisherIcon,
   Mails,
   Orbit,
@@ -41,6 +42,13 @@ const tools = [
     description: "Manage your internal knowledge base",
     icon: Orbit,
     path: "/addToPersonalKnowledgeBase",
+  },
+  {
+    id: "web-framework-extraction",
+    title: "Web Framework Extraction",
+    description: "Extract data using web frameworks",
+    icon: Cpu,
+    path: "/web-framework-extraction",
   },
   {
     id: "trigger",
