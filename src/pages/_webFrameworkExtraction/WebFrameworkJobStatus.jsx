@@ -51,8 +51,11 @@ export default function WebFrameworkJobStatus() {
         setJobData(result.data);
         setError(null);
 
-        // If status is "done" or "no data", stop polling
-        if (result.data?.status === "done" || result.data?.status === "no data") {
+        // If status is "completed" or "no data", stop polling
+        if (
+          result.data?.status === "completed" ||
+          result.data?.status === "no data"
+        ) {
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
@@ -79,9 +82,9 @@ export default function WebFrameworkJobStatus() {
     // Initial fetch
     fetchJobStatus();
 
-    // Start polling if job is not done or no data
+    // Start polling if job is not completed or no data
     pollingRef.current = setInterval(() => {
-      if (jobData?.status !== "done" && jobData?.status !== "no data") {
+      if (jobData?.status !== "completed" && jobData?.status !== "no data") {
         fetchJobStatus();
       }
     }, 3000); // Poll every 3 seconds
@@ -94,9 +97,12 @@ export default function WebFrameworkJobStatus() {
     };
   }, [jobId, navigate, fetchJobStatus]);
 
-  // Stop polling when status is done or no data
+  // Stop polling when status is completed or no data
   useEffect(() => {
-    if ((jobData?.status === "done" || jobData?.status === "no data") && pollingRef.current) {
+    if (
+      (jobData?.status === "completed" || jobData?.status === "no data") &&
+      pollingRef.current
+    ) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
@@ -113,7 +119,7 @@ export default function WebFrameworkJobStatus() {
 
   const getStatusInfo = (status) => {
     switch (status) {
-      case "done":
+      case "completed":
         return {
           label: "Completed",
           color: "text-green-400",
@@ -242,7 +248,7 @@ export default function WebFrameworkJobStatus() {
             >
               <StatusIcon
                 className={`w-6 h-6 ${statusInfo.color} ${
-                  jobData?.status !== "done" ? "animate-spin" : ""
+                  jobData?.status !== "completed" ? "animate-spin" : ""
                 }`}
               />
               <div>
@@ -289,12 +295,15 @@ export default function WebFrameworkJobStatus() {
                   Unable to Extract Data
                 </h3>
                 <p className="text-gray-400 mb-4">
-                  We tried to crawl this website but couldn't retrieve the content.
+                  We tried to crawl this website but couldn't retrieve the
+                  content.
                 </p>
               </div>
-              
+
               <div className="bg-slate-800/50 rounded-lg p-4 max-w-md w-full">
-                <h4 className="text-sm font-medium text-orange-400 mb-2">Possible Reasons:</h4>
+                <h4 className="text-sm font-medium text-orange-400 mb-2">
+                  Possible Reasons:
+                </h4>
                 <ul className="text-sm text-gray-400 space-y-2 text-left">
                   <li className="flex items-start gap-2">
                     <span className="text-orange-400 mt-0.5">•</span>
@@ -316,7 +325,7 @@ export default function WebFrameworkJobStatus() {
                   Try Again Later
                 </Button>
               </div>
-              
+
               <p className="text-xs text-gray-500 mt-2">
                 Please try again after some time or try a different URL
               </p>
@@ -325,7 +334,7 @@ export default function WebFrameworkJobStatus() {
         )}
 
         {/* Processing Animation */}
-        {jobData?.status !== "done" && jobData?.status !== "no data" && (
+        {jobData?.status !== "completed" && jobData?.status !== "no data" && (
           <div className="bg-g1 rounded-xl p-8 border border-slate-700 mb-6 text-center">
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
@@ -356,8 +365,8 @@ export default function WebFrameworkJobStatus() {
           </div>
         )}
 
-        {/* Framework Output - Only show when done */}
-        {jobData?.status === "done" && jobData?.output && (
+        {/* Framework Output - Only show when completed */}
+        {jobData?.status === "completed" && jobData?.output && (
           <div className="bg-g1 rounded-xl border border-slate-700 mb-6 overflow-hidden">
             <div
               className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-800/50 transition-colors"
