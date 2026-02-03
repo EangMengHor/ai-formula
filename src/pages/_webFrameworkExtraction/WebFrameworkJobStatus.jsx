@@ -13,6 +13,8 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getWebFrameworkJobStatus } from "@/services/web-framework/getWebFrameworkJobStatus";
@@ -49,8 +51,8 @@ export default function WebFrameworkJobStatus() {
         setJobData(result.data);
         setError(null);
 
-        // If status is "done", stop polling
-        if (result.data?.status === "done") {
+        // If status is "done" or "no data", stop polling
+        if (result.data?.status === "done" || result.data?.status === "no data") {
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
@@ -77,9 +79,9 @@ export default function WebFrameworkJobStatus() {
     // Initial fetch
     fetchJobStatus();
 
-    // Start polling if job is not done
+    // Start polling if job is not done or no data
     pollingRef.current = setInterval(() => {
-      if (jobData?.status !== "done") {
+      if (jobData?.status !== "done" && jobData?.status !== "no data") {
         fetchJobStatus();
       }
     }, 3000); // Poll every 3 seconds
@@ -92,9 +94,9 @@ export default function WebFrameworkJobStatus() {
     };
   }, [jobId, navigate, fetchJobStatus]);
 
-  // Stop polling when status is done
+  // Stop polling when status is done or no data
   useEffect(() => {
-    if (jobData?.status === "done" && pollingRef.current) {
+    if ((jobData?.status === "done" || jobData?.status === "no data") && pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
@@ -119,6 +121,15 @@ export default function WebFrameworkJobStatus() {
           borderColor: "border-green-700/50",
           icon: CheckCircle,
           description: "Framework extraction completed successfully",
+        };
+      case "no data":
+        return {
+          label: "No Data",
+          color: "text-orange-400",
+          bgColor: "bg-orange-900/20",
+          borderColor: "border-orange-700/50",
+          icon: AlertTriangle,
+          description: "Website is not scrapable at this time",
         };
       case "ai-processing":
         return {
@@ -266,8 +277,55 @@ export default function WebFrameworkJobStatus() {
           </div>
         </div>
 
+        {/* No Data State */}
+        {jobData?.status === "no data" && (
+          <div className="bg-g1 rounded-xl p-8 border border-orange-700/50 mb-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="w-20 h-20 bg-orange-900/30 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-10 h-10 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Unable to Extract Data
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  We tried to crawl this website but couldn't retrieve the content.
+                </p>
+              </div>
+              
+              <div className="bg-slate-800/50 rounded-lg p-4 max-w-md w-full">
+                <h4 className="text-sm font-medium text-orange-400 mb-2">Possible Reasons:</h4>
+                <ul className="text-sm text-gray-400 space-y-2 text-left">
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5">•</span>
+                    <span>The crawler is blocked on this website</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5">•</span>
+                    <span>The website is temporarily down or unavailable</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-4">
+                <Button
+                  onClick={() => navigate("/web-framework-extraction")}
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again Later
+                </Button>
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Please try again after some time or try a different URL
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Processing Animation */}
-        {jobData?.status !== "done" && (
+        {jobData?.status !== "done" && jobData?.status !== "no data" && (
           <div className="bg-g1 rounded-xl p-8 border border-slate-700 mb-6 text-center">
             <div className="flex flex-col items-center gap-4">
               <div className="relative">
