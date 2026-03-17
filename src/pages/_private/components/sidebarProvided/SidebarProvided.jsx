@@ -39,6 +39,7 @@ import ContentChatInput from "@/pages/_contenAi/ContentChatInput";
 import WebFrameworkExtraction from "@/pages/_webFrameworkExtraction/WebFrameworkExtraction";
 import WebFrameworkCreateNewJob from "@/pages/_webFrameworkExtraction/WebFrameworkCreateNewJob";
 import WebFrameworkJobStatus from "@/pages/_webFrameworkExtraction/WebFrameworkJobStatus";
+import MpptDashboard from "@/components/custom/mppt/MpptDashboard";
 export default function Page() {
   const { pathname } = useLocation();
   console.log(pathname, "dfsd");
@@ -54,7 +55,7 @@ export default function Page() {
   useEffect(() => {
     console.log(conversation, "conversation in sidebar");
   }, [conversation, setConversation]);
-
+  console.log(pathname, "pathname in page");
   return (
     <SidebarProvider>
       <div className="bg-g1">
@@ -133,6 +134,7 @@ export default function Page() {
             {pathname === "/web-framework-extraction/job-status/:jobId" && (
               <WebFrameworkJobStatus />
             )}
+            {pathname.includes("/mppt/dashboard") && <MpptDashboard />}
           </div>
           <motion.div
             className={`sticky top-0 h-[100vh] overflow-hidden z-50 ${sidebarStack.length > 0 && "w-[80%]"}`}

@@ -64,6 +64,7 @@ import ContentChatInput from "./pages/_contenAi/ContentChatInput";
 import WebFrameworkExtraction from "./pages/_webFrameworkExtraction/WebFrameworkExtraction";
 import WebFrameworkCreateNewJob from "./pages/_webFrameworkExtraction/WebFrameworkCreateNewJob";
 import WebFrameworkJobStatus from "./pages/_webFrameworkExtraction/WebFrameworkJobStatus";
+import MpptDashboard from "./components/custom/mppt/MpptDashboard";
 
 export default function App() {
   const location = useLocation();
@@ -138,6 +139,8 @@ export default function App() {
           <Route path="/detail/:slug" element={<DetailPage />} />
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
+            <Route path="/mppt/dashboard" element={<MpptDashboard />} />
+
             {/* content ai */}
             <Route
               path="/content-ai"

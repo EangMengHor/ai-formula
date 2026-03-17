@@ -50,6 +50,7 @@ export const SidebarProvider = ({ children }) => {
       "prompt-builder",
       "generate-prompt",
       "content-ai",
+      "mppt",
     ];
     if (
       allowedRoutes.some((route) => pathname.includes(route)) &&
