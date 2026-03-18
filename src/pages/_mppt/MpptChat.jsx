@@ -14,8 +14,6 @@ import {
     CheckCircle2,
     Clock,
     AlertCircle,
-    Zap,
-    ShieldAlert,
     Copy,
     Check,
     ListChecks,
@@ -35,19 +33,6 @@ const statusIcon = (status) => {
     return <Clock className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />;
 };
 
-const confidenceColor = (confidence) => {
-    const c = confidence?.toLowerCase();
-    if (c === "high") return "text-green-400 bg-green-500/10";
-    if (c === "low") return "text-red-400 bg-red-500/10";
-    return "text-yellow-400 bg-yellow-500/10";
-};
-
-const riskColor = (risk) => {
-    const r = risk?.toLowerCase();
-    if (r === "low") return "text-green-400 bg-green-500/10";
-    if (r === "high") return "text-red-400 bg-red-500/10";
-    return "text-blue-400 bg-blue-500/10";
-};
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -174,34 +159,6 @@ function DecisionsList({ decisions }) {
     );
 }
 
-function QuantumRankingsCard({ rankings }) {
-    return (
-        <div className="bg-gradient-to-tr to-g2 via-g1 from-g1 rounded-2xl p-4 border border-white/5">
-            <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 bg-yellow-500/10 rounded-lg flex items-center justify-center">
-                    <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                </div>
-                <p className="text-sm font-medium text-white">Quantum Rankings</p>
-            </div>
-            <div className="space-y-2">
-                {rankings.map((r) => (
-                    <div key={r.id} className="bg-white/5 rounded-xl p-3">
-                        <p className="text-sm text-gray-200 leading-relaxed mb-2">{r.decisionText}</p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${confidenceColor(r.confidence)}`}>
-                                Confidence: {r.confidence}
-                            </span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 ${riskColor(r.risk_tolerence)}`}>
-                                <ShieldAlert className="w-3 h-3" />
-                                Risk: {r.risk_tolerence}
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 function CopyButton({ text }) {
     const [copied, setCopied] = useState(false);
@@ -237,11 +194,10 @@ function MessageBlock({ message }) {
     }
 
     // assistant message
-    const { branches, answer, decisions, quantumRankings, status } = message;
+    const { branches, answer, decisions, status } = message;
     const hasBranches = branches && branches.length > 0;
     const hasAnswer = answer && answer.trim();
     const hasDecisions = decisions && decisions.length > 0;
-    const hasRankings = quantumRankings && quantumRankings.length > 0;
 
     return (
         <div className="flex justify-start">
@@ -263,9 +219,6 @@ function MessageBlock({ message }) {
 
                 {/* Decisions */}
                 {hasDecisions && <DecisionsList decisions={decisions} />}
-
-                {/* Quantum Rankings */}
-                {hasRankings && <QuantumRankingsCard rankings={quantumRankings} />}
 
                 {/* Error state */}
                 {status === "error" && !hasAnswer && (
@@ -387,6 +340,15 @@ export default function MpptChat() {
                         const updated = [...prev];
                         // Find the assistant message with this jobId
                         const idx = updated.findIndex((m) => m.role === "assistant" && m.jobId === jobId);
+                        console.log("[POLL DEBUG]", {
+                            jobId,
+                            jobIdType: typeof jobId,
+                            idx,
+                            totalMessages: updated.length,
+                            assistantJobIds: updated
+                                .filter((m) => m.role === "assistant")
+                                .map((m) => ({ jobId: m.jobId, type: typeof m.jobId })),
+                        });
                         if (idx !== -1) {
                             updated[idx] = {
                                 ...updated[idx],
