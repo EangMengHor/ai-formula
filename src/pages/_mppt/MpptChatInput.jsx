@@ -1,4 +1,4 @@
-import { Paperclip, Send, LoaderCircle, Loader2, Folder, Globe, X, AlertTriangle } from "lucide-react";
+import { Paperclip, Send, LoaderCircle, Loader2, Folder, Globe, AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { vectorizeMpptDocument } from "@/services/mppt/mppt.api";
@@ -228,7 +228,6 @@ export default function MpptChatInput({
         try {
             await onSubmit({ prompt: trimmedPrompt, isInternetSearch });
             setPrompt("");
-            setUploadingFiles([]);
         } catch (error) {
             toast({ title: "Error", description: error.message || "Something went wrong", variant: "destructive" });
         } finally {
@@ -241,19 +240,6 @@ export default function MpptChatInput({
             e.preventDefault();
             handleSubmit();
         }
-    };
-
-    const removeUploadedFile = (fileName) => {
-        setUploadedFiles((prev) => prev.filter((f) => f !== fileName));
-        setUploadedFileSizes((prev) => {
-            const next = { ...prev };
-            delete next[fileName];
-            return next;
-        });
-    };
-
-    const removeUploadingFile = (id) => {
-        setUploadingFiles((prev) => prev.filter((f) => f.id !== id));
     };
 
     const hasContent = prompt.trim() || uploadedFiles.length > 0;
@@ -283,7 +269,7 @@ export default function MpptChatInput({
                             {uploadingFiles.map((file) => (
                                 <div
                                     key={file.id}
-                                    className="flex items-center rounded-2xl justify-between w-fit bg-blue-950 hover:bg-blue-900 transition-all flex-shrink-0"
+                                    className="flex items-center rounded-2xl w-fit bg-blue-950 flex-shrink-0"
                                 >
                                     <div className="p-2 pl-3">
                                         <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
@@ -294,34 +280,22 @@ export default function MpptChatInput({
                                             <p className="text-slate-400">{file.progress}%</p>
                                         </span>
                                     </div>
-                                    <button
-                                        onClick={() => removeUploadingFile(file.id)}
-                                        className="p-2 hover:text-red-400 transition-colors"
-                                    >
-                                        <X className="w-3 h-3 text-slate-400" />
-                                    </button>
                                 </div>
                             ))}
                             {uploadedFiles.map((fileName, idx) => (
                                 <div
                                     key={`${fileName}-${idx}`}
-                                    className="flex items-center rounded-2xl justify-between w-fit bg-blue-950 transition-all flex-shrink-0"
+                                    className="flex items-center rounded-2xl w-fit bg-blue-950 flex-shrink-0"
                                 >
                                     <div className="p-2 pl-3">
                                         <Folder className="w-4 h-4 text-blue-300" />
                                     </div>
-                                    <div className="flex items-center gap-1 py-2 pr-1">
+                                    <div className="flex items-center gap-1 py-2 pr-3">
                                         <span className="text-white text-xs min-w-max">
                                             {fileName}
                                             <p className="text-slate-400">{getFileTypeLabel(fileName)}</p>
                                         </span>
                                     </div>
-                                    <button
-                                        onClick={() => removeUploadedFile(fileName)}
-                                        className="p-2 hover:text-red-400 transition-colors"
-                                    >
-                                        <X className="w-3 h-3 text-slate-400" />
-                                    </button>
                                 </div>
                             ))}
                         </div>
