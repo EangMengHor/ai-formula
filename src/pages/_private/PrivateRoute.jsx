@@ -3,14 +3,7 @@ import { useUser } from "../../context/UserContext";
 import { useEffect, useState } from "react";
 import { useToast } from "../../hooks/use-toast";
 import { useGetUserProfileStatus } from "../../hooks/use-get-user-profile-status";
-import { Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 export default function PrivateRoute() {
@@ -73,7 +66,6 @@ export default function PrivateRoute() {
     }
   }, [hasPersonalProfile, loading, isMounted]);
 
-
   // check internet connection
   useEffect(() => {
     const handleOnline = () => {
@@ -89,7 +81,8 @@ export default function PrivateRoute() {
       console.warn("You are back offline!");
       toast({
         title: "Offline",
-        description: "You are currently offline. Please check your internet connection.",
+        description:
+          "You are currently offline. Please check your internet connection.",
         variant: "destructive",
       });
       setIsOffline(true);
@@ -103,7 +96,6 @@ export default function PrivateRoute() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-
 
   if (isUserBanned) {
     return (
