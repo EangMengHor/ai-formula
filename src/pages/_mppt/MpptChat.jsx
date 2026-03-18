@@ -477,8 +477,6 @@ export default function MpptChat() {
                     return updated;
                 });
 
-                // Reset uploaded files after submit
-                setUploadedFiles([]);
                 startPolling(jobId);
             } else {
                 throw new Error(res.message || "Failed to start MPPT job");
