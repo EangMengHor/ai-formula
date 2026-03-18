@@ -379,7 +379,7 @@ export default function MpptChat() {
         // Poll immediately, then every 3 seconds
         poll();
         setTimeout(() => poll(), 1500);
-        pollIntervalRef.current = setInterval(poll, 3000);
+        pollIntervalRef.current = setInterval(poll, 20000);
     }, []);
 
     const handleNewMessage = async ({ prompt, isInternetSearch }) => {
