@@ -544,13 +544,13 @@ function ChatInput({
       {pathname.includes("dashboard") && (
         <div
           onClick={() => {
-            navigate("/content-ai");
+            navigate("/mppt/dashboard");
           }}
           className="bg-slate-800 hover:bg-slate-700 cursor-pointer transition-all mx-5 rounded-t-lg py-1 flex items-center justify-between"
         >
-          <p className="mx-2 text-sm">Try Content Generation AI</p>
+          <p className="mx-2 text-sm">Try MPPT AI</p>
           <div className="text-sm mr-2 flex gap-2 items-center">
-            Go To Content AI <MoveRight />
+            Go To MPPT AI <MoveRight />
           </div>
         </div>
       )}

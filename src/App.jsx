@@ -64,7 +64,10 @@ import ContentChatInput from "./pages/_contenAi/ContentChatInput";
 import WebFrameworkExtraction from "./pages/_webFrameworkExtraction/WebFrameworkExtraction";
 import WebFrameworkCreateNewJob from "./pages/_webFrameworkExtraction/WebFrameworkCreateNewJob";
 import WebFrameworkJobStatus from "./pages/_webFrameworkExtraction/WebFrameworkJobStatus";
-import MpptDashboard from "./components/custom/mppt/MpptDashboard";
+import MpptDashboard from "./pages/_mppt/MpptDashboard";
+import MpptChat from "./pages/_mppt/MpptChat";
+import DecisionAgent from "./pages/_mppt/DecisionAgent";
+import UserDecisions from "./pages/_mppt/UserDecisions";
 
 export default function App() {
   const location = useLocation();
@@ -140,6 +143,9 @@ export default function App() {
           {/* code chat interface */}
           <Route element={<SidebarProvided />}>
             <Route path="/mppt/dashboard" element={<MpptDashboard />} />
+            <Route path="/mppt/chat/:sessionId" element={<MpptChat />} />
+            <Route path="/mppt/decisions" element={<UserDecisions />} />
+            <Route path="/mppt/decision-agent" element={<DecisionAgent />} />
 
             {/* content ai */}
             <Route

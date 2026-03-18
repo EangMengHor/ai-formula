@@ -157,3 +157,12 @@ export const startContentTaskUrl = `${import.meta.env.VITE_SOCKET_URL}/api/conte
 export const pollContentTaskUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/poll-content-task`;
 export const getPresignedUrlForContentUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/get-presigned-url`;
 export const deployToVercelUrl = `${import.meta.env.VITE_SOCKET_URL}/api/content-ai/deploy-to-vercel`;
+
+// MPPT (Multi-Phase Parallel Thinking)
+export const startMpptUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/start-mppt`;
+export const pollMpptJobUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/poll-mppt-job`;
+export const vectorizeMpptDocumentsUrl = `${import.meta.env.VITE_SOCKET_URL}/webhook/mppt/vectorize-documents`;
+export const askDecisionAgentUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/ask-decision-agent`;
+export const getUserDecisionsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/get-user-decisions`;
+export const getMpptChatHistoryUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/get-chat-history`;
+export const getUserMpptJobsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/get-user-jobs`;
