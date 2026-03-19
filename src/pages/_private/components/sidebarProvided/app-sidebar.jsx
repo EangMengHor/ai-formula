@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Ellipsis, Plus, Workflow } from "lucide-react";
+import { Ellipsis, Plus, Workflow, BrainCircuit } from "lucide-react";
 
 import { NavMain } from "@/pages/_private/components/sidebarProvided/nav-main";
 import { ToolsMenu } from "@/pages/_private/components/sidebarProvided/ToolsMenu";
@@ -215,6 +215,17 @@ export function AppSidebar({ ...props }) {
 
             {/* Search - Secondary Option */}
             <SearchChats />
+
+            {/* MPPT */}
+            <div
+              onClick={() => navigate("/mppt/dashboard")}
+              className="cursor-pointer px-2 py-1 hover:bg-slate-800 mt-2 mx-2 rounded-md flex items-center"
+            >
+              <div className="w-6 h-6 flex gap-1 items-center p-1 mr-2">
+                <BrainCircuit className="w-5 rounded-md" />
+              </div>
+              <p className="font-bold">MPPT</p>
+            </div>
 
             {/* Tools Menu - Collapsible Section */}
             <ToolsMenu />
