@@ -14,6 +14,8 @@ import {
     ChevronUp,
     Shield,
     RefreshCw,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react";
 
 const LIMIT = 10;
@@ -102,13 +104,12 @@ export default function UserDecisions() {
 
     const [decisions, setDecisions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
 
-    const loadDecisions = async (pageToLoad = 1, append = false) => {
+    const loadDecisions = async (pageToLoad = 1) => {
         const userId = getUserId();
         if (!userId) {
             setError("User not found. Please log in.");
@@ -117,17 +118,13 @@ export default function UserDecisions() {
         }
 
         try {
-            if (append) {
-                setIsLoadingMore(true);
-            } else {
-                setIsLoading(true);
-                setError(null);
-            }
+            setIsLoading(true);
+            setError(null);
 
             const res = await getUserDecisions(userId, pageToLoad, LIMIT);
 
             if (res.success && Array.isArray(res.data)) {
-                setDecisions((prev) => append ? [...prev, ...res.data] : res.data);
+                setDecisions(res.data);
                 if (res.pagination) {
                     setTotalPages(res.pagination.totalPages);
                     setTotal(res.pagination.total);
@@ -140,23 +137,19 @@ export default function UserDecisions() {
             setError("Failed to load decisions. Please try again.");
         } finally {
             setIsLoading(false);
-            setIsLoadingMore(false);
         }
     };
 
-    const handleLoadMore = () => {
-        const nextPage = page + 1;
-        loadDecisions(nextPage, true);
+    const handlePageChange = (newPage) => {
+        loadDecisions(newPage);
     };
 
     const handleRefresh = () => {
-        setDecisions([]);
-        setPage(1);
-        loadDecisions(1, false);
+        loadDecisions(1);
     };
 
     useEffect(() => {
-        loadDecisions(1, false);
+        loadDecisions(1);
     }, []);
 
     // Group visible decisions by scenarioId
@@ -270,39 +263,32 @@ export default function UserDecisions() {
                             </div>
                         ))}
 
-                        {/* Load More */}
-                        {page < totalPages && (
-                            <div className="flex justify-center pt-2 pb-4">
-                                <button
-                                    onClick={handleLoadMore}
-                                    disabled={isLoadingMore}
-                                    className="flex items-center gap-2 text-sm text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
-                                >
-                                    {isLoadingMore ? (
-                                        <>
-                                            <LoaderCircle className="w-4 h-4 animate-spin" />
-                                            Loading...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Load more
-                                            <span className="text-xs text-gray-500">
-                                                ({decisions.length} of {total})
-                                            </span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-
-                        {page >= totalPages && total > LIMIT && (
-                            <p className="text-center text-xs text-gray-600 pb-4">
-                                All {total} decisions loaded
-                            </p>
-                        )}
                     </div>
                 )}
             </div>
+
+            {/* Pagination footer — always visible */}
+            {!isLoading && !error && totalPages > 1 && (
+                <div className="flex-shrink-0 flex items-center justify-center gap-3 px-4 py-3 border-t border-white/10">
+                    <button
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page <= 1}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        <ChevronLeft className="w-4 h-4 text-gray-400" />
+                    </button>
+                    <span className="text-xs text-gray-500">
+                        Page {page} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page >= totalPages}
+                        className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
