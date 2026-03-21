@@ -126,6 +126,7 @@ export default function MpptChatInput({
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
+  const voiceInputRef = useRef(false); // true when current prompt came from voice transcription
 
   // Settings panel
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -487,6 +488,7 @@ export default function MpptChatInput({
         const response = await TTS(file);
         if (response.success) {
           setPrompt(response.data);
+          voiceInputRef.current = true; // flag: this prompt came from voice
         } else {
           toast({
             title: "Transcription Failed",
@@ -738,7 +740,9 @@ export default function MpptChatInput({
 
     setIsSubmitting(true);
     try {
-      await onSubmit({ prompt: trimmedPrompt, isInternetSearch });
+      const isVoice = voiceInputRef.current;
+      voiceInputRef.current = false; // reset before navigating away
+      await onSubmit({ prompt: trimmedPrompt, isInternetSearch, isVoice });
       setPrompt("");
     } catch (error) {
       toast({

@@ -279,7 +279,15 @@ export default function MpptChat() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [activeJobId, setActiveJobId] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
-  const [voiceActive, setVoiceActive] = useState(false);
+  const [voiceActive, setVoiceActive] = useState(() => {
+    // If user submitted via voice from dashboard, auto-activate voice responses
+    const flag = localStorage.getItem("mpptVoiceInitiated");
+    if (flag === "true") {
+      localStorage.removeItem("mpptVoiceInitiated"); // consume once
+      return true;
+    }
+    return false;
+  });
   const [voiceSettings, setVoiceSettings] = useState(() => {
     try {
       const saved = JSON.parse(
