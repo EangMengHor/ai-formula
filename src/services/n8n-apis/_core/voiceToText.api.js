@@ -7,7 +7,7 @@ export async function TTS(file) {
   try {
     console.log(file);
     const formData = new FormData();
-    formData.append("data", file, { type: "audio/webm" });
+    formData.append("data", file, file.name || "recording.webm");
 
     const res = await axios.post(`${voiceToText}`, formData, {
       headers: {

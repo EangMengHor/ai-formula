@@ -38,9 +38,6 @@ const TTSPrompt = forwardRef(
 
       const currentTime = audioRef.current?.currentTime || 0;
       const bufferedStart = sourceBuffer.buffered.start(0);
-      const bufferedEnd = sourceBuffer.buffered.end(
-        sourceBuffer.buffered.length - 1,
-      );
 
       // Try aggressive cleaning - remove most of the buffer except last few seconds
       const safePoint = Math.max(currentTime - 3, bufferedStart);
