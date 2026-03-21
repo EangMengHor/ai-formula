@@ -28,9 +28,9 @@ import useStartTTS from "@/hooks/StartTTS";
 
 const getUserId = () => localStorage.getItem("id");
 const DEFAULT_VOICE_SETTINGS = {
-  reasoning: false,
+  reasoning: true,
   answer: true,
-  keyDecision: false,
+  keyDecision: true,
 };
 
 const statusIcon = (status) => {
