@@ -34,9 +34,9 @@ import { Label } from "@/components/ui/label";
 import useStartTTS from "@/hooks/StartTTS";
 
 const DEFAULT_VOICE_SETTINGS = {
-  reasoning: false,
+  reasoning: true,
   answer: true,
-  keyDecision: false,
+  keyDecision: true,
 };
 
 const ACCEPTED_TYPES = ".pdf,.csv,.xlsx,.txt";
