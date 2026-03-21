@@ -11,7 +11,6 @@ import {
   AudioLines,
   SlidersHorizontal,
   Square,
-  Podcast,
 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -99,6 +98,8 @@ export default function MpptChatInput({
   uploadedFiles = [],
   voiceActive = false,
   setVoiceActive = () => {},
+  isNarrating = false,
+  onStopVoice = () => {},
   setUploadedFiles = () => {},
 }) {
   const textareaRef = useRef(null);
@@ -144,10 +145,7 @@ export default function MpptChatInput({
       return DEFAULT_VOICE_SETTINGS;
     }
   });
-  // Stop button — visible when mpptVoiceProcess == "true"
-  const [showStop, setShowStop] = useState(
-    () => localStorage.getItem("mpptVoiceProcess") === "true",
-  );
+  // Stop button visibility is driven by the voiceActive prop from MpptChat
   const [stopState, setStopState] = useState(true);
 
   const {
@@ -170,13 +168,6 @@ export default function MpptChatInput({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Sync showStop with localStorage changes (from other tabs or internal updates)
-  useEffect(() => {
-    const onStorage = () =>
-      setShowStop(localStorage.getItem("mpptVoiceProcess") === "true");
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
 
   const updateVoiceSetting = (key, value) => {
     setVoiceSettings((prev) => {
@@ -973,26 +964,15 @@ export default function MpptChatInput({
 
               {/* Right: Stop (conditional) + Send/AudioLines */}
               <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                {/* Stop — only when mpptVoiceProcess is active */}
-                {showStop && (
+                {/* Stop — only while speech is actively playing */}
+                {voiceActive && isNarrating && (
                   <button
-                    onClick={() => console.log("mppt voice stopped")}
+                    onClick={onStopVoice}
                     className="flex items-center gap-1 px-2 py-1.5 sm:px-2.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
-                    title="Stop voice process"
+                    title="Stop voice"
                   >
                     <Square className="w-3 h-3 fill-current flex-shrink-0" />
-                    <span className="hidden sm:inline">Stop Voice</span>
-                  </button>
-                )}
-
-                {voiceActive && (
-                  <button
-                    onClick={() => console.log("mppt voice stopped")}
-                    className="flex items-center gap-1 px-2 py-1.5 sm:px-2.5 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all"
-                    title="Stop voice process"
-                  >
-                    <Podcast className="w-3 h-3 fill-current flex-shrink-0" />
-                    <span className="hidden sm:inline">Voice Activated</span>
+                    <span className="hidden sm:inline">Stop</span>
                   </button>
                 )}
 
