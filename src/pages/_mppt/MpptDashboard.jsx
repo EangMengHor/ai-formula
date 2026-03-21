@@ -44,10 +44,15 @@ export default function MpptDashboard() {
         });
     }, []);
 
-    const handleSubmit = async ({ prompt, isInternetSearch }) => {
+    const handleSubmit = async ({ prompt, isInternetSearch, isVoice }) => {
         if (!prompt.trim() && uploadedFiles.length === 0) return;
         localStorage.setItem("mpptPrompt", prompt.trim());
         localStorage.setItem("mpptInternetSearch", String(isInternetSearch));
+        if (isVoice) {
+            localStorage.setItem("mpptVoiceInitiated", "true");
+        } else {
+            localStorage.removeItem("mpptVoiceInitiated");
+        }
         navigate(`/mppt/chat/${sessionId}`);
     };
 
