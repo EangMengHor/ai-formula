@@ -8,6 +8,7 @@ import {
     getUserDecisionsUrl,
     getMpptChatHistoryUrl,
     getUserMpptJobsUrl,
+    getMpptContentToDownloadUrl,
 } from "@/namespace/server";
 
 /**
@@ -160,6 +161,24 @@ export async function getMpptChatHistory(sessionId) {
         return response(false, res.data.message || "Failed to fetch history", null);
     } catch (error) {
         console.error("Error fetching MPPT chat history:", error);
+        return response(false, error.message || "An error occurred", null);
+    }
+}
+
+/**
+ * Get content string for a job to be downloaded as PDF
+ */
+export async function getContentToDownload(jobId) {
+    try {
+        const res = await axios.post(getMpptContentToDownloadUrl, { jobId }, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+        });
+        return response(true, "Content fetched", res.data);
+    } catch (error) {
+        console.error("Error fetching content to download:", error);
         return response(false, error.message || "An error occurred", null);
     }
 }
