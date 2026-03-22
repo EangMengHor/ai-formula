@@ -5,7 +5,9 @@ import {
   startMpptJob,
   pollMpptJob,
   getMpptChatHistory,
+  getContentToDownload,
 } from "@/services/mppt/mppt.api";
+import { handlePdfDownload } from "@/pages/_private/components/sidebarProvided/chat/PdfDownload";
 import {
   LoaderCircle,
   ChevronDown,
@@ -18,6 +20,7 @@ import {
   Check,
   ListChecks,
   Brain,
+  FolderDown,
 } from "lucide-react";
 import LoadingAnimation from "@/components/custom/Loading";
 import MarkdownRenderer from "../_private/components/sidebarProvided/components/AnimatedMarkdown";
@@ -217,6 +220,54 @@ function CopyButton({ text }) {
   );
 }
 
+function MpptDownloadButton({ jobId }) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownload = async () => {
+    if (!jobId || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const res = await getContentToDownload(jobId);
+      if (!res.success || !res.data?.s) {
+        throw new Error("Failed to fetch content");
+      }
+      await handlePdfDownload({
+        currContent: res.data.s,
+        pdfFileName: `mppt-response-${jobId}`,
+        setIsPdfDownloadLoading: setIsDownloading,
+        setPdfDialogOpen: () => {},
+        toast,
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: error.message || "Could not download content",
+        variant: "destructive",
+      });
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={isDownloading}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 hover:border-blue-400/60 transition-colors text-blue-300 hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      title="Download as PDF"
+    >
+      {isDownloading ? (
+        <LoaderCircle className="w-4 h-4 animate-spin" />
+      ) : (
+        <FolderDown className="w-4 h-4" />
+      )}
+      <span className="text-sm font-medium">
+        {isDownloading ? "Downloading..." : "Download PDF"}
+      </span>
+    </button>
+  );
+}
+
 function MessageBlock({ message }) {
   if (message.role === "user") {
     return (
@@ -229,7 +280,7 @@ function MessageBlock({ message }) {
   }
 
   // assistant message
-  const { branches, answer, decisions, status } = message;
+  const { branches, answer, decisions, status, jobId } = message;
   const hasBranches = branches && branches.length > 0;
   const hasAnswer = answer && answer.trim();
   const hasDecisions = decisions && decisions.length > 0;
@@ -242,12 +293,15 @@ function MessageBlock({ message }) {
 
         {/* Answer */}
         {hasAnswer && (
-          <div className="group relative">
+          <div className="relative">
             <div className="text-gray-200">
               <MarkdownRenderer content={answer} />
             </div>
-            <div className="flex justify-end mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex justify-end items-center mt-2 gap-2">
               <CopyButton text={answer} />
+              {jobId && status === "completed" && (
+                <MpptDownloadButton jobId={jobId} />
+              )}
             </div>
           </div>
         )}
