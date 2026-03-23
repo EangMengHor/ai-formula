@@ -6,6 +6,8 @@ import {
   pollMpptJob,
   getMpptChatHistory,
   getContentToDownload,
+  addMpptFavorite,
+  removeMpptFavorite,
 } from "@/services/mppt/mppt.api";
 import { handlePdfDownload } from "@/pages/_private/components/sidebarProvided/chat/PdfDownload";
 import {
@@ -21,11 +23,21 @@ import {
   ListChecks,
   Brain,
   FolderDown,
+  Loader2,
+  Volume2,
+  CircleStop,
+  Star,
 } from "lucide-react";
 import LoadingAnimation from "@/components/custom/Loading";
 import MarkdownRenderer from "../_private/components/sidebarProvided/components/AnimatedMarkdown";
 import MpptChatInput from "./MpptChatInput";
 import useStartTTS from "@/hooks/StartTTS";
+import TTSPrompt from "@/components/custom/TTSPrompt";
+
+// ── shared button styles (matches ChatActionButtons.jsx) ─────────────────────
+const btnClass =
+  "px-2.5 py-1.5 gap-1.5 text-sm bg-slate-900 hover:bg-slate-700 rounded-xl flex items-center justify-center text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+const iconClass = "h-4 w-4 flex-shrink-0";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -206,15 +218,17 @@ function CopyButton({ text }) {
     }
   };
   return (
-    <button
-      onClick={handleCopy}
-      className="p-1.5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
-      title="Copy answer"
-    >
+    <button onClick={handleCopy} className={btnClass} title="Copy answer">
       {copied ? (
-        <Check className="w-3.5 h-3.5 text-green-400" />
+        <>
+          <Check className={iconClass} />
+          <span>Copied</span>
+        </>
       ) : (
-        <Copy className="w-3.5 h-3.5 text-gray-400" />
+        <>
+          <Copy className={iconClass} />
+          <span>Copy</span>
+        </>
       )}
     </button>
   );
@@ -253,17 +267,20 @@ function MpptDownloadButton({ jobId }) {
     <button
       onClick={handleDownload}
       disabled={isDownloading}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 hover:border-blue-400/60 transition-colors text-blue-300 hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      className={btnClass}
       title="Download as PDF"
     >
       {isDownloading ? (
-        <LoaderCircle className="w-4 h-4 animate-spin" />
+        <>
+          <Loader2 className={`${iconClass} animate-spin`} />
+          <span>Downloading...</span>
+        </>
       ) : (
-        <FolderDown className="w-4 h-4" />
+        <>
+          <FolderDown className={iconClass} />
+          <span>Download</span>
+        </>
       )}
-      <span className="text-sm font-medium">
-        {isDownloading ? "Downloading..." : "Download PDF"}
-      </span>
     </button>
   );
 }
@@ -297,11 +314,32 @@ function MessageBlock({ message }) {
             <div className="text-gray-200">
               <MarkdownRenderer content={answer} />
             </div>
-            <div className="flex justify-end items-center mt-2 gap-2">
+            <div className="flex justify-start items-center mt-3 gap-2 flex-wrap">
               <CopyButton text={answer} />
               {jobId && status === "completed" && (
                 <MpptDownloadButton jobId={jobId} />
               )}
+              <TTSPrompt
+                prompt={answer}
+                startButton={
+                  <button className={btnClass}>
+                    <Volume2 className={iconClass} />
+                    <span>Voice</span>
+                  </button>
+                }
+                StopButton={
+                  <button className={`${btnClass} border border-white/30`}>
+                    <CircleStop className={iconClass} />
+                    <span>Stop</span>
+                  </button>
+                }
+                loadingButton={
+                  <button className={btnClass}>
+                    <Loader2 className={`${iconClass} animate-spin`} />
+                    <span>Starting...</span>
+                  </button>
+                }
+              />
             </div>
           </div>
         )}
@@ -333,6 +371,8 @@ export default function MpptChat() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [activeJobId, setActiveJobId] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [voiceActive, setVoiceActive] = useState(() => {
     // If user submitted via voice from dashboard, auto-activate voice responses
     const flag = localStorage.getItem("mpptVoiceInitiated");
@@ -473,10 +513,12 @@ export default function MpptChat() {
 
       try {
         setIsLoadingHistory(true);
-        const res = await getMpptChatHistory(sessionId);
+        const userId = getUserId();
+        const res = await getMpptChatHistory(sessionId, userId);
 
         if (res.success && res.data) {
-          const { chatHistory, files } = res.data;
+          const { chatHistory, files, isFavorited: favStatus } = res.data;
+          if (typeof favStatus === "boolean") setIsFavorited(favStatus);
 
           if (Array.isArray(chatHistory) && chatHistory.length > 0) {
             const loadedMessages = chatHistory.flatMap((item) => [
@@ -534,6 +576,25 @@ export default function MpptChat() {
       });
     }
   }, [isLoadingHistory]);
+
+  const handleToggleFavorite = async () => {
+    const userId = getUserId();
+    if (!userId || isTogglingFavorite) return;
+    setIsTogglingFavorite(true);
+    try {
+      if (isFavorited) {
+        await removeMpptFavorite(userId, sessionId);
+        setIsFavorited(false);
+      } else {
+        await addMpptFavorite(userId, sessionId);
+        setIsFavorited(true);
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to update favorite", variant: "destructive" });
+    } finally {
+      setIsTogglingFavorite(false);
+    }
+  };
 
   const startPolling = useCallback((jobId) => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
@@ -803,20 +864,35 @@ export default function MpptChat() {
             </button>
           </div>
 
-          {isNarrating && (
+          <div className="flex items-center gap-3">
+            {isNarrating && (
+              <button
+                onClick={skipCurrentNarration}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                <span>
+                  {narrationStage === "reasoning"
+                    ? "Skip reasoning"
+                    : narrationStage === "answer"
+                    ? "Skip answer"
+                    : "Skip decisions"}
+                </span>
+              </button>
+            )}
             <button
-              onClick={skipCurrentNarration}
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+              onClick={handleToggleFavorite}
+              disabled={isTogglingFavorite}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-50"
+              title={isFavorited ? "Remove from favorites" : "Add to favorites"}
             >
-              <span>
-                {narrationStage === "reasoning"
-                  ? "Skip reasoning"
-                  : narrationStage === "answer"
-                  ? "Skip answer"
-                  : "Skip decisions"}
-              </span>
+              <Star
+                className={`w-3.5 h-3.5 transition-colors ${
+                  isFavorited ? "text-yellow-400 fill-yellow-400" : ""
+                }`}
+              />
+              <span>{isFavorited ? "Favorited" : "Favorite"}</span>
             </button>
-          )}
+          </div>
         </div>
 
         <MpptChatInput

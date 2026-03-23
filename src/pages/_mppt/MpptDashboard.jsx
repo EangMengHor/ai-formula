@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import MpptChatInput from "./MpptChatInput";
-import { getUserMpptJobs } from "@/services/mppt/mppt.api";
+import { getUserMpptJobs, addMpptFavorite, removeMpptFavorite } from "@/services/mppt/mppt.api";
 import {
     Brain,
     ListChecks,
@@ -12,6 +12,7 @@ import {
     History,
     ChevronRight,
     Sparkles,
+    Star,
 } from "lucide-react";
 
 const statusIcon = (status) => {
@@ -26,6 +27,40 @@ const statusLabel = (status) => {
     return "text-yellow-400";
 };
 
+function SessionRow({ session, onNavigate, onToggleFavorite, isToggling }) {
+    return (
+        <button
+            onClick={onNavigate}
+            className="w-full flex items-center justify-between bg-g1 hover:bg-g2 px-4 py-3 rounded-xl transition-all text-left group"
+        >
+            <div className="flex items-center gap-3 min-w-0">
+                {statusIcon(session.status)}
+                <p className="text-sm text-gray-200 font-mono truncate">{session.sessionId}</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                <span className={`text-xs capitalize font-medium ${statusLabel(session.status)}`}>
+                    {session.status}
+                </span>
+                <button
+                    onClick={onToggleFavorite}
+                    disabled={isToggling}
+                    className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+                    title={session.isFavorited ? "Remove from favorites" : "Add to favorites"}
+                >
+                    <Star
+                        className={`w-3.5 h-3.5 transition-colors ${
+                            session.isFavorited
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-gray-600 group-hover:text-gray-400"
+                        }`}
+                    />
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 transition-colors" />
+            </div>
+        </button>
+    );
+}
+
 export default function MpptDashboard() {
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -33,6 +68,8 @@ export default function MpptDashboard() {
     const [sessionId] = useState(() => crypto.randomUUID());
     const [uploadedFiles, setUploadedFiles] = useState([]);
     const [userJobs, setUserJobs] = useState([]);
+
+    const [togglingFavorite, setTogglingFavorite] = useState(null);
 
     useEffect(() => {
         const userId = localStorage.getItem("id");
@@ -43,6 +80,57 @@ export default function MpptDashboard() {
             }
         });
     }, []);
+
+    // Group jobs by sessionId — one session row per unique sessionId.
+    // Status priority: running > pending > error > completed
+    const STATUS_PRIORITY = { running: 3, pending: 2, error: 1, completed: 0 };
+    const sessions = useMemo(() => {
+        const map = new Map();
+        for (const job of userJobs) {
+            if (!map.has(job.sessionId)) {
+                map.set(job.sessionId, {
+                    sessionId: job.sessionId,
+                    isFavorited: job.isFavorited,
+                    status: job.status,
+                });
+            } else {
+                const existing = map.get(job.sessionId);
+                if ((STATUS_PRIORITY[job.status] ?? 0) > (STATUS_PRIORITY[existing.status] ?? 0)) {
+                    existing.status = job.status;
+                }
+            }
+        }
+        return Array.from(map.values());
+    }, [userJobs]);
+
+    const favoritedSessions = useMemo(() => sessions.filter((s) => s.isFavorited), [sessions]);
+    const recentSessions = useMemo(() => sessions.filter((s) => !s.isFavorited), [sessions]);
+
+    const handleToggleFavorite = async (e, session) => {
+        e.stopPropagation();
+        const userId = localStorage.getItem("id");
+        if (!userId || togglingFavorite === session.sessionId) return;
+
+        setTogglingFavorite(session.sessionId);
+        try {
+            if (session.isFavorited) {
+                await removeMpptFavorite(userId, session.sessionId);
+            } else {
+                await addMpptFavorite(userId, session.sessionId);
+            }
+            setUserJobs((prev) =>
+                prev.map((j) =>
+                    j.sessionId === session.sessionId
+                        ? { ...j, isFavorited: !j.isFavorited }
+                        : j
+                )
+            );
+        } catch {
+            toast({ title: "Error", description: "Failed to update favorite", variant: "destructive" });
+        } finally {
+            setTogglingFavorite(null);
+        }
+    };
 
     const handleSubmit = async ({ prompt, isInternetSearch, isVoice }) => {
         if (!prompt.trim() && uploadedFiles.length === 0) return;
@@ -121,36 +209,52 @@ export default function MpptDashboard() {
                     </button>
                 </div>
 
-                {/* Recent Sessions */}
-                {userJobs.length > 0 && (
-                    <div className="w-full">
-                        <div className="flex items-center gap-2 mb-3">
-                            <History className="w-3.5 h-3.5 text-gray-500" />
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Recent Sessions</p>
-                        </div>
-                        <div className="space-y-1.5">
-                            {userJobs.map((job) => (
-                                <button
-                                    key={job.id}
-                                    onClick={() => navigate(`/mppt/chat/${job.sessionId}`)}
-                                    className="w-full flex items-center justify-between bg-g1 hover:bg-g2 px-4 py-3 rounded-xl transition-all text-left group"
-                                >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        {statusIcon(job.status)}
-                                        <div className="min-w-0">
-                                            <p className="text-sm text-gray-200 truncate">Session #{job.id}</p>
-                                            <p className="text-xs text-gray-500 font-mono truncate">{job.sessionId}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                                        <span className={`text-xs capitalize font-medium ${statusLabel(job.status)}`}>
-                                            {job.status}
-                                        </span>
-                                        <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 transition-colors" />
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                {/* Sessions */}
+                {sessions.length > 0 && (
+                    <div className="w-full space-y-4">
+
+                        {/* Favorited Sessions */}
+                        {favoritedSessions.length > 0 && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Favorites</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    {favoritedSessions.map((session) => (
+                                        <SessionRow
+                                            key={session.sessionId}
+                                            session={session}
+                                            onNavigate={() => navigate(`/mppt/chat/${session.sessionId}`)}
+                                            onToggleFavorite={(e) => handleToggleFavorite(e, session)}
+                                            isToggling={togglingFavorite === session.sessionId}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Recent Sessions */}
+                        {recentSessions.length > 0 && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <History className="w-3.5 h-3.5 text-gray-500" />
+                                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Recent Sessions</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    {recentSessions.map((session) => (
+                                        <SessionRow
+                                            key={session.sessionId}
+                                            session={session}
+                                            onNavigate={() => navigate(`/mppt/chat/${session.sessionId}`)}
+                                            onToggleFavorite={(e) => handleToggleFavorite(e, session)}
+                                            isToggling={togglingFavorite === session.sessionId}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 )}
 
