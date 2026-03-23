@@ -33,7 +33,7 @@ import MarkdownRenderer from "../_private/components/sidebarProvided/components/
 import MpptChatInput from "./MpptChatInput";
 import useStartTTS from "@/hooks/StartTTS";
 import TTSPrompt from "@/components/custom/TTSPrompt";
-
+import { useScrollToBottom } from "@/hooks/scrollToBottom";
 // ── shared button styles (matches ChatActionButtons.jsx) ─────────────────────
 const btnClass =
   "px-2.5 py-1.5 gap-1.5 text-sm bg-slate-900 hover:bg-slate-700 rounded-xl flex items-center justify-center text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
@@ -399,6 +399,12 @@ export default function MpptChat() {
   const [isNarrating, setIsNarrating] = useState(false);
 
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const { checkIfNearBottom } = useScrollToBottom(chatContainerRef);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
   const pollIntervalRef = useRef(null);
   const hasLoadedHistory = useRef(false);
   const voiceActiveRef = useRef(voiceActive);
@@ -429,6 +435,18 @@ export default function MpptChat() {
       setStopState(true);
     }
   }, [stopState]);
+
+  useEffect(() => {
+    if (checkIfNearBottom()) {
+      scrollToBottom();
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (!isPolling) {
+      scrollToBottom();
+    }
+  }, [isPolling]);
 
   const playNextNarration = useCallback(() => {
     if (isNarrationStoppedRef.current) {
@@ -822,7 +840,7 @@ export default function MpptChat() {
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto w-full overflow-hidden">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 && !isPolling && (
           <div className="flex items-center justify-center h-full text-gray-400">
             <p>Start the analysis by typing a prompt below</p>
@@ -843,7 +861,7 @@ export default function MpptChat() {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 p-3 sm:p-4 pt-2">
+      <div className="flex-shrink-0 p-3 sm:p-4 pt-2 relative">
         {/* Single meta row: nav links left, skip right */}
         <div className="flex items-center justify-between mb-2 px-0.5">
           <div className="flex items-center gap-3">
@@ -907,6 +925,7 @@ export default function MpptChat() {
           setVoiceSettings={setVoiceSettings}
           isNarrating={isNarrating}
           onStopVoice={stopAllNarration}
+          onScrollToBottom={scrollToBottom}
         />
       </div>
       <audio ref={audioRef} onEnded={handleAudioEnded} className="hidden" />
