@@ -316,7 +316,7 @@ const DeleteModal = ({
   );
 };
 
-const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
+const PromptLibrary = ({ isOpen, onClose, onImportPrompt, warnAtLength = null }) => {
   const [prompts, setPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -635,9 +635,12 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
   };
 
   const PromptCard = ({ prompt }) => {
+    const promptLength = prompt.output?.length ?? 0;
+    const isOverLimit = warnAtLength !== null && promptLength > warnAtLength;
+
     if (isMobile) {
       return (
-        <div className="bg-g2 border border-slate-700 rounded-lg p-4">
+        <div className={`bg-g2 border rounded-lg p-4 transition-opacity ${isOverLimit ? "border-slate-700/50 opacity-50" : "border-slate-700"}`}>
           <div className="flex items-start justify-between mb-3">
             <div className="flex-1 min-w-0">
               <h3 className="text-white font-medium text-sm truncate mb-1">
@@ -662,9 +665,15 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
             </Button>
           </div>
 
-          <p className="text-slate-300 text-sm mb-4 line-clamp-3">
+          <p className="text-slate-300 text-sm mb-3 line-clamp-3">
             {getPreviewText(prompt.output)}
           </p>
+
+          {isOverLimit && (
+            <p className="text-xs text-amber-400/80 mb-3">
+              Prompt exceeds {warnAtLength.toLocaleString()} characters ({promptLength.toLocaleString()} chars)
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -719,7 +728,7 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
     }
 
     return (
-      <div className="bg-g2 border border-slate-700 rounded-lg p-4 hover:bg-slate-800/50 transition-colors">
+      <div className={`bg-g2 border rounded-lg p-4 hover:bg-slate-800/50 transition-colors ${isOverLimit ? "border-slate-700/50 opacity-50" : "border-slate-700"}`}>
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">
             <h3 className="text-white font-medium text-sm truncate mb-1">
@@ -769,9 +778,15 @@ const PromptLibrary = ({ isOpen, onClose, onImportPrompt }) => {
           </DropdownMenu>
         </div>
 
-        <p className="text-slate-300 text-sm mb-4 line-clamp-3">
+        <p className="text-slate-300 text-sm mb-3 line-clamp-3">
           {getPreviewText(prompt.output)}
         </p>
+
+        {isOverLimit && (
+          <p className="text-xs text-amber-400/80 mb-3">
+            Prompt exceeds {warnAtLength.toLocaleString()} characters ({promptLength.toLocaleString()} chars)
+          </p>
+        )}
 
         <Button
           size="sm"

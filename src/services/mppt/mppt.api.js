@@ -9,6 +9,8 @@ import {
     getMpptChatHistoryUrl,
     getUserMpptJobsUrl,
     getMpptContentToDownloadUrl,
+    addMpptFavoriteUrl,
+    removeMpptFavoriteUrl,
 } from "@/namespace/server";
 
 /**
@@ -146,10 +148,13 @@ export async function getUserDecisions(userId, page = 1, limit = 10) {
 
 /**
  * Get MPPT chat history for a session
+ * Pass userId to also receive isFavorited status in the response
  */
-export async function getMpptChatHistory(sessionId) {
+export async function getMpptChatHistory(sessionId, userId = null) {
     try {
+        const params = userId ? { userId } : {};
         const res = await axios.get(`${getMpptChatHistoryUrl}/${sessionId}`, {
+            params,
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
             },
@@ -161,6 +166,50 @@ export async function getMpptChatHistory(sessionId) {
         return response(false, res.data.message || "Failed to fetch history", null);
     } catch (error) {
         console.error("Error fetching MPPT chat history:", error);
+        return response(false, error.message || "An error occurred", null);
+    }
+}
+
+/**
+ * Add a session to user's MPPT favorites
+ */
+export async function addMpptFavorite(userId, sessionId) {
+    try {
+        const res = await axios.post(addMpptFavoriteUrl, { userId, sessionId }, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+        });
+
+        if (res.data.success) {
+            return response(true, "Added to favorites", res.data.data);
+        }
+        return response(false, res.data.message || "Failed to add favorite", null);
+    } catch (error) {
+        console.error("Error adding MPPT favorite:", error);
+        return response(false, error.message || "An error occurred", null);
+    }
+}
+
+/**
+ * Remove a session from user's MPPT favorites
+ */
+export async function removeMpptFavorite(userId, sessionId) {
+    try {
+        const res = await axios.post(removeMpptFavoriteUrl, { userId, sessionId }, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+            },
+        });
+
+        if (res.data.success) {
+            return response(true, "Removed from favorites", res.data.data);
+        }
+        return response(false, res.data.message || "Failed to remove favorite", null);
+    } catch (error) {
+        console.error("Error removing MPPT favorite:", error);
         return response(false, error.message || "An error occurred", null);
     }
 }
