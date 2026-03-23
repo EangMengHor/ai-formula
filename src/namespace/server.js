@@ -167,3 +167,5 @@ export const getUserDecisionsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/
 export const getMpptChatHistoryUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/get-chat-history`;
 export const getUserMpptJobsUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/get-user-jobs`;
 export const getMpptContentToDownloadUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/get-content-to-download`;
+export const addMpptFavoriteUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/add-favorite`;
+export const removeMpptFavoriteUrl = `${import.meta.env.VITE_SOCKET_URL}/api/mppt/remove-favorite`;

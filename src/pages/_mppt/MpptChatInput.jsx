@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   Square,
   ArrowDownToDot,
+  Anvil,
 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +33,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import useStartTTS from "@/hooks/StartTTS";
+import PromptLibrary from "@/components/custom/PromptLibrary";
 
 const DEFAULT_VOICE_SETTINGS = {
   reasoning: true,
@@ -43,7 +45,7 @@ const ACCEPTED_TYPES = ".pdf,.csv,.xlsx,.txt";
 const ACCEPTED_EXTENSIONS = ["pdf", "csv", "xlsx", "txt"];
 const MAX_FILES = 10;
 const MAX_TOTAL_BYTES = 50 * 1024 * 1024; // 50 MB total
-const MAX_PROMPT_LENGTH = 5000;
+const MAX_PROMPT_LENGTH = 20000;
 const WAVEFORM_HISTORY = 80; // number of bars in the scrolling history
 const MPPT_PROGRESS_TTS_MESSAGES = [
   "Starting MPPT process now.",
@@ -133,6 +135,7 @@ export default function MpptChatInput({
 
   // Settings panel
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isPromptLibraryOpen, setIsPromptLibraryOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [voiceSettings, setVoiceSettings] = useState(() => {
     try {
@@ -922,11 +925,11 @@ export default function MpptChatInput({
           {/* Bottom toolbar */}
           {!isVoiceMode && (
             <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/10">
-              {/* Left: Paperclip + Web + Settings */}
-              <div className="flex items-center gap-0.5 sm:gap-1 min-w-0">
+              {/* Left: Paperclip + Web + Settings + Prompt Library */}
+              <div className="flex items-center gap-1 min-w-0">
                 {/* File upload */}
                 <label
-                  className={`p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 ${
+                  className={`p-2 rounded-lg transition-all flex-shrink-0 text-gray-400 hover:text-white hover:bg-white/10 ${
                     isDisabled || isAtCountLimit || isAtSizeLimit
                       ? "cursor-not-allowed opacity-50"
                       : "cursor-pointer"
@@ -948,30 +951,39 @@ export default function MpptChatInput({
                     onChange={handleFileInput}
                     disabled={isDisabled || isAtCountLimit || isAtSizeLimit}
                   />
-                  <Paperclip className="w-4 h-4 text-gray-400" />
+                  <Paperclip className="w-4 h-4" />
                 </label>
 
-                {/* Web Search — icon-only on mobile, pill on sm+ */}
+                {/* Web Search */}
                 <button
                   onClick={() => !isDisabled && setIsInternetSearch((v) => !v)}
-                  className={`flex items-center gap-1 p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
+                  className={`p-2 rounded-lg transition-all flex-shrink-0 ${
                     isInternetSearch
-                      ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
-                      : "bg-white/5 text-gray-500 hover:bg-white/10"
+                      ? "text-blue-400 hover:text-blue-300 hover:bg-white/10"
+                      : "text-gray-400 hover:text-white hover:bg-white/10"
                   } ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                   title={isInternetSearch ? "Web search on" : "Web search off"}
                 >
-                  <Globe className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-                  <span className="hidden sm:inline">Web</span>
+                  <Globe className="w-4 h-4" />
                 </button>
 
                 {/* Settings */}
                 <button
                   onClick={() => setSettingsOpen(true)}
-                  className="p-1.5 sm:p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
+                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
                   title="Voice settings"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
+                </button>
+
+                {/* Prompt Library */}
+                <button
+                  onClick={() => setIsPromptLibraryOpen(true)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all flex-shrink-0"
+                  title="Open Prompt Library"
+                  type="button"
+                >
+                  <Anvil className="w-4 h-4" />
                 </button>
               </div>
 
@@ -1069,6 +1081,20 @@ export default function MpptChatInput({
         </Dialog>
       )}
       <audio ref={audioRef} onEnded={handleAudioEnded} className="hidden" />
+
+      {/* Prompt Library */}
+      <PromptLibrary
+        isOpen={isPromptLibraryOpen}
+        onClose={() => setIsPromptLibraryOpen(false)}
+        warnAtLength={MAX_PROMPT_LENGTH}
+        onImportPrompt={(prompt) => {
+          setPrompt(prompt.output || "");
+          toast({
+            title: "Prompt imported",
+            description: `"${prompt.promptName || "Untitled"}" has been imported to the input field.`,
+          });
+        }}
+      />
     </div>
   );
 }
