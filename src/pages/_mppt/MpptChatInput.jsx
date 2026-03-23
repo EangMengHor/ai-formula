@@ -11,6 +11,7 @@ import {
   AudioLines,
   SlidersHorizontal,
   Square,
+  ArrowDownToDot,
 } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -101,6 +102,7 @@ export default function MpptChatInput({
   isNarrating = false,
   onStopVoice = () => {},
   setUploadedFiles = () => {},
+  onScrollToBottom = null,
 }) {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -757,8 +759,19 @@ export default function MpptChatInput({
   const isUploading = uploadingFiles.some((f) => f.status === "uploading");
   const isDisabled = disabled || isSubmitting;
 
+  // Implement scroll to bottom
   return (
     <div className="w-full max-w-[770px] mx-auto px-0">
+      {onScrollToBottom && (
+        <div className="absolute -top-14 right-0 flex items-center">
+          <div
+            onClick={onScrollToBottom}
+            className="m-2 rounded-full border p-2 border-slate-600 cursor-pointer hover:bg-slate-700"
+          >
+            <ArrowDownToDot className="text-gray-500 w-5 h-5" />
+          </div>
+        </div>
+      )}
       <div
         className={`relative bg-gradient-to-t from-g1 to-g2 rounded-2xl sm:rounded-3xl transition-all ${
           isDragging ? "ring-2 ring-blue-500 bg-blue-500/10" : ""

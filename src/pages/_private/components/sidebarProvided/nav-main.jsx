@@ -121,14 +121,14 @@ export function NavMain({ items, isClickedWorkflows }) {
                       key={index}
                       className={`${String(id) == item.sessionid ? "bg-slate-600" : ""} data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground flex justify-between hover:bg-gray-800 rounded-md cursor-pointer px-2 items-center`}
                     >
-                      <div className="flex gap-2 items-center">
-                        <p className="truncate max-w-xs py-1">
+                      <div className="flex gap-2 items-center min-w-0 flex-1 overflow-hidden">
+                        <p className="truncate py-1 w-full">
                           {item.chatname}
                         </p>
                       </div>
                       {!isShowChatSessionOptions == item.sessionid
                         ? clickedDropdown == item.sessionid
-                        : isShowChatSessionOptions == item.sessionid && (
+                        : (isShowChatSessionOptions == item.sessionid || isMobile) && (
                             <DropdownMenu
                               onOpenChange={(open) => {
                                 if (!open) {
